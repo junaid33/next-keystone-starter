@@ -11,7 +11,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ModelSwitcherDropdown } from "./ModelSwitcherDropdown";
-import { basePath, customNavItems } from "@/features/dashboard/lib/config";
+import { basePath } from "@/features/dashboard/lib/config";
 
 interface BreadcrumbItem {
   type: "link" | "model" | "page";
@@ -52,7 +52,6 @@ export function PageBreadcrumbs({ items, actions }: PageBreadcrumbsProps) {
                         {item.showModelSwitcher && (
                           <ModelSwitcherDropdown 
                             type="model"
-                            items={customNavItems}
                             basePath={basePath}
                           />
                         )}
@@ -64,7 +63,6 @@ export function PageBreadcrumbs({ items, actions }: PageBreadcrumbsProps) {
                           <ModelSwitcherDropdown
                             type={item.switcherType || "model"}
                             title={item.label}
-                            items={customNavItems}
                             basePath={basePath}
                           />
                         ) : (

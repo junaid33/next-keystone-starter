@@ -4,18 +4,18 @@
 
 import { getAuthHeaders } from './cookies';
 import { GraphQLClient, ClientError } from 'graphql-request';
+import { getGraphQLEndpoint } from './getBaseUrl';
 
 // Define response type for keystoneClient
 export type KeystoneResponse<T = any> =
   | { success: true; data: T; error?: never }
   | { success: false; error: string; errors?: any[]; data?: never };
 
-const endpoint = `${process.env.FRONTEND_URL}/api/graphql` || "http://localhost:3000/api/graphql";
-
 /**
  * Create a GraphQL client with authentication headers
  */
 async function createGraphQLClient(): Promise<GraphQLClient> {
+  const endpoint = await getGraphQLEndpoint();
   const authHeaders = await getAuthHeaders();
   return new GraphQLClient(endpoint, {
     credentials: 'include',
@@ -138,6 +138,7 @@ async function _fetchGraphQLWithFiles(
   variables: Record<string, unknown> = {}
 ): Promise<any> {
   try {
+    const endpoint = await getGraphQLEndpoint();
     const authHeaders = await getAuthHeaders();
 
     // Clone the variables to avoid modifying the original
