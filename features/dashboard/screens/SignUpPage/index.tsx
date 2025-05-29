@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { signUp } from "@/features/dashboard/actions";
+import { Logo } from "../../components/Logo";
 
 type ActionState = {
   message: string | null;
@@ -24,9 +25,9 @@ type ActionState = {
 const initialState: ActionState = {
   message: null,
   formData: {
-    email: '',
-    password: ''
-  }
+    email: "",
+    password: "",
+  },
 };
 
 function SubmitButton() {
@@ -55,7 +56,7 @@ export function SignUpPage() {
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className="flex items-center space-x-1.5">
-          <div className="text-2xl font-bold">Dashboard</div>
+          <Logo aria-hidden="true" />
         </div>
         <h3 className="mt-6 text-lg font-semibold text-foreground dark:text-foreground">
           Create your account
@@ -124,10 +125,17 @@ export function SignUpPage() {
         </form>
 
         {state.message && (
-          <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
+          <Badge
+            variant="destructive"
+            className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4"
+          >
             <div className="flex flex-col gap-1">
-              <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
-              <span className="break-all text-sm opacity-75 font-normal">{state.message}</span>
+              <h2 className="uppercase tracking-wider font-semibold text-sm">
+                Error
+              </h2>
+              <span className="break-all text-sm opacity-75 font-normal">
+                {state.message}
+              </span>
             </div>
           </Badge>
         )}

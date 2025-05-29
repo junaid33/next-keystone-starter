@@ -1,4 +1,5 @@
 // Server Component
+import { Logo } from "../../components/Logo";
 import { SignInForm } from "./SignInForm";
 import Link from "next/link";
 
@@ -17,7 +18,7 @@ export async function SignInPage({ searchParams }: SignInPageProps) {
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <div className="flex items-center space-x-1.5">
-          <div className="text-2xl font-bold">Dashboard</div>
+          <Logo aria-hidden="true" />
         </div>
         <h3 className="mt-6 text-lg font-semibold text-foreground dark:text-foreground">
           Sign in to your account
