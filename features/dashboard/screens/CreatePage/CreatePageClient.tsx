@@ -81,6 +81,7 @@ export function CreatePageClient({ listKey }: { listKey: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => router.push(`/dashboard/${list.path}`)}
                 disabled={saveState === "saving"}
               >
@@ -89,6 +90,7 @@ export function CreatePageClient({ listKey }: { listKey: string }) {
               </Button>
 
               <Button
+                size="sm"
                 onClick={handleCreate}
                 disabled={createItemState.invalidFields.size > 0 || saveState === "saving"}
               >
@@ -116,18 +118,21 @@ export function CreatePageClient({ listKey }: { listKey: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => router.push(`/dashboard/${list.path}`)}
                 disabled={saveState === "saving"}
               >
                 <X className="size-4 shrink-0" />
-                Cancel
+                <span className="hidden sm:inline">Cancel</span>
               </Button>
 
               <Button
+                size="sm"
                 onClick={handleCreate}
                 disabled={createItemState.invalidFields.size > 0 || saveState === "saving"}
               >
-                Create {list.singular}
+                <span className="hidden sm:inline">Create {list.singular}</span>
+                <span className="sm:hidden">Create</span>
                 <Check className="ml-1 stroke-[1.5px]" width="10" height="10" />
               </Button>
             </div>

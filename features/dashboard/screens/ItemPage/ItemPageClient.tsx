@@ -266,6 +266,7 @@ export function ItemPageClient({
               {!uiConfig?.hideDelete && (
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     const deleteTrigger =
                       document.querySelector<HTMLButtonElement>(
@@ -282,6 +283,7 @@ export function ItemPageClient({
               {itemForm.changedFields.size > 0 && (
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={itemForm.onReset}
                   disabled={itemForm.loading || saveState === 'saving'}
                 >
@@ -290,6 +292,7 @@ export function ItemPageClient({
                 </Button>
               )}
               <Button
+                size="sm"
                 onClick={handleSave}
                 disabled={
                   !(itemForm.changedFields.size > 0) ||
@@ -328,6 +331,7 @@ export function ItemPageClient({
               {!uiConfig?.hideDelete && (
                 <Button
                   variant="destructive"
+                  size="sm"
                   onClick={() => {
                     const deleteTrigger =
                       document.querySelector<HTMLButtonElement>(
@@ -338,20 +342,22 @@ export function ItemPageClient({
                   disabled={itemForm.loading || saveState === 'saving'}
                 >
                   <X className="size-4 shrink-0" />
-                  Delete
+                  <span className="hidden sm:inline">Delete</span>
                 </Button>
               )}
               {itemForm.changedFields.size > 0 && (
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={itemForm.onReset}
                   disabled={itemForm.loading || saveState === 'saving'}
                 >
                   <Undo2 className="size-4 shrink-0" />
-                  Reset
+                  <span className="hidden sm:inline">Reset</span>
                 </Button>
               )}
               <Button
+                size="sm"
                 onClick={handleSave}
                 disabled={
                   !(itemForm.changedFields.size > 0) ||
@@ -359,7 +365,8 @@ export function ItemPageClient({
                   saveState === 'saving'
                 }
               >
-                Save Changes
+                <span className="hidden sm:inline">Save Changes</span>
+                <span className="sm:hidden">Save</span>
                 <Check className="ml-1 stroke-[1.5px]" width="10" height="10" />
               </Button>
             </div>
