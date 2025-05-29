@@ -59,37 +59,26 @@ const ListCard = ({ list, count, hideCreate = false }: ListCardProps) => {
       )}
     >
       <CardContent className="p-4">
-        <div>
+        <Link
+          href={`${basePath}/${list.path}${isSingleton ? '/1' : ''}`}
+          className="focus:outline-none absolute inset-0 z-0"
+        />
+        <div className="relative z-10">
           <h3 className="text-sm font-semibold text-foreground">
-            <Link
-              href={`${basePath}/${list.path}${isSingleton ? '/1' : ''}`}
-              className="focus:outline-none"
-            >
-              <span aria-hidden="true" className="absolute inset-0" />
-              {list.label}
-            </Link>
+            {list.label}
           </h3>
           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
             {isSingleton ? 'Singleton' : `${count || 0} items`}
           </p>
         </div>
-        {hideCreate === false && !isSingleton && (
-          <Link
-            href={`/${list.path}/create`}
-            className="absolute top-4 right-4"
-          >
-            <span
-              aria-hidden="true"
-              className="pointer-events-none text-muted-foreground/50 group-hover:text-muted-foreground/60"
-            >
-              <ArrowUpRight className="h-4 w-4" />
-            </span>
-          </Link>
-        )}
-        <div className="mt-3">
-          <Button variant="outline" size="icon" className="size-7">
-            <PlusIcon aria-hidden="true" className="size-3.5" />
-          </Button>
+        <div className="mt-3 relative z-10">
+          {hideCreate === false && !isSingleton && (
+            <Link href={`${basePath}/${list.path}/create`} className="focus:outline-none">
+              <Button variant="outline" size="icon" className="size-7 cursor-pointer focus:ring-2 focus:ring-ring focus:ring-inset">
+                <PlusIcon aria-hidden="true" className="size-3.5" />
+              </Button>
+            </Link>
+          )}
         </div>
       </CardContent>
     </Card>
