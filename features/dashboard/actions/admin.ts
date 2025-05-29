@@ -245,7 +245,12 @@ export async function getAdminMeta(): Promise<AdminMeta> {
         }
       }
     `;
-    const response = await keystoneClient(query);
+    const response = await keystoneClient(query, {}, {
+      next: {
+        revalidate: false, // Cache indefinitely since admin meta only changes on deploy
+        tags: ['admin-meta']
+      }
+    });
 
     if (!response.success) {
       throw new Error(`Failed to fetch admin meta: ${response.error}`);
@@ -426,7 +431,12 @@ export async function getListCounts(lists: Array<{ key: string, isSingleton?: bo
     });
 
     const query = `query { ${countQueries.join('\n')} }`;
-    const response = await keystoneClient(query);
+    const response = await keystoneClient(query, {}, {
+      next: {
+        revalidate: 60, // Cache for 1 minute since counts change frequently
+        tags: ['list-counts']
+      }
+    });
 
     return response;
   } catch (error: unknown) {

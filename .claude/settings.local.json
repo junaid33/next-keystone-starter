@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rg:*)",
+      "Bash(/Users/junaid/.nvm/versions/node/v20.9.0/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg -o \"from [''\"\"]([^''\"\"]+)[''\"\"]|require\\([''\"\"]([^''\"\"]+)[''\"\"]\\)\" -r '$1$2' -g '*.ts' -g '*.tsx' -g '*.js' -g '*.jsx')",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}

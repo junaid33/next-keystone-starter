@@ -54,6 +54,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Removed unused useTheme import
+import { Logo, LogoIcon } from '@/features/dashboard/components/Logo';
 import { basePath } from "@/features/dashboard/lib/config";
 import { LucideIcon } from "lucide-react";
 import { UserProfileClient } from "@/features/dashboard/components/UserProfileClient";
@@ -110,14 +111,12 @@ export function AppSidebar({ sidebarLinks = [], user }: AppSidebarProps) {
       <SidebarHeader>
         <SidebarMenuButton asChild>
           <div className="group-has-[[data-collapsible=icon]]/sidebar-wrapper:hidden p-2">
-            <div className="h-8 w-auto font-bold text-xl">Dashboard</div>
+            <Logo />
           </div>
         </SidebarMenuButton>
         <SidebarMenuButton asChild>
           <div className="hidden group-has-[[data-collapsible=icon]]/sidebar-wrapper:block">
-            <div className="h-8 w-8 rounded bg-primary text-primary-foreground flex items-center justify-center font-bold">
-              D
-            </div>
+            <LogoIcon />
           </div>
         </SidebarMenuButton>
       </SidebarHeader>

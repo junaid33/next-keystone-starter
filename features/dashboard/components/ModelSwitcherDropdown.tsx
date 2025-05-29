@@ -2,7 +2,6 @@
 
 import { Folders } from "lucide-react";
 import Link from "next/link";
-import useSWR from "swr";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,20 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { getAdminLists } from "@/features/dashboard/actions";
-import type { KeystoneResponse } from "@/features/dashboard/lib/keystoneClient";
+import { useAdminMeta } from "@/features/dashboard/hooks/useAdminMeta";
 
 interface Item {
   title: string;
   href: string;
   color?: string;
-}
-
-interface ListItem {
-  key: string;
-  path: string;
-  label: string;
-  isHidden: boolean;
 }
 
 interface ModelSwitcherDropdownProps {
@@ -33,19 +24,8 @@ interface ModelSwitcherDropdownProps {
   basePath: string;
 }
 
-function ModelSwitcherDropdownContent({ type, basePath }: { type: "model" | "platform", basePath: string }) {
-  const { data, error, isLoading } = useSWR<KeystoneResponse<ListItem[]>>(
-    type === "model" ? "adminMeta" : null,
-    async () => {
-      // The fetcher now correctly returns KeystoneResponse
-      return getAdminLists();
-    },
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 5000,
-    }
-  );
+function ModelSwitcherDropdownContent({ basePath }: { basePath: string }) {
+  const { adminMeta, isLoading, error } = useAdminMeta();
 
   if (isLoading) {
     return (
@@ -58,23 +38,29 @@ function ModelSwitcherDropdownContent({ type, basePath }: { type: "model" | "pla
     );
   }
 
-  // Calculate navItems based on successful data
-  let navItems: { label: string; href: string }[] = [];
-  if (data?.success) {
-    // Access the nested lists array directly, using optional chaining and nullish coalescing
-    navItems = (data.data?.keystone?.adminMeta?.lists ?? [])
-      .filter((list: ListItem) => !list.isHidden)
-      .map((list: ListItem) => ({
-        label: list.label,
-        href: `${basePath}/${list.path}`,
-      }));
-  } else if (error) {
-    // Handle SWR error or if data.success is false
-    console.error("Error loading admin lists:", error || data?.error);
-    navItems = []; // Ensure navItems is empty on error
+  if (error) {
+    console.error("Error loading admin meta:", error);
+    return (
+      <DropdownMenuContent
+        align="start"
+        className="w-48 overflow-y-auto max-h-72"
+      >
+        <DropdownMenuItem disabled>Error loading items</DropdownMenuItem>
+      </DropdownMenuContent>
+    );
   }
 
-  if (navItems.length === 0 && !isLoading) { // Added !isLoading check to avoid showing "No items" during load
+  // Calculate navItems from adminMeta
+  const navItems = adminMeta
+    ? Object.values(adminMeta.lists)
+        .filter((list) => !list.hideNavigation)
+        .map((list) => ({
+          label: list.label,
+          href: `${basePath}/${list.path}${list.isSingleton ? "/1" : ""}`,
+        }))
+    : [];
+
+  if (navItems.length === 0) {
     return (
       <DropdownMenuContent
         align="start"
@@ -115,7 +101,7 @@ export function ModelSwitcherDropdown({ type = "model", title, items: customItem
         </div>
       </DropdownMenuTrigger>
       {type === "model" ? (
-        <ModelSwitcherDropdownContent type={type} basePath={basePath} />
+        <ModelSwitcherDropdownContent basePath={basePath} />
       ) : (
         <DropdownMenuContent
           align="start"
