@@ -174,37 +174,5 @@ export function getField(fieldType: string): FieldImplementation {
   return implementation
 }
 
-/**
- * Get the field type from a field's viewsIndex
- * @param viewsIndex The views index of the field
- * @returns The field type name
- */
-export function getFieldTypeFromViewsIndex(viewsIndex: number): string {
-  const viewsIndexToType: Record<number, string> = {
-    // 0: "id",
-    // 1: "virtual",
-    // 2: "text",
-    // 3: "checkbox",
-    // 4: "json",
-    // 5: "relationship",
-    // 6: "timestamp",
-    // 7: "select",
-    // 8: "integer",
-    // 9: "image",
-    // 10: "float",
-    // 11: "document",
-    // 12: "password",
-      0: "id",
-    1: "text",
-    2: "checkbox",
-    3: "relationship",
-    4: "password"
-  }
-
-  const fieldType = viewsIndexToType[viewsIndex]
-  if (!fieldType) {
-    throw new Error(`Invalid views index: ${viewsIndex}`)
-  }
-
-  return fieldType
-}
+// Import the dynamically generated field type mapping
+export { getFieldTypeFromViewsIndex } from './getFieldTypeFromViewsIndex'

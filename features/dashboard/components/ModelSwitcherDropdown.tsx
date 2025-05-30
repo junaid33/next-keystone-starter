@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminMeta } from "@/features/dashboard/hooks/useAdminMeta";
 
 interface Item {
@@ -86,6 +87,17 @@ function ModelSwitcherDropdownContent({ basePath }: { basePath: string }) {
 }
 
 export function ModelSwitcherDropdown({ type = "model", title, items: customItems, basePath }: ModelSwitcherDropdownProps) {
+  const { isLoading } = useAdminMeta();
+
+  if (type === "model" && isLoading) {
+    return (
+      <div className="flex items-center gap-2">
+        {title && <span className="mr-1">{title}</span>}
+        <Skeleton className="h-5 w-5 rounded-sm" />
+      </div>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
