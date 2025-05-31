@@ -51,36 +51,40 @@ interface ListCardProps {
 
 const ListCard = ({ list, count, hideCreate = false }: ListCardProps) => {
   const isSingleton = list.isSingleton || false;
+  const href = `${basePath}/${list.path}${isSingleton ? '/1' : ''}`;
 
   return (
     <Card
       className={cn(
-        'bg-gradient-to-bl from-background to-muted/80 shadow-xs group relative rounded-xl border p-0 focus-within:ring-2 focus-within:ring-ring focus-within:ring-inset'
+        'relative bg-gradient-to-bl from-background to-muted/80 shadow-xs hover:bg-muted transition-colors'
       )}
     >
-      <CardContent className="p-4">
-        <Link
-          href={`${basePath}/${list.path}${isSingleton ? '/1' : ''}`}
-          className="focus:outline-none absolute inset-0 z-0"
-        />
-        <div className="relative z-10">
+      <Link href={href}>
+        <CardContent className="p-4">
           <h3 className="text-sm font-semibold text-foreground">
             {list.label}
           </h3>
-          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+          <p className="mt-1 text-xs text-muted-foreground">
             {isSingleton ? 'Singleton' : `${count || 0} items`}
           </p>
-        </div>
-        <div className="mt-3 relative z-10">
-          {hideCreate === false && !isSingleton && (
-            <Link href={`${basePath}/${list.path}/create`} className="focus:outline-none">
-              <Button variant="outline" size="icon" className="size-7 cursor-pointer focus:ring-2 focus:ring-ring focus:ring-inset">
-                <PlusIcon aria-hidden="true" className="size-3.5" />
-              </Button>
-            </Link>
-          )}
-        </div>
-      </CardContent>
+        </CardContent>
+      </Link>
+      
+      {hideCreate === false && !isSingleton && (
+        <Link 
+          href={`${basePath}/${list.path}/create`}
+          className="absolute top-3 right-3"
+        >
+          <Button
+            variant="outline" 
+            size="icon"
+            className="h-7 w-7"
+          >
+            <PlusIcon className="h-4 w-4" />
+            <span className="sr-only">Create new {list.label}</span>
+          </Button>
+        </Link>
+      )}
     </Card>
   );
 };
