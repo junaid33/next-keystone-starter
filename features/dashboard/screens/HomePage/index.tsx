@@ -161,8 +161,6 @@ export async function HomePage() {
           {
             type: 'page',
             label: 'Dashboard',
-            showModelSwitcher: true,
-            switcherType: 'platform',
           },
         ]}
       />
