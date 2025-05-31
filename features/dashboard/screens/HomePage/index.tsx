@@ -1,21 +1,7 @@
 import Link from 'next/link';
 import {
-  ChevronRight,
   PlusIcon,
   LucideIcon,
-  Package,
-  Users,
-  Tag,
-  Gift,
-  BadgeDollarSign,
-  Clipboard,
-  BarChart3,
-  LayoutList,
-  ArrowLeftRight,
-  ShieldCheck,
-  Truck,
-  Settings,
-  Ticket,
   ArrowUpRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';

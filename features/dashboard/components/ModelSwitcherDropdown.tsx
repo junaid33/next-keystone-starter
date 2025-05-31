@@ -12,16 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminMeta } from "@/features/dashboard/hooks/useAdminMeta";
 
-interface Item {
-  title: string;
-  href: string;
-  color?: string;
-}
-
 interface ModelSwitcherDropdownProps {
-  type?: "model" | "platform";
   title?: string;
-  items?: Item[];
   basePath: string;
 }
 
@@ -86,10 +78,10 @@ function ModelSwitcherDropdownContent({ basePath }: { basePath: string }) {
   );
 }
 
-export function ModelSwitcherDropdown({ type = "model", title, items: customItems, basePath }: ModelSwitcherDropdownProps) {
+export function ModelSwitcherDropdown({ title, basePath }: ModelSwitcherDropdownProps) {
   const { isLoading } = useAdminMeta();
 
-  if (type === "model" && isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center gap-2">
         {title && <span className="mr-1">{title}</span>}
@@ -112,20 +104,7 @@ export function ModelSwitcherDropdown({ type = "model", title, items: customItem
           </Button>
         </div>
       </DropdownMenuTrigger>
-      {type === "model" ? (
-        <ModelSwitcherDropdownContent basePath={basePath} />
-      ) : (
-        <DropdownMenuContent
-          align="start"
-          className="w-48 overflow-y-auto max-h-72"
-        >
-          {(customItems || []).map((item) => (
-            <DropdownMenuItem key={item.href} asChild>
-              <Link href={`${basePath}${item.href}`}>{item.title}</Link>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      )}
+      <ModelSwitcherDropdownContent basePath={basePath} />
     </DropdownMenu>
   );
 }

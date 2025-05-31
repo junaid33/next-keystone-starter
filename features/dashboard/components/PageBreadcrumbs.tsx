@@ -18,7 +18,6 @@ interface BreadcrumbItem {
   label: string;
   href?: string;
   showModelSwitcher?: boolean;
-  switcherType?: "model" | "platform";
 }
 
 interface PageBreadcrumbsProps {
@@ -51,7 +50,6 @@ export function PageBreadcrumbs({ items, actions }: PageBreadcrumbsProps) {
                         </BreadcrumbLink>
                         {item.showModelSwitcher && (
                           <ModelSwitcherDropdown 
-                            type="model"
                             basePath={basePath}
                           />
                         )}
@@ -61,7 +59,6 @@ export function PageBreadcrumbs({ items, actions }: PageBreadcrumbsProps) {
                       <div className="flex items-center gap-3">
                         {item.showModelSwitcher ? (
                           <ModelSwitcherDropdown
-                            type={item.switcherType || "model"}
                             title={item.label}
                             basePath={basePath}
                           />

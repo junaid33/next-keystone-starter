@@ -186,7 +186,6 @@ export async function ListPage({ params, searchParams }: PageProps) {
             type: "page",
             label: list.label,
             showModelSwitcher: true,
-            switcherType: "model",
           },
         ]}
       />
