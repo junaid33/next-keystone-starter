@@ -11,17 +11,6 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Todo {
-  id           String  @id @default(cuid())
-  label        String  @default("")
-  isComplete   Boolean @default(false)
-  isPrivate    Boolean @default(false)
-  assignedTo   User?   @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId String? @map("assignedTo")
-
-  @@index([assignedToId])
-}
-
 model User {
   id       String  @id @default(cuid())
   name     String  @default("")
@@ -45,4 +34,15 @@ model Role {
   canManageRoles     Boolean @default(false)
   canAccessDashboard Boolean @default(false)
   assignedTo         User[]  @relation("User_role")
+}
+
+model Todo {
+  id           String  @id @default(cuid())
+  label        String  @default("")
+  isComplete   Boolean @default(false)
+  isPrivate    Boolean @default(false)
+  assignedTo   User?   @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
+  assignedToId String? @map("assignedTo")
+
+  @@index([assignedToId])
 }

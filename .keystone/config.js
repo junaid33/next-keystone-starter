@@ -242,11 +242,11 @@ var Todo = (0, import_core3.list)({
   }
 });
 
-// features/keystone/schema.ts
-var lists = {
-  Todo,
+// features/keystone/models/index.ts
+var models = {
   User,
-  Role
+  Role,
+  Todo
 };
 
 // features/keystone/index.ts
@@ -331,7 +331,7 @@ var keystone_default = withAuth(
       provider: "postgresql",
       url: databaseURL
     },
-    lists,
+    lists: models,
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false
     },

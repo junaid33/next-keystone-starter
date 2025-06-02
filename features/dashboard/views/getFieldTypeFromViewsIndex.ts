@@ -13,9 +13,9 @@ export function getFieldTypeFromViewsIndex(viewsIndex: number): string {
   const viewsIndexToType: Record<number, string> = {
     0: "id",
     1: "text",
-    2: "checkbox",
+    2: "password",
     3: "relationship",
-    4: "password"
+    4: "checkbox"
   };
 
   const fieldType = viewsIndexToType[viewsIndex];
