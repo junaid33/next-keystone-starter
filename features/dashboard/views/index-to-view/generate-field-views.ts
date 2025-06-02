@@ -122,6 +122,7 @@ const viewMappings = {
   [`@keystone-6/core/fields/types/float/views`]: `float`,
   [`@keystone-6/core/fields/types/image/views`]: `image`,
   [`@keystone-6/core/fields/types/virtual/views`]: `virtual`,
+  [`@keystone-6/fields-document/views`]: `document`,
 };
 
 export function areArraysEqual(a: any[], b: any[]): boolean {
