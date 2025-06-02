@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useActionState } from "react";
-import { useSearchParams } from "next/navigation";
 import { RiLoader2Fill } from "@remixicon/react";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
@@ -50,8 +49,6 @@ function SubmitButton() {
 }
 
 export function SignUpPage() {
-  const searchParams = useSearchParams();
-  const from = searchParams?.get("from") || "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [state, formAction] = useActionState(signUp, initialState);
 
@@ -67,7 +64,7 @@ export function SignUpPage() {
         <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
           Already have an account?
           <Link
-            href={`/dashboard/signin${from !== "/dashboard" ? `?from=${encodeURIComponent(from)}` : ""}`}
+            href="/dashboard/signin"
             className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
           >
             Sign in
@@ -75,7 +72,6 @@ export function SignUpPage() {
         </p>
 
         <form action={formAction} className="mt-8 space-y-4">
-          <input type="hidden" name="from" value={from} />
           <div>
             <Label
               htmlFor="email"

@@ -1,12 +1,17 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
+// Server Component
 import { Logo } from "../../components/Logo";
 import { ResetForm } from "./ResetForm";
 
-export function ResetPage() {
-  const searchParams = useSearchParams();
-  const token = searchParams?.get("token") || null;
+type ResetPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function ResetPage({ searchParams }: ResetPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const token =
+    typeof resolvedSearchParams.token === "string"
+      ? resolvedSearchParams.token
+      : null;
   const mode = token ? "reset" : "request";
 
   return (

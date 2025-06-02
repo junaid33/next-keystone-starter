@@ -1,13 +1,18 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
+// Server Component
 import { Logo } from "../../components/Logo";
 import { SignInForm } from "./SignInForm";
 import Link from "next/link";
 
-export function SignInPage() {
-  const searchParams = useSearchParams();
-  const from = searchParams?.get("from") || "/dashboard";
+type SignInPageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export async function SignInPage({ searchParams }: SignInPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const from =
+    typeof resolvedSearchParams.from === "string"
+      ? resolvedSearchParams.from
+      : "/dashboard";
 
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
@@ -21,7 +26,7 @@ export function SignInPage() {
         <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
           Don&apos;t have an account?
           <Link
-            href={`/dashboard/signup${from !== "/dashboard" ? `?from=${encodeURIComponent(from)}` : ""}`}
+            href="/dashboard/signup"
             className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
           >
             Sign up
