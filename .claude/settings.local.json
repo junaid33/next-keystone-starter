@@ -9,7 +9,8 @@
       "Bash(npm run generate-views-index:*)",
       "Bash(ls:*)",
       "Bash(node:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }
