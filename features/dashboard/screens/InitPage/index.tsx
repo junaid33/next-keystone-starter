@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { RiLoader2Fill } from "@remixicon/react";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -50,6 +51,8 @@ const initialState: ActionState = {
 };
 
 export function InitPage() {
+  const searchParams = useSearchParams();
+  const from = searchParams?.get("from") || "/dashboard";
   const [showPassword, setShowPassword] = useState(false);
   const [state, formAction] = useActionState(
     async (prevState: ActionState, formData: FormData) => {
@@ -104,6 +107,7 @@ export function InitPage() {
         </p>
 
         <form action={formAction} className="mt-8 space-y-4">
+          <input type="hidden" name="from" value={from} />
           <div>
             <Label
               htmlFor="name"
