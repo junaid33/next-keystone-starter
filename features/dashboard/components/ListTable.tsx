@@ -136,11 +136,12 @@ export function ListTable({
     setIsDeleteLoading(true);
     setError(null);
     try {
-      if (!list.gqlNames?.deleteMutationName) {
+      if (!list.gqlNames?.deleteManyMutationName) {
         throw new Error('Delete mutation name not found');
       }
       const response = await deleteManyItems(list.key, idsToDelete, {
-        deleteMutationName: list.gqlNames.deleteMutationName
+        deleteManyMutationName: list.gqlNames.deleteManyMutationName,
+        whereUniqueInputName: list.gqlNames.whereUniqueInputName,
       });
 
       if (response.success) {

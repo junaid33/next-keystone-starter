@@ -35,6 +35,7 @@ import { makeDataGetter } from '@/features/dashboard/lib/dataGetter';
 import { useItemForm } from '@/features/dashboard/lib/useItemForm';
 import type { ItemData } from '@/features/dashboard/lib/serialization';
 import type { Value } from '@/features/dashboard/lib/useChangedFieldsAndDataForUpdate';
+import { basePath } from '../../lib/config';
 
 // Loading skeleton
 function LoadingSkeleton() {
@@ -169,7 +170,7 @@ export function ItemPageClient({
 
       if (response.success) {
         toast.success(`Deleted ${list?.singular || 'item'} successfully`);
-        router.push(`/${list?.path || ''}`);
+        router.push(`${basePath}/${list?.path || ''}`);
       } else {
         toast.error(`Failed to delete: ${response.error || 'Unknown error'}`);
         setIsDeleting(false);

@@ -1,18 +1,26 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 import { keystoneClient } from "@/features/dashboard/lib/keystoneClient";
-import type { AdminMeta, FieldMeta, ListMeta } from '@/features/dashboard/types';
-import type { FieldMeta as Field } from '@/features/dashboard/types';
-import { getGqlNames } from '@/features/dashboard/lib/get-names-from-list';
-import { getSelectedFields } from '@/features/dashboard/lib/fields'; // Assuming this path is correct relative to project root
-import { buildGraphQLSelections } from '@/features/dashboard/lib/buildGraphQLSelections';
-import { buildWhereClause } from '@/features/dashboard/lib/buildWhereClause';
-import { buildOrderByClause } from '@/features/dashboard/lib/buildOrderByClause';
-import { enhanceListServer } from '@/features/dashboard/lib/enhanceList';
+import type {
+  AdminMeta,
+  FieldMeta,
+  ListMeta,
+} from "@/features/dashboard/types";
+import type { FieldMeta as Field } from "@/features/dashboard/types";
+import { getGqlNames } from "@/features/dashboard/lib/get-names-from-list";
+import { getSelectedFields } from "@/features/dashboard/lib/fields"; // Assuming this path is correct relative to project root
+import { buildGraphQLSelections } from "@/features/dashboard/lib/buildGraphQLSelections";
+import { buildWhereClause } from "@/features/dashboard/lib/buildWhereClause";
+import { buildOrderByClause } from "@/features/dashboard/lib/buildOrderByClause";
+import { enhanceListServer } from "@/features/dashboard/lib/enhanceList";
 
 // Item Operations
-export async function deleteItem(listKey: string, id: string, gqlNames: { deleteMutationName: string }) {
+export async function deleteItem(
+  listKey: string,
+  id: string,
+  gqlNames: { deleteMutationName: string }
+) {
   try {
     const query = `
       mutation ($id: ID!) {
@@ -27,8 +35,10 @@ export async function deleteItem(listKey: string, id: string, gqlNames: { delete
     }
     return response;
   } catch (error) {
-    console.error('Error deleting item:', error);
-    throw error instanceof Error ? error : new Error('An unexpected error occurred while deleting the item');
+    console.error("Error deleting item:", error);
+    throw error instanceof Error
+      ? error
+      : new Error("An unexpected error occurred while deleting the item");
   }
 }
 
@@ -53,8 +63,11 @@ export async function updateItem(
     // Return the whole response object (includes success/error status)
     return response;
   } catch (error) {
-    console.error('Error updating item:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while updating the item';
+    console.error("Error updating item:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while updating the item";
     return { success: false, error: errorMessage };
   }
 }
@@ -63,7 +76,7 @@ export async function createItem(
   listKey: string,
   data: Record<string, unknown>,
   gqlNames: { createMutationName: string; createInputName: string },
-  selectedFields: string = 'id'
+  selectedFields: string = "id"
 ) {
   try {
     const query = `
@@ -78,8 +91,11 @@ export async function createItem(
     // Return the whole response object
     return response;
   } catch (error) {
-    console.error('Error creating item:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while creating the item';
+    console.error("Error creating item:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while creating the item";
     return { success: false, error: errorMessage };
   }
 }
@@ -108,12 +124,12 @@ export async function searchItems(
   `;
 
   const where = {
-    OR: searchFields.map(field => ({
+    OR: searchFields.map((field) => ({
       [field]: {
         contains: searchTerm,
-        mode: "insensitive"
-      }
-    }))
+        mode: "insensitive",
+      },
+    })),
   };
 
   return keystoneClient(query, { where, take, skip });
@@ -153,7 +169,11 @@ export async function getList(listKey: string) {
   return response;
 }
 
-export async function getItem(listKey: string, id: string, selectedFields: string) {
+export async function getItem(
+  listKey: string,
+  id: string,
+  selectedFields: string
+) {
   // Call getList and handle the KeystoneResponse
   const listResponse = await getList(listKey);
   if (!listResponse.success) {
@@ -165,7 +185,10 @@ export async function getItem(listKey: string, id: string, selectedFields: strin
   const list = listResponse.data; // list is now the actual list object from the data property
   if (!list) {
     // This case might occur if the API returns success: true but data is unexpectedly null/undefined
-    return { success: false, error: `List ${listKey} data not found even though API call succeeded.` };
+    return {
+      success: false,
+      error: `List ${listKey} data not found even though API call succeeded.`,
+    };
     // Or throw new Error(`List ${listKey} data not found even though API call succeeded.`); depending on desired handling
   }
   // Original check for list existence based on listKey is implicitly handled by listResponse.success check now.
@@ -185,7 +208,7 @@ export async function getItem(listKey: string, id: string, selectedFields: strin
 }
 
 export async function getAdminMeta(): Promise<AdminMeta> {
-  console.log('Executing getAdminMeta (Server Action)');
+  console.log("Executing getAdminMeta (Server Action)");
   try {
     const query = `
       query {
@@ -245,12 +268,16 @@ export async function getAdminMeta(): Promise<AdminMeta> {
         }
       }
     `;
-    const response = await keystoneClient(query, {}, {
-      next: {
-        revalidate: false, // Cache indefinitely since admin meta only changes on deploy
-        tags: ['admin-meta']
+    const response = await keystoneClient(
+      query,
+      {},
+      {
+        next: {
+          revalidate: false, // Cache indefinitely since admin meta only changes on deploy
+          tags: ["admin-meta"],
+        },
       }
-    });
+    );
 
     if (!response.success) {
       throw new Error(`Failed to fetch admin meta: ${response.error}`);
@@ -259,7 +286,7 @@ export async function getAdminMeta(): Promise<AdminMeta> {
     const rawAdminMeta = response.data?.keystone?.adminMeta;
 
     if (!rawAdminMeta) {
-      throw new Error('Admin meta not found in GraphQL response');
+      throw new Error("Admin meta not found in GraphQL response");
     }
 
     // Transform the raw lists into the correct shape
@@ -281,11 +308,14 @@ export async function getAdminMeta(): Promise<AdminMeta> {
       });
 
       // Transform groups
-      const groups = rawList.groups?.map((group: any) => ({
-        label: group.label,
-        description: group.description,
-        fields: group.fields.map((field: { path: string }) => fields[field.path]).filter(Boolean)
-      })) || [];
+      const groups =
+        rawList.groups?.map((group: any) => ({
+          label: group.label,
+          description: group.description,
+          fields: group.fields
+            .map((field: { path: string }) => fields[field.path])
+            .filter(Boolean),
+        })) || [];
 
       // Create the enhanced list with proper types
       const baseList: ListMeta = {
@@ -348,10 +378,12 @@ export async function getAdminLists() {
   return response;
 }
 
-export async function getListByPath(path: string): Promise<ListMeta | undefined> {
+export async function getListByPath(
+  path: string
+): Promise<ListMeta | undefined> {
   const adminMeta = await getAdminMeta();
   return adminMeta.listsByPath?.[path];
-} 
+}
 
 export async function updateItemInline(
   listKey: string,
@@ -378,8 +410,12 @@ export async function updateItemInline(
     }
     return response;
   } catch (error) {
-    console.error('Error updating item inline:', error);
-    throw error instanceof Error ? error : new Error('An unexpected error occurred while updating the item inline');
+    console.error("Error updating item inline:", error);
+    throw error instanceof Error
+      ? error
+      : new Error(
+          "An unexpected error occurred while updating the item inline"
+        );
   }
 }
 
@@ -417,32 +453,48 @@ export async function getRelationshipOptions(
   return response;
 }
 
-export async function getListCounts(lists: Array<{ key: string, isSingleton?: boolean, graphql?: { names: import('@/features/dashboard/lib/get-names-from-list').GraphQLNames } }>) {
+export async function getListCounts(
+  lists: Array<{
+    key: string;
+    isSingleton?: boolean;
+    graphql?: {
+      names: import("@/features/dashboard/lib/get-names-from-list").GraphQLNames;
+    };
+  }>
+) {
   try {
     // Skip counting for singleton lists
-    const listsToCount = lists.filter(list => !list.isSingleton);
+    const listsToCount = lists.filter((list) => !list.isSingleton);
 
     if (listsToCount.length === 0) return {};
 
     // Build a query to get counts for all non-singleton lists at once
     const countQueries = listsToCount.map((list) => {
-      const countName = list.graphql?.names?.listQueryCountName || `${list.key}Count`;
+      const countName =
+        list.graphql?.names?.listQueryCountName || `${list.key}Count`;
       return `${list.key}: ${countName}`;
     });
 
-    const query = `query { ${countQueries.join('\n')} }`;
-    const response = await keystoneClient(query, {}, {
-      next: {
-        revalidate: 60, // Cache for 1 minute since counts change frequently
-        tags: ['list-counts']
+    const query = `query { ${countQueries.join("\n")} }`;
+    const response = await keystoneClient(
+      query,
+      {},
+      {
+        next: {
+          revalidate: 60, // Cache for 1 minute since counts change frequently
+          tags: ["list-counts"],
+        },
       }
-    });
+    );
 
     return response;
   } catch (error: unknown) {
-    console.error('Error fetching list counts:', error);
+    console.error("Error fetching list counts:", error);
     // Return a KeystoneResponse compatible error object
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching list counts';
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Unknown error fetching list counts";
     return { success: false, error: errorMessage };
   }
 }
@@ -450,17 +502,21 @@ export async function getListCounts(lists: Array<{ key: string, isSingleton?: bo
 export async function deleteManyItems(
   listKey: string,
   ids: string[],
-  gqlNames: { deleteMutationName: string }
+  gqlNames: { deleteManyMutationName: string; whereUniqueInputName: string }
 ) {
+  console.log({gqlNames})
   try {
     const query = `
-      mutation DeleteItems($ids: [ID!]!) {
-        items: ${gqlNames.deleteMutationName}(where: { id: { in: $ids } }) {
+      mutation DeleteItems($where: [${gqlNames.whereUniqueInputName}!]!) {
+        items: ${gqlNames.deleteManyMutationName}(where: $where) {
           id
         }
       }
     `;
-    const response = await keystoneClient(query, { ids });
+
+    const response = await keystoneClient(query, {
+      where: ids.map((id) => ({ id })),
+    });
     // Revalidate only on successful deletion with items returned
     if (response.success && response.data?.items) {
       revalidatePath(`/${listKey}`);
@@ -468,11 +524,12 @@ export async function deleteManyItems(
 
     return response; // Return the full KeystoneResponse
   } catch (error) {
-    console.error('Error deleting items:', error);
-    throw error instanceof Error ? error : new Error('An unexpected error occurred while deleting the items');
+    console.error("Error deleting items:", error);
+    throw error instanceof Error
+      ? error
+      : new Error("An unexpected error occurred while deleting the items");
   }
 }
-
 
 // New action to fetch list data using Keystone client
 export async function getListDataAction(
@@ -487,13 +544,16 @@ export async function getListDataAction(
         : searchParams;
 
     // Get gqlNames from the list, or generate them if not provided
-    const gqlNames = list.gqlNames || getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural,
-    });
+    const gqlNames =
+      list.gqlNames ||
+      getGqlNames({
+        listKey: list.key,
+        pluralGraphQLName: list.plural,
+      });
 
     // Use the exact gqlNames from the list
-    const { listQueryName, listQueryCountName, whereInputName, listOrderName } = gqlNames;
+    const { listQueryName, listQueryCountName, whereInputName, listOrderName } =
+      gqlNames;
 
     // Get pagination parameters
     const page = Number.parseInt(searchParamsObj?.page || "1", 10);
@@ -524,12 +584,12 @@ export async function getListDataAction(
       }
     `;
 
-
     // Calculate skip for pagination
     const skip = (page - 1) * pageSize;
 
     // Execute the query with our Keystone client
-    const response = await keystoneClient(query, { // Use keystoneClient here
+    const response = await keystoneClient(query, {
+      // Use keystoneClient here
       where: filters,
       orderBy: sort,
       take: pageSize,
@@ -541,7 +601,10 @@ export async function getListDataAction(
   } catch (error) {
     console.error("Error fetching list data via action:", error);
     // Return a KeystoneResponse compatible error object
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while fetching list data';
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while fetching list data";
     return { success: false, error: errorMessage };
   }
 }
@@ -551,14 +614,16 @@ export async function getItemAction(
   list: ListMeta,
   id: string,
   searchParams: Record<string, string> = {}, // Use string for search param values
-  cacheOptions?: { next?: { tags?: string[], revalidate?: number } }
+  cacheOptions?: { next?: { tags?: string[]; revalidate?: number } }
 ) {
   try {
     // Get gqlNames from the list, or generate them if not provided
-    const gqlNames = list.gqlNames || getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural,
-    });
+    const gqlNames =
+      list.gqlNames ||
+      getGqlNames({
+        listKey: list.key,
+        pluralGraphQLName: list.plural,
+      });
 
     // Use the exact itemQueryName from the list
     const { itemQueryName } = gqlNames;
@@ -585,7 +650,10 @@ export async function getItemAction(
 
     return response;
   } catch (error) {
-    console.error(`Error fetching item ${id} for list ${list.key} via action:`, error);
+    console.error(
+      `Error fetching item ${id} for list ${list.key} via action:`,
+      error
+    );
     throw error;
   }
 }
@@ -602,10 +670,12 @@ export async function updateItemAction(
     }
 
     // Get gqlNames from the list
-    const gqlNames = list.gqlNames || getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural,
-    });
+    const gqlNames =
+      list.gqlNames ||
+      getGqlNames({
+        listKey: list.key,
+        pluralGraphQLName: list.plural,
+      });
 
     const { updateMutationName, updateInputName } = gqlNames;
 
@@ -631,8 +701,11 @@ export async function updateItemAction(
     // Return the entire response object (includes success/error status)
     return response;
   } catch (error) {
-    console.error('Error updating item:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while updating the item';
+    console.error("Error updating item:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while updating the item";
     return { success: false, error: errorMessage };
   }
 }
@@ -645,10 +718,12 @@ export async function deleteItemAction(listKey: string, id: string) {
     }
 
     // Get gqlNames from the list
-    const gqlNames = list.gqlNames || getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural,
-    });
+    const gqlNames =
+      list.gqlNames ||
+      getGqlNames({
+        listKey: list.key,
+        pluralGraphQLName: list.plural,
+      });
 
     const { deleteMutationName } = gqlNames;
 
@@ -672,8 +747,11 @@ export async function deleteItemAction(listKey: string, id: string) {
     // Return the entire response object
     return response;
   } catch (error) {
-    console.error('Error deleting item:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred while deleting the item';
+    console.error("Error deleting item:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred while deleting the item";
     return { success: false, error: errorMessage };
   }
 }
