@@ -40,13 +40,13 @@ export function PageBreadcrumbs({ items, actions }: PageBreadcrumbsProps) {
                   <BreadcrumbItem>
                     {item.type === "link" && (
                       <BreadcrumbLink asChild>
-                        <Link href={`${basePath}${item.href}`}>{item.label}</Link>
+                        <Link className="text-foreground" href={`${basePath}${item.href}`}>{item.label}</Link>
                       </BreadcrumbLink>
                     )}
                     {item.type === "model" && (
                       <div className="flex items-center gap-3">
                         <BreadcrumbLink asChild>
-                          <Link href={`${basePath}${item.href}`}>{item.label}</Link>
+                          <Link className="text-foreground" href={`${basePath}${item.href}`}>{item.label}</Link>
                         </BreadcrumbLink>
                         {item.showModelSwitcher && (
                           <ModelSwitcherDropdown 
