@@ -195,14 +195,12 @@ export function Pagination({
   // Selection mode UI
   if (selectedItems.size > 0) {
     return (
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
-        <div className="flex items-center gap-x-1 rounded-full bg-zinc-50 dark:bg-zinc-900 p-1 text-sm shadow-xl shadow-black/20 ring-1 ring-zinc-300 dark:ring-white/10">
+      <div className="z-10 fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
+        <div className="bg-zinc-100 dark:bg-zinc-900 border shadow border-transparent ring-1 ring-foreground/5 border-foreground.5 flex items-center gap-x-1 rounded-full p-1 text-sm shadow-black/20">
           <Button
             onClick={onResetSelection}
             variant="outline"
             className="font-semibold rounded-l-[20px] rounded-r-md"
-
-            // className="text-muted-foreground flex items-center gap-x-3 whitespace-nowrap rounded-l-[20px] rounded-r-md bg-background dark:bg-zinc-900 py-1.5 sm:py-2 pl-3 sm:pl-4 pr-1.5 sm:pr-2 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-white/20 hover:bg-muted dark:hover:bg-zinc-800/90 hover:text-foreground dark:hover:text-white transition-colors text-xs sm:text-sm h-8 sm:h-9"
           >
             <X className="size-2.5 sm:size-3.5 shrink-0" />
 
@@ -253,8 +251,8 @@ export function Pagination({
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
-      <div className="bg-zinc-100 dark:bg-zinc-950 flex items-center gap-x-1 rounded-full p-1 text-sm shadow-xl shadow-black/20 ring-1 ring-zinc-300 dark:ring-white/10">
+    <div className="z-10 fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
+        <div className="bg-zinc-100 dark:bg-zinc-900 border shadow border-transparent ring-1 ring-foreground/5 border-foreground.5 flex items-center gap-x-1 rounded-full p-1 text-sm shadow-black/20">
         {/* Pagination UI */}
         <>
           {/* Previous Page Button */}
@@ -268,7 +266,7 @@ export function Pagination({
 
           <Button
             variant="outline"
-            className="dark:bg-zinc-900 rounded-l-[20px] rounded-r-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
+            className="rounded-l-[20px] rounded-r-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage <= 1}
           >
@@ -276,7 +274,7 @@ export function Pagination({
           </Button>
 
           {/* Page Navigation */}
-          <div className="flex items-center gap-x-1 rounded-md bg-background dark:bg-zinc-900 py-1.5 sm:py-2 pr-2 pl-1 font-semibold dark:text-zinc-50 ring-1 ring-inset dark:ring-input ring-zinc-300 h-8 sm:h-9">
+          <div className="flex items-center gap-x-1 rounded-md bg-background py-1.5 sm:py-2 pr-2 pl-1 font-semibold dark:text-zinc-50 ring-1 ring-inset dark:ring-input ring-zinc-300 h-8 sm:h-9">
             <div className="flex items-center gap-x-1.5 px-2">
               <input
                 className="w-5 sm:w-6 bg-transparent border-0 p-0 text-center text-xs sm:text-sm font-semibold focus:ring-0 h-full"
@@ -300,14 +298,14 @@ export function Pagination({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-x-2 whitespace-nowrap rounded-md bg-background dark:bg-zinc-900 py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9">
+          <div className="flex items-center gap-x-2 whitespace-nowrap rounded-md bg-background py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9">
             {getStatsMessage()}
           </div>
 
           {/* Items Per Page Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex gap-2 items-center whitespace-nowrap rounded-md bg-background dark:bg-zinc-900 py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9 text-xs sm:text-sm">
+              <button className="flex gap-2 items-center whitespace-nowrap rounded-md bg-background py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9 text-xs sm:text-sm">
                 {pageSize}
                 <span className="text-muted-foreground/70 uppercase tracking-wide hidden sm:inline">
                   per page
@@ -385,7 +383,7 @@ export function Pagination({
 
           <Button
             variant="outline"
-            className="dark:bg-zinc-900 rounded-r-[20px] rounded-l-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
+            className="rounded-r-[20px] rounded-l-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
           >
