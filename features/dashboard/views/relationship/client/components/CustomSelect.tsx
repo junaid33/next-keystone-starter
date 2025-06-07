@@ -134,11 +134,14 @@ export function CustomSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 max-w-[400px]" align="start">
         <Command>
-          <CommandInput
-            placeholder={`Search...`}
-            value={inputValue}
-            onValueChange={(value) => handleInputChange(value)}
-          />
+          <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+            <input
+              placeholder="Search..."
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
           <CommandList>
             {isLoading ? (
               <div className="flex items-center justify-center py-6">
