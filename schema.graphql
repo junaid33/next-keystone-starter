@@ -235,9 +235,14 @@ input UserRelateToManyForCreateInput {
 type Todo {
   id: ID!
   label: String
+  description: Todo_description_Document
   isComplete: Boolean
   isPrivate: Boolean
   assignedTo: User
+}
+
+type Todo_description_Document {
+  document(hydrateRelationships: Boolean! = false): JSON!
 }
 
 input TodoWhereUniqueInput {
@@ -264,6 +269,7 @@ input TodoOrderByInput {
 
 input TodoUpdateInput {
   label: String
+  description: JSON
   isComplete: Boolean
   isPrivate: Boolean
   assignedTo: UserRelateToOneForUpdateInput
@@ -282,6 +288,7 @@ input TodoUpdateArgs {
 
 input TodoCreateInput {
   label: String
+  description: JSON
   isComplete: Boolean
   isPrivate: Boolean
   assignedTo: UserRelateToOneForCreateInput

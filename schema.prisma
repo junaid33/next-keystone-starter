@@ -39,6 +39,7 @@ model Role {
 model Todo {
   id           String  @id @default(cuid())
   label        String  @default("")
+  description  Json    @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
   isComplete   Boolean @default(false)
   isPrivate    Boolean @default(false)
   assignedTo   User?   @relation("Todo_assignedTo", fields: [assignedToId], references: [id])

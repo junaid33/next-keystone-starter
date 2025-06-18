@@ -196,6 +196,7 @@ var Role = (0, import_core2.list)({
 var import_core3 = require("@keystone-6/core");
 var import_access5 = require("@keystone-6/core/access");
 var import_fields3 = require("@keystone-6/core/fields");
+var import_fields_document = require("@keystone-6/fields-document");
 var Todo = (0, import_core3.list)({
   access: {
     operation: {
@@ -216,6 +217,16 @@ var Todo = (0, import_core3.list)({
   },
   fields: {
     label: (0, import_fields3.text)({ validation: { isRequired: true } }),
+    description: (0, import_fields_document.document)({
+      formatting: true,
+      links: true,
+      dividers: true,
+      layouts: [
+        [1, 1],
+        [1, 1, 1],
+        [2, 1]
+      ]
+    }),
     isComplete: (0, import_fields3.checkbox)({ defaultValue: false }),
     isPrivate: (0, import_fields3.checkbox)({ defaultValue: false }),
     assignedTo: (0, import_fields3.relationship)({
@@ -229,13 +240,11 @@ var Todo = (0, import_core3.list)({
         }
       },
       hooks: {
-        resolveInput: {
-          create({ operation, resolvedData, context }) {
-            if (!resolvedData.assignedTo && context.session) {
-              return { connect: { id: context.session.itemId } };
-            }
-            return resolvedData.assignedTo;
+        resolveInput({ operation, resolvedData, context }) {
+          if (operation === "create" && !resolvedData.assignedTo && context.session?.itemId) {
+            return { connect: { id: context.session?.itemId } };
           }
+          return resolvedData.assignedTo;
         }
       }
     })

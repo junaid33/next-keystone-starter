@@ -10,7 +10,9 @@
       "Bash(ls:*)",
       "Bash(node:*)",
       "Bash(rm:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents"
     ],
     "deny": []
   }
