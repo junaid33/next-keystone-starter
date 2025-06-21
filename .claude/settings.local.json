@@ -15,7 +15,10 @@
       "mcp__github__get_file_contents",
       "Bash(git push:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git branch:*)"
     ],
     "deny": []
   }
