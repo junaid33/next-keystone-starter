@@ -216,6 +216,7 @@ var Todo = (0, import_core3.list)({
     }
   },
   fields: {
+    // Text fields
     label: (0, import_fields3.text)({ validation: { isRequired: true } }),
     description: (0, import_fields_document.document)({
       formatting: true,
@@ -227,8 +228,63 @@ var Todo = (0, import_core3.list)({
         [2, 1]
       ]
     }),
+    // Boolean fields
     isComplete: (0, import_fields3.checkbox)({ defaultValue: false }),
     isPrivate: (0, import_fields3.checkbox)({ defaultValue: false }),
+    // Number fields
+    priority: (0, import_fields3.integer)({
+      defaultValue: 1,
+      validation: { min: 1, max: 5 },
+      label: "Priority (1-5)"
+    }),
+    largeNumber: (0, import_fields3.bigInt)({
+      label: "Large Number Example",
+      ui: {
+        description: "Example field for testing BigInt values"
+      }
+    }),
+    weight: (0, import_fields3.float)({
+      defaultValue: 1,
+      label: "Weight"
+    }),
+    budget: (0, import_fields3.decimal)({
+      precision: 10,
+      scale: 2,
+      defaultValue: "0.00",
+      label: "Budget"
+    }),
+    // Select fields
+    status: (0, import_fields3.select)({
+      type: "string",
+      options: [
+        { label: "Todo", value: "todo" },
+        { label: "In Progress", value: "in_progress" },
+        { label: "Done", value: "done" },
+        { label: "Blocked", value: "blocked" }
+      ],
+      defaultValue: "todo"
+    }),
+    // Date fields
+    dueDate: (0, import_fields3.timestamp)({
+      label: "Due Date"
+    }),
+    // Complex fields
+    metadata: (0, import_fields3.json)({
+      label: "Metadata"
+    }),
+    // Security fields
+    secretNote: (0, import_fields3.password)({
+      label: "Secret Note"
+    }),
+    // Virtual field - requires graphql import for proper setup
+    // Let's comment this out for now to avoid complexity
+    // displayName: virtual({
+    //   field: graphql.field({
+    //     type: graphql.String,
+    //     resolve: (item: any) => `${item.label} (${item.status || 'unknown'})`
+    //   })
+    // }),
+    // Relationship field
     assignedTo: (0, import_fields3.relationship)({
       ref: "User.tasks",
       ui: {

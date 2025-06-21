@@ -17,7 +17,8 @@ import * as relationship from "./relationship"
 import * as image from "./image"
 import * as document from "./document"
 import * as checkbox from "./checkbox"
-import type { DataGetter } from '@/lib/utils/dataGetter';
+import * as bigInt from "./bigInt"
+import * as decimal from "./decimal"
 
 // Define interfaces for field implementations
 export interface Field {
@@ -57,7 +58,7 @@ export interface FieldController<Value = unknown, InputValue = Value> {
   description?: string;
   graphqlSelection: string;
   defaultValue: Value;
-  deserialize: (data: DataGetter<Record<string, any>>) => Value;
+  deserialize: (item: any) => Value;
   validate?: (value: Value) => boolean;
   serialize: (value: Value) => Record<string, any>;
   filter?: {
@@ -112,46 +113,35 @@ interface ServerImplementation {
   formatFilterLabel: (operator: string, value: any) => string
 }
 
-export interface FieldImplementation<Value = unknown> { // Change default generic
-  client?: {
-    Field: React.ComponentType<FieldProps<Value>>
-    Filter?: React.ComponentType<FilterProps>
-    Cell?: React.ComponentType<CellProps>
-    CardValue?: React.ComponentType<CellProps>
-    controller?: (config: FieldControllerConfig) => FieldController<Value>
-  }
-  graphql?: {
-    getGraphQLSelection: (path: string, fieldMeta?: FieldMetaType) => string
-  }
-  server?: {
-    transformFilter?: (path: string, operator: string, value: any) => Record<string, any>
-  }
-  filterTypes?: {
-    getFilterTypes: () => FilterTypes
-    formatFilterLabel: (operator: string, value: any) => string
-  }
+export interface FieldImplementation {
+  client?: any
+  server?: any
+  graphql?: any
+  filterTypes?: any
 }
 
 // Define the field types registry structure
 interface FieldTypesRegistry {
-  [key: string]: FieldImplementation<unknown> // Reflect default generic change
+  [key: string]: FieldImplementation
 }
 
 // Map of field types to their implementations
 export const fieldTypes: FieldTypesRegistry = {
-  text: text as unknown as FieldImplementation<string>,
-  select: select as unknown as FieldImplementation<string>,
-  integer: integer as unknown as FieldImplementation<number>,
-  timestamp: timestamp as unknown as FieldImplementation<Date>,
-  float: float as unknown as FieldImplementation<number>,
-  id: id as unknown as FieldImplementation<string>,
-  json: json as unknown as FieldImplementation<unknown>,
-  password: password as unknown as FieldImplementation<string>,
-  virtual: virtual as unknown as FieldImplementation<unknown>,
-  relationship: relationship as unknown as FieldImplementation<unknown>,
-  image: image as unknown as FieldImplementation<unknown>,
-  document: document as unknown as FieldImplementation<unknown>,
-  checkbox: checkbox as unknown as FieldImplementation<boolean>,
+  text,
+  select,
+  integer,
+  bigInt,
+  timestamp,
+  float,
+  id,
+  json,
+  password,
+  virtual,
+  relationship,
+  image,
+  document,
+  checkbox,
+  decimal
 }
 
 /**
