@@ -177,22 +177,24 @@ export function Field({
     return (
       <div className="space-y-2">
         <Label>{field.label}</Label>
-        <Button
-          ref={triggerRef}
-          variant="outline"
-          autoFocus={autoFocus}
-          onClick={() => {
-            onChange?.({
-              kind: 'editing',
-              confirm: '',
-              value: '',
-              isSet: value.isSet,
-            })
-          }}
-        >
-          {value.isSet ? `Change ` : `Set `}
-          {field.label.toLowerCase()}
-        </Button>
+        <div>
+          <Button
+            ref={triggerRef}
+            variant="outline"
+            autoFocus={autoFocus}
+            onClick={() => {
+              onChange?.({
+                kind: 'editing',
+                confirm: '',
+                value: '',
+                isSet: value.isSet,
+              })
+            }}
+          >
+            {value.isSet ? `Change ` : `Set `}
+            {field.label.toLowerCase()}
+          </Button>
+        </div>
         {field.description && (
           <p className="text-sm text-muted-foreground">{field.description}</p>
         )}

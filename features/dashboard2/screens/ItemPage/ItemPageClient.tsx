@@ -255,14 +255,6 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
   // Use Keystone's useInvalidFields hook with enhanced fields
   const invalidFields = useInvalidFields(enhancedFields, value, isRequireds)
   
-  // Debug output - check our field configuration
-  console.log('DEBUG - Field setup:', {
-    isRequireds,
-    value,
-    invalidFields: Array.from(invalidFields),
-    fields: Object.keys(list.fields || {})
-  })
-
   // Check if we have changes using Keystone's exact pattern with enhanced fields
   const hasChanges = useHasChanges('update', enhancedFields, value, initialValue)
 

@@ -2,8 +2,8 @@
 import { Fragment, useState } from "react";
 import useSWR from "swr";
 import { getRelationshipOptions } from "@/features/dashboard/actions";
-import { RelationshipSelect } from "./client/components/RelationshipSelect";
-import { ClientField } from "./client/Field";
+import { RelationshipSelect } from "./components/RelationshipSelect";
+import { ClientField } from "./Field";
 import Link from "next/link";
 import { useList } from "@/features/dashboard/hooks/useAdminMeta";
 import { basePath } from "@/features/dashboard/lib/config";
@@ -448,5 +448,3 @@ export const controller = (config: {
     },
   };
 };
-
-Cell.supportsLinkTo = true

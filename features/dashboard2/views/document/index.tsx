@@ -1,184 +1,315 @@
+'use client'
+
+import { Node } from 'slate'
+import { DocumentRenderer } from '@keystone-6/document-renderer'
+import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import weakMemoize from '@emotion/weak-memoize'
+import { Editor, Text } from 'slate'
+
+// Import required components from DocumentEditor folder
+import { DocumentEditor } from './client/DocumentEditor'
+import { ForceValidationProvider } from './client/DocumentEditor/utils-hooks'
+import { createDocumentEditor } from './client/DocumentEditor/editor-shared'
+import { clientSideValidateProp } from './client/DocumentEditor/component-blocks/utils'
+import { isValidURL } from './client/DocumentEditor/isValidURL'
+
+// Import components from the components folder
+import { CellContainer, CellLink } from './client/components'
+import { FieldContainer } from '@/components/ui/field-container'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
+// Inline Keystone types to avoid dependency issues
+import type { JSONValue } from '@keystone-6/core/types'
+
+export type FieldControllerConfig<FieldMeta extends JSONValue | undefined = undefined> = {
+  listKey: string
+  path: string
+  label: string
+  description: string | null
+  customViews: Record<string, any>
+  fieldMeta: FieldMeta
+}
+
+export type FieldController<
+  FormState,
+  FilterValue extends JSONValue = never,
+  GraphQLFilterValue = never,
+> = {
+  path: string
+  label: string
+  description: string | null
+  graphqlSelection: string
+  defaultValue: FormState
+  deserialize: (item: any) => FormState
+  serialize: (formState: FormState) => any
+  validate?: (formState: FormState, opts: { isRequired: boolean }) => boolean
+}
+import { type Descendant } from 'slate'
+import type { ComponentBlock } from './client/DocumentEditor/component-blocks/api-shared'
+import type { Relationships } from './client/DocumentEditor/relationship-shared'
+
+export type DocumentFeatures = {
+  formatting: {
+    inlineMarks: {
+      bold: boolean
+      italic: boolean
+      underline: boolean
+      strikethrough: boolean
+      code: boolean
+      superscript: boolean
+      subscript: boolean
+      keyboard: boolean
+    }
+    listTypes: {
+      ordered: boolean
+      unordered: boolean
+    }
+    alignment: {
+      center: boolean
+      end: boolean
+    }
+    headingLevels: (1 | 2 | 3 | 4 | 5 | 6)[]
+    blockTypes: {
+      blockquote: boolean
+      code: boolean
+    }
+    softBreaks: boolean
+  }
+  links: boolean
+  dividers: boolean
+  layouts: [number, ...number[]][]
+}
+
 /**
- * Document field view - Simplified rich text implementation
- * Note: This is a simplified version. Full implementation would require Slate.js editor
+ * Main field component for document editor
  */
-
-import React, { useState } from 'react'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { FileText } from 'lucide-react'
-import type {
-  FieldController,
-  FieldControllerConfig,
-  FieldProps,
-} from '../../types'
-
-// Simplified document structure - in reality this would be Slate.js nodes
-type DocumentValue = Array<{
-  type: 'paragraph' | 'heading' | 'blockquote'
-  children: Array<{ text: string }>
-}>
-
-interface DocumentFieldProps {
-  field: {
-    path: string
-    label: string
-    description?: string
-  }
-  value: DocumentValue
-  onChange?: (value: DocumentValue) => void
-  autoFocus?: boolean
-  forceValidation?: boolean
-}
-
-interface CellProps {
-  item: Record<string, any>
-  field: any
-  value?: DocumentValue
-}
-
-// Convert document to plain text for editing
-function documentToText(document: DocumentValue): string {
-  if (!document || !Array.isArray(document)) return ''
-  return document
-    .map(node => 
-      node.children?.map(child => child.text || '').join('') || ''
-    )
-    .join('\n')
-}
-
-// Convert plain text back to document structure
-function textToDocument(text: string): DocumentValue {
-  if (!text.trim()) {
-    return [{ type: 'paragraph', children: [{ text: '' }] }]
-  }
-  
-  return text.split('\n').map(line => ({
-    type: 'paragraph' as const,
-    children: [{ text: line }]
-  }))
-}
-
 export function Field({
   field,
   value,
   onChange,
   autoFocus,
   forceValidation,
-}: DocumentFieldProps) {
-  const [textValue, setTextValue] = useState(() => documentToText(value))
-  const isReadOnly = onChange === undefined
-
-  const handleChange = (newText: string) => {
-    setTextValue(newText)
-    if (onChange) {
-      onChange(textToDocument(newText))
-    }
-  }
-
+}: any) {
   return (
-    <div className="space-y-2">
-      <Label>{field.label}</Label>
-      <div className="relative">
-        <Textarea
-          autoFocus={autoFocus}
-          readOnly={isReadOnly}
-          onChange={(e) => handleChange(e.target.value)}
-          value={textValue}
-          className="min-h-32 font-sans"
-          placeholder="Start typing your content..."
-        />
-        <div className="absolute top-2 right-2">
-          <Badge variant="secondary" className="text-xs">
-            <FileText className="w-3 h-3 mr-1" />
-            Document
-          </Badge>
-        </div>
+    <FieldContainer className="overflow-hidden">
+      <FieldLabel id={`${field.path}-label`}>
+        {field.label}
+      </FieldLabel>
+      <FieldDescription id={`${field.path}-description`}>
+        {field.description}
+      </FieldDescription>
+      <div className="border bg-background rounded-md overflow-hidden">
+        <ForceValidationProvider value={!!forceValidation}>
+          <DocumentEditor
+            autoFocus={autoFocus}
+            aria-labelledby={`${field.path}-label`}
+            value={value}
+            onChange={onChange}
+            componentBlocks={field.componentBlocks}
+            relationships={field.relationships}
+            documentFeatures={field.documentFeatures}
+          />
+        </ForceValidationProvider>
       </div>
-      {field.description && (
-        <p className="text-sm text-muted-foreground">{field.description}</p>
-      )}
-      <p className="text-xs text-muted-foreground">
-        Note: This is a simplified rich text editor. Full implementation would include formatting options.
-      </p>
-    </div>
+    </FieldContainer>
   )
 }
 
-export function Cell({ item, field, value }: CellProps) {
-  const fieldValue = value ?? item[field.path]?.document
-  const text = documentToText(fieldValue)
-  
-  return (
-    <div className="flex items-center gap-2">
-      {text ? (
-        <>
-          <FileText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm truncate max-w-32">
-            {text.slice(0, 50)}{text.length > 50 ? '...' : ''}
-          </span>
-        </>
-      ) : (
-        <span className="text-muted-foreground text-sm">—</span>
-      )}
-    </div>
-  )
-}
-
-export function CardValue({ item, field }: CellProps) {
-  const value = item[field.path]?.document
-  const text = documentToText(value)
-  
-  return (
-    <div>
-      <div className="text-sm font-medium">{field.label}</div>
-      <div className="text-sm text-muted-foreground">
-        {text ? (
-          <div className="space-y-1">
-            <div className="flex items-center gap-1">
-              <FileText className="h-3 w-3" />
-              <span>Document</span>
-            </div>
-            <div className="text-xs bg-muted p-2 rounded max-h-20 overflow-auto">
-              {text.slice(0, 100)}{text.length > 100 ? '...' : ''}
-            </div>
-          </div>
-        ) : (
-          '—'
-        )}
-      </div>
-    </div>
-  )
-}
-
-type DocumentFieldMeta = {
-  documentFeatures: any
-  relationships: any
-  componentBlocksPassedOnServer: string[]
-}
-
+/**
+ * Controller for document fields
+ */
 export function controller(
-  config: FieldControllerConfig<DocumentFieldMeta>
-): FieldController<DocumentValue> {
+  config: FieldControllerConfig<{
+    relationships: Relationships
+    documentFeatures: DocumentFeatures
+    componentBlocksPassedOnServer: string[]
+  }>
+): FieldController<Descendant[]> & {
+  componentBlocks: Record<string, ComponentBlock>
+  relationships: Relationships
+  documentFeatures: DocumentFeatures
+} {
+  const memoizedIsComponentBlockValid = weakMemoize((componentBlock: ComponentBlock) =>
+    weakMemoize((props: any) =>
+      clientSideValidateProp({ kind: 'object', fields: componentBlock.schema }, props)
+    )
+  )
+  const componentBlocks: Record<string, ComponentBlock> = config.customViews.componentBlocks || {}
+  const serverSideComponentBlocksSet = new Set(config.fieldMeta.componentBlocksPassedOnServer)
+  const componentBlocksOnlyBeingPassedOnTheClient = Object.keys(componentBlocks).filter(
+    x => !serverSideComponentBlocksSet.has(x)
+  )
+  if (componentBlocksOnlyBeingPassedOnTheClient.length) {
+    throw new Error(
+      `(${config.listKey}:${
+        config.path
+      }) The following component blocks are being passed in the custom view but not in the server-side field config: ${JSON.stringify(
+        componentBlocksOnlyBeingPassedOnTheClient
+      )}`
+    )
+  }
+  const clientSideComponentBlocksSet = new Set(Object.keys(componentBlocks))
+  const componentBlocksOnlyBeingPassedOnTheServer =
+    config.fieldMeta.componentBlocksPassedOnServer.filter((x: string) => !clientSideComponentBlocksSet.has(x))
+  if (componentBlocksOnlyBeingPassedOnTheServer.length) {
+    throw new Error(
+      `(${config.listKey}:${
+        config.path
+      }) The following component blocks are being passed in the server-side field config but not in the custom view: ${JSON.stringify(
+        componentBlocksOnlyBeingPassedOnTheServer
+      )}`
+    )
+  }
+  const validateNode = weakMemoize((node: Node): boolean => {
+    if (Text.isText(node)) {
+      return true
+    }
+    if (node.type === 'component-block') {
+      const componentBlock = componentBlocks[node.component as string]
+      if (componentBlock) {
+        if (!memoizedIsComponentBlockValid(componentBlock)(node.props)) {
+          return false
+        }
+      }
+    }
+    if (node.type === 'link' && (typeof node.href !== 'string' || !isValidURL(node.href))) {
+      return false
+    }
+    return node.children.every(node => validateNode(node))
+  })
   return {
     path: config.path,
     label: config.label,
     description: config.description,
-    graphqlSelection: `${config.path} { document(hydrateRelationships: true) }`,
+    graphqlSelection: `${config.path} {document(hydrateRelationships: true)}`,
+    componentBlocks: config.customViews.componentBlocks || {},
+    documentFeatures: config.fieldMeta.documentFeatures,
+    relationships: config.fieldMeta.relationships,
     defaultValue: [{ type: 'paragraph', children: [{ text: '' }] }],
-    deserialize: data => {
+    deserialize: (data: any) => {
       const documentFromServer = data[config.path]?.document
-      if (!documentFromServer || !Array.isArray(documentFromServer)) {
+      if (!documentFromServer) {
         return [{ type: 'paragraph', children: [{ text: '' }] }]
       }
-      return documentFromServer
+      // make a temporary editor to normalize the document
+      const editor = createDocumentEditor(
+        config.fieldMeta.documentFeatures,
+        componentBlocks,
+        config.fieldMeta.relationships
+      )
+      editor.children = documentFromServer
+      Editor.normalize(editor, { force: true })
+      return editor.children
     },
-    serialize: value => ({
+    serialize: (value: any) => ({
       [config.path]: value,
     }),
-    validate: () => true, // Simplified validation
+    validate(value: any) {
+      return value.every((node: any) => validateNode(node))
+    },
   }
 }
 
-Cell.supportsLinkTo = false
+/**
+ * Helper function to serialize document nodes to plain text
+ */
+function serialize(nodes: any) {
+  return nodes.map((n: any) => Node.string(n)).join('\n')
+}
+
+/**
+ * Cell component for rendering document content in a list view
+ */
+export function Cell({ item, field, linkTo }: any) {
+  const value = item[field.path]?.document
+  if (!value) return null
+  const plainText = serialize(value)
+  const cutText =
+    plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText
+  return linkTo ? (
+    <CellLink {...linkTo}>{cutText}</CellLink>
+  ) : (
+    <CellContainer>{cutText}</CellContainer>
+  )
+}
+
+Cell.supportsLinkTo = true
+
+/**
+ * CardValue component for rendering document in card view
+ */
+export function CardValue({ item, field }: any) {
+  return (
+    <FieldContainer>
+      <FieldLabel>{field.label}</FieldLabel>
+      <DocumentRenderer document={item[field.path]?.document || []} />
+    </FieldContainer>
+  )
+}
+
+interface FilterProps {
+  value: string
+  onChange: (value: string) => void
+  operator: string
+}
+
+/**
+ * Filter component for document fields
+ */
+export function Filter({ value, onChange, operator }: FilterProps) {
+  // Get the filter type based on the operator
+  operator = operator as keyof ReturnType<typeof getFilterTypes>
+
+  // For boolean operators (is_empty)
+  if (operator === 'is_empty') {
+    return (
+      <ToggleGroup
+        type="single"
+        value={value}
+        onValueChange={onChange}
+        className="justify-start"
+      >
+        <ToggleGroupItem value="true" className="text-xs">
+          Empty
+        </ToggleGroupItem>
+        <ToggleGroupItem value="false" className="text-xs">
+          Not Empty
+        </ToggleGroupItem>
+      </ToggleGroup>
+    )
+  }
+
+  // For text search operators
+  return (
+    <Input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Enter search text"
+      className="w-full"
+    />
+  )
+}
+
+/**
+ * Get available filter types for document fields
+ */
+export function getFilterTypes() {
+  return {
+    contains: {
+      label: 'Contains text',
+      initialValue: '',
+    },
+    not_contains: {
+      label: 'Does not contain text',
+      initialValue: '',
+    },
+    is_empty: {
+      label: 'Is empty',
+      initialValue: 'true',
+    },
+  }
+}
+
+export const allowedExportsOnCustomViews = ['componentBlocks']
