@@ -1,6 +1,6 @@
 /**
  * SignInPage for Dashboard 2
- * Based on Keystone's SigninPage with Dashboard 1's ShadCN UI styling
+ * Based on Dashboard 1's UI with Dashboard 2's functionality
  */
 
 'use client'
@@ -8,13 +8,12 @@
 import React, { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Database, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Logo } from '@/features/dashboard/components/Logo'
 
 interface SignInPageProps {
   identityField?: string
@@ -63,147 +62,120 @@ export function SignInPage({
     }
   }
 
-  const capitalizeFirstLetter = (str: string) => 
-    str.charAt(0).toUpperCase() + str.slice(1)
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6 p-6">
-        {/* Logo/Header */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Database className="h-6 w-6" />
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center space-x-1.5">
+          <Logo aria-hidden="true" />
+        </div>
+        <h3 className="mt-6 text-lg font-semibold text-foreground dark:text-foreground">
+          Sign in to your account
+        </h3>
+        <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
+          Don&apos;t have an account?
+          <Link
+            href="/dashboard2/signup"
+            className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
+          >
+            Sign up
+          </Link>
+        </p>
+        
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div>
+            <Label
+              htmlFor="identity"
+              className="text-sm font-medium text-foreground dark:text-foreground"
+            >
+              {identityField === 'email' ? 'Email' : identityField.charAt(0).toUpperCase() + identityField.slice(1)}
+            </Label>
+            <Input
+              type={identityField === 'email' ? 'email' : 'text'}
+              id="identity"
+              name="identity"
+              autoComplete={identityField === 'email' ? 'email' : 'username'}
+              placeholder={identityField === 'email' ? 'you@example.com' : `Enter your ${identityField}`}
+              className="mt-2 bg-muted/40"
+              value={credentials.identity}
+              onChange={(e) => setCredentials(prev => ({ 
+                ...prev, 
+                identity: e.target.value 
+              }))}
+              disabled={isLoading}
+              required
+            />
+          </div>
+          <div>
+            <Label
+              htmlFor="secret"
+              className="text-sm font-medium text-foreground dark:text-foreground"
+            >
+              {secretField.charAt(0).toUpperCase() + secretField.slice(1)}
+            </Label>
+            <div className="relative mt-2">
+              <Input
+                type={showPassword ? "text" : "password"}
+                id="secret"
+                name="secret"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="pr-10 bg-muted/40"
+                value={credentials.secret}
+                onChange={(e) => setCredentials(prev => ({ 
+                  ...prev, 
+                  secret: e.target.value 
+                }))}
+                disabled={isLoading}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
             </div>
           </div>
-          <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-muted-foreground">
-            Sign in to your admin dashboard
-          </p>
-        </div>
-
-        {/* Sign In Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Identity Field */}
-              <div className="space-y-2">
-                <Label htmlFor="identity">
-                  {capitalizeFirstLetter(identityField)}
-                </Label>
-                <Input
-                  id="identity"
-                  name="identity"
-                  type={identityField === 'email' ? 'email' : 'text'}
-                  placeholder={`Enter your ${identityField}`}
-                  value={credentials.identity}
-                  onChange={(e) => setCredentials(prev => ({ 
-                    ...prev, 
-                    identity: e.target.value 
-                  }))}
-                  required
-                  autoFocus
-                  disabled={isLoading}
-                />
-              </div>
-
-              {/* Secret Field */}
-              <div className="space-y-2">
-                <Label htmlFor="secret">
-                  {capitalizeFirstLetter(secretField)}
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="secret"
-                    name="secret"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={`Enter your ${secretField}`}
-                    value={credentials.secret}
-                    onChange={(e) => setCredentials(prev => ({ 
-                      ...prev, 
-                      secret: e.target.value 
-                    }))}
-                    required
-                    disabled={isLoading}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading || !credentials.identity || !credentials.secret}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign in'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Footer Links */}
-        <div className="text-center space-y-2">
-          <div className="text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link 
-              href="/dashboard2/signup" 
-              className="font-medium text-primary hover:underline"
-            >
-              Sign up
-            </Link>
-          </div>
-          <div className="text-sm">
-            <Link 
-              href="/dashboard2/reset" 
-              className="text-muted-foreground hover:text-primary hover:underline"
-            >
-              Forgot your password?
-            </Link>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Back to main site */}
-        <div className="text-center">
-          <Link 
-            href="/" 
-            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+          <Button 
+            type="submit" 
+            className="w-full py-2 font-medium"
+            disabled={isLoading || !credentials.identity || !credentials.secret}
           >
-            ← Back to main site
+            {isLoading ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
+                Signing in...
+              </>
+            ) : (
+              'Sign in'
+            )}
+          </Button>
+        </form>
+
+        {error && (
+          <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
+              <span className="break-all text-sm opacity-75 font-normal">{error}</span>
+            </div>
+          </Badge>
+        )}
+
+        <p className="mt-6 text-sm text-muted-foreground dark:text-muted-foreground">
+          Forgot your password?
+          <Link
+            href="/dashboard2/reset"
+            className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
+          >
+            Reset password
           </Link>
-        </div>
+        </p>
       </div>
     </div>
   )

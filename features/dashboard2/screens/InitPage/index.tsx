@@ -1,18 +1,18 @@
 /**
  * InitPage for Dashboard 2
- * Based on Keystone's InitPage with Dashboard 1's ShadCN UI styling
+ * Based on Dashboard 1's UI with Dashboard 2's functionality
  */
 
 'use client'
 
 import React, { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Database, User, AlertTriangle } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Logo } from '@/features/dashboard/components/Logo'
 
 interface InitPageProps {
   listKey?: string
@@ -25,6 +25,7 @@ export function InitPage({
 }: InitPageProps) {
   const router = useRouter()
   const [formData, setFormData] = useState<Record<string, string>>({})
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -64,8 +65,8 @@ export function InitPage({
 
   const getFieldLabel = (fieldPath: string) => {
     const labels: Record<string, string> = {
-      name: 'Full Name',
-      email: 'Email Address',
+      name: 'Name',
+      email: 'Email',
       password: 'Password',
       username: 'Username'
     }
@@ -75,113 +76,111 @@ export function InitPage({
   const getFieldType = (fieldPath: string) => {
     const types: Record<string, string> = {
       email: 'email',
-      password: 'password'
+      password: showPassword ? 'text' : 'password'
     }
     return types[fieldPath] || 'text'
   }
 
   const getFieldPlaceholder = (fieldPath: string) => {
     const placeholders: Record<string, string> = {
-      name: 'Enter your full name',
-      email: 'Enter your email address',
-      password: 'Choose a secure password',
+      name: 'Enter your name',
+      email: 'you@example.com',
+      password: '••••••••',
       username: 'Choose a username'
     }
     return placeholders[fieldPath] || `Enter ${fieldPath}`
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6 p-6">
-        {/* Logo/Header */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Database className="h-8 w-8" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold">Welcome to Dashboard</h1>
-            <p className="text-muted-foreground">
-              Let's get started by creating your first admin user
-            </p>
-          </div>
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center space-x-1.5">
+          <Logo aria-hidden="true" />
         </div>
+        <h3 className="mt-6 text-lg font-semibold text-foreground dark:text-foreground">
+          Create admin account
+        </h3>
+        <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
+          Set up your admin account to get started.
+        </p>
 
-        {/* Setup Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Create your first user
-            </CardTitle>
-            <CardDescription>
-              This will be your admin account for managing the dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Dynamic form fields based on fieldPaths */}
-              {fieldPaths.map((fieldPath) => (
-                <div key={fieldPath} className="space-y-2">
-                  <Label htmlFor={fieldPath}>
-                    {getFieldLabel(fieldPath)}
-                    <span className="text-destructive ml-1">*</span>
-                  </Label>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          {fieldPaths.map((fieldPath) => (
+            <div key={fieldPath}>
+              <Label
+                htmlFor={fieldPath}
+                className="text-sm font-medium text-foreground dark:text-foreground"
+              >
+                {getFieldLabel(fieldPath)}
+              </Label>
+              {fieldPath === 'password' ? (
+                <div className="relative mt-2">
                   <Input
+                    type={getFieldType(fieldPath)}
                     id={fieldPath}
                     name={fieldPath}
-                    type={getFieldType(fieldPath)}
+                    autoComplete={fieldPath === 'password' ? 'new-password' : fieldPath}
                     placeholder={getFieldPlaceholder(fieldPath)}
+                    className="pr-10 bg-muted/40"
                     value={formData[fieldPath] || ''}
                     onChange={(e) => handleFieldChange(fieldPath, e.target.value)}
-                    required
                     disabled={isLoading}
-                    autoFocus={fieldPath === fieldPaths[0]}
+                    required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </button>
                 </div>
-              ))}
-
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
-                    Creating account...
-                  </>
-                ) : (
-                  'Get started'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Info */}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="text-sm space-y-2">
-              <p className="font-medium text-foreground">What happens next?</p>
-              <ul className="text-muted-foreground space-y-1">
-                <li>• Your admin account will be created</li>
-                <li>• You'll be signed in automatically</li>
-                <li>• You can start managing your content</li>
-              </ul>
+              ) : (
+                <Input
+                  type={getFieldType(fieldPath)}
+                  id={fieldPath}
+                  name={fieldPath}
+                  autoComplete={fieldPath}
+                  placeholder={getFieldPlaceholder(fieldPath)}
+                  className="mt-2 bg-muted/40"
+                  value={formData[fieldPath] || ''}
+                  onChange={(e) => handleFieldChange(fieldPath, e.target.value)}
+                  disabled={isLoading}
+                  required
+                />
+              )}
             </div>
-          </CardContent>
-        </Card>
+          ))}
+          
+          <Button 
+            type="submit" 
+            className="w-full py-2 font-medium"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
+                Creating account...
+              </>
+            ) : (
+              'Create account'
+            )}
+          </Button>
+        </form>
+
+        {error && (
+          <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
+              <span className="break-all text-sm opacity-75 font-normal">{error}</span>
+            </div>
+          </Badge>
+        )}
       </div>
     </div>
   )

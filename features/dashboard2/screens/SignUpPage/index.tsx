@@ -1,6 +1,6 @@
 /**
  * SignUpPage for Dashboard 2
- * User registration with Dashboard 1's ShadCN UI styling
+ * Based on Dashboard 1's UI with Dashboard 2's functionality
  */
 
 'use client'
@@ -8,30 +8,24 @@
 import React, { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Database, Eye, EyeOff, AlertTriangle, UserPlus } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import { Logo } from '@/features/dashboard/components/Logo'
 
 interface SignUpPageProps {
   allowRegistration?: boolean
 }
 
-export function SignUpPage({ allowRegistration = false }: SignUpPageProps) {
+export function SignUpPage({ allowRegistration = true }: SignUpPageProps) {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,23 +33,13 @@ export function SignUpPage({ allowRegistration = false }: SignUpPageProps) {
     e.preventDefault()
     
     // Validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.email || !formData.password) {
       setError('Please fill in all fields')
-      return
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
       return
     }
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long')
-      return
-    }
-
-    if (!agreedToTerms) {
-      setError('Please agree to the terms and conditions')
       return
     }
 
@@ -83,231 +67,104 @@ export function SignUpPage({ allowRegistration = false }: SignUpPageProps) {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // If registration is not allowed, show a message
-  if (!allowRegistration) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-full max-w-md space-y-6 p-6">
-          <div className="text-center space-y-2">
-            <div className="flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Database className="h-6 w-6" />
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold">Registration Disabled</h1>
-          </div>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto" />
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Registration Not Available</h3>
-                  <p className="text-sm text-muted-foreground">
-                    New user registration is currently disabled. Please contact your administrator 
-                    for access to the dashboard.
-                  </p>
-                </div>
-                <Button asChild className="w-full">
-                  <Link href="/dashboard2/signin">
-                    Sign in instead
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6 p-6">
-        {/* Logo/Header */}
-        <div className="text-center space-y-2">
-          <div className="flex justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Database className="h-6 w-6" />
-            </div>
-          </div>
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-muted-foreground">
-            Get started with your admin dashboard
-          </p>
+    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center space-x-1.5">
+          <Logo aria-hidden="true" />
         </div>
+        <h3 className="mt-6 text-lg font-semibold text-foreground dark:text-foreground">
+          Create your account
+        </h3>
+        <p className="mt-2 text-sm text-muted-foreground dark:text-muted-foreground">
+          Already have an account?
+          <Link
+            href="/dashboard2/signin"
+            className="ml-1 font-medium text-primary hover:text-primary/90 dark:text-primary hover:dark:text-primary/90"
+          >
+            Sign in
+          </Link>
+        </p>
 
-        {/* Sign Up Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Sign up
-            </CardTitle>
-            <CardDescription>
-              Create your admin account to get started
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Name Field */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => handleFieldChange('name', e.target.value)}
-                  required
-                  autoFocus
-                  disabled={isLoading}
-                />
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={(e) => handleFieldChange('email', e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a secure password"
-                    value={formData.password}
-                    onChange={(e) => handleFieldChange('password', e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    placeholder="Confirm your password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleFieldChange('confirmPassword', e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={isLoading}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Terms Agreement */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  checked={agreedToTerms}
-                  onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
-                  disabled={isLoading}
-                />
-                <Label htmlFor="terms" className="text-sm">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-primary hover:underline">
-                    terms and conditions
-                  </Link>
-                </Label>
-              </div>
-
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full" 
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div>
+            <Label
+              htmlFor="email"
+              className="text-sm font-medium text-foreground dark:text-foreground"
+            >
+              Email
+            </Label>
+            <Input
+              type="email"
+              id="email"
+              name="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              className="mt-2 bg-muted/40"
+              value={formData.email}
+              onChange={(e) => handleFieldChange('email', e.target.value)}
+              disabled={isLoading}
+              required
+            />
+          </div>
+          <div>
+            <Label
+              htmlFor="password"
+              className="text-sm font-medium text-foreground dark:text-foreground"
+            >
+              Password
+            </Label>
+            <div className="relative mt-2">
+              <Input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                name="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                className="pr-10 bg-muted/40"
+                value={formData.password}
+                onChange={(e) => handleFieldChange('password', e.target.value)}
+                disabled={isLoading}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
-                    Creating account...
-                  </>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  'Create account'
+                  <Eye className="h-4 w-4" aria-hidden="true" />
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Footer Links */}
-        <div className="text-center space-y-2">
-          <div className="text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link 
-              href="/dashboard2/signin" 
-              className="font-medium text-primary hover:underline"
-            >
-              Sign in
-            </Link>
+              </button>
+            </div>
           </div>
-        </div>
-
-        <Separator />
-
-        {/* Back to main site */}
-        <div className="text-center">
-          <Link 
-            href="/" 
-            className="text-sm text-muted-foreground hover:text-primary hover:underline"
+          <Button 
+            type="submit" 
+            className="w-full py-2 font-medium"
+            disabled={isLoading || !formData.email || !formData.password}
           >
-            ← Back to main site
-          </Link>
-        </div>
+            {isLoading ? (
+              <>
+                <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
+                Creating account...
+              </>
+            ) : (
+              'Sign up'
+            )}
+          </Button>
+        </form>
+
+        {error && (
+          <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
+              <span className="break-all text-sm opacity-75 font-normal">{error}</span>
+            </div>
+          </Badge>
+        )}
       </div>
     </div>
   )
