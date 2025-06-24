@@ -40,6 +40,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PageContainer } from '../../components/PageContainer'
+import { FilterBar } from '../../components/FilterBar'
 import { useDashboard } from '../../context/DashboardProvider'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -168,7 +169,6 @@ export function ListPageClient({
   
   // State
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
-  const [searchInput, setSearchInput] = useState(initialSearchParams.search)
 
   // Extract data from props
   const data = initialData
@@ -177,40 +177,19 @@ export function ListPageClient({
   const pageSize = initialSearchParams.pageSize
   const searchString = initialSearchParams.search
 
-  // Update URL with search params - this triggers server-side refetch
-  const updateSearchParams = useCallback((newParams: { page?: number, search?: string }) => {
-    const params = new URLSearchParams()
+  // Handle page change - simplified since FilterBar handles search/filters
+  const handlePageChange = useCallback((newPage: number) => {
+    const params = new URLSearchParams(window.location.search)
     
-    if (newParams.page && newParams.page > 1) {
-      params.set('page', newParams.page.toString())
-    }
-    if (newParams.search) {
-      params.set('search', newParams.search)
-    }
-    if (pageSize !== 50) {
-      params.set('pageSize', pageSize.toString())
+    if (newPage && newPage > 1) {
+      params.set('page', newPage.toString())
+    } else {
+      params.delete('page')
     }
     
     const newUrl = params.toString() ? `?${params.toString()}` : ''
     router.push(newUrl)
-  }, [router, pageSize])
-
-  // Handle search
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault()
-    updateSearchParams({ page: 1, search: searchInput })
-  }, [searchInput, updateSearchParams])
-
-  // Handle page change
-  const handlePageChange = useCallback((newPage: number) => {
-    updateSearchParams({ page: newPage, search: searchString })
-  }, [searchString, updateSearchParams])
-
-  // Clear filters
-  const clearFilters = useCallback(() => {
-    setSearchInput('')
-    updateSearchParams({ page: 1, search: '' })
-  }, [updateSearchParams])
+  }, [router])
 
   if (!list) {
     return (
@@ -232,17 +211,10 @@ export function ListPageClient({
   const header = (
     <div className="flex items-center justify-between">
       <h1 className="text-lg font-semibold md:text-2xl">{list.label}</h1>
-      {!list.hideCreate && (
-        <Button asChild>
-          <Link href={`${basePath}/${list.path}/create`}>
-            <Plus className="h-4 w-4 mr-2" />
-            New {list.singular?.toLowerCase() || 'item'}
-          </Link>
-        </Button>
-      )}
     </div>
   )
 
+  // Check if we have any active filters (search or actual filters)
   const hasFilters = !!searchString
   const isFiltered = hasFilters
   const isEmpty = data?.count === 0 && !isFiltered
@@ -250,27 +222,8 @@ export function ListPageClient({
   return (
     <PageContainer title={list.label} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-4">
-        {/* Search and filters bar */}
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleSearch} className="flex-1 max-w-sm">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </form>
-          
-          {hasFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-          )}
-        </div>
+        {/* Filter Bar - includes search, filters, and create button */}
+        <FilterBar list={list} />
 
         {/* Selection toolbar */}
         {selectedItems.size > 0 && (

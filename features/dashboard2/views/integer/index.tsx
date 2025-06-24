@@ -2,6 +2,8 @@
  * Integer field view - Keystone implementation with Shadcn UI
  */
 
+'use client'
+
 import React, { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -192,6 +194,56 @@ export function controller(
     serialize: value => ({ [config.path]: value.value }),
     hasAutoIncrementDefault: config.fieldMeta?.defaultValue === 'autoincrement',
     validate: (value, opts) => validate(value, opts) === undefined,
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        const [isDirty, setDirty] = useState(false)
+        if (type === 'empty' || type === 'not_empty') return null
+
+        return (
+          <Input
+            type="number"
+            step="1"
+            autoFocus={autoFocus}
+            value={value ?? ''}
+            onBlur={() => setDirty(true)}
+            onChange={(e) => {
+              const numValue = e.target.value === '' ? null : Number(e.target.value)
+              onChange(!Number.isFinite(numValue) ? null : numValue)
+            }}
+            placeholder="Enter number..."
+          />
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: number }) => {
+        if (type === 'empty') return { [config.path]: { equals: null } }
+        if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
+        if (type === 'not') return { [config.path]: { not: { equals: value } } }
+        return { [config.path]: { [type]: value } }
+      },
+      Label: ({ label, type, value }: { label: string; type: string; value: number }) => {
+        if (type === 'empty' || type === 'not_empty') return label.toLowerCase()
+        const TYPE_OPERATOR_MAP = {
+          equals: '=',
+          not: '≠',
+          gt: '>',
+          lt: '<',
+          gte: '≥',
+          lte: '≤',
+        } as const
+        const operator = TYPE_OPERATOR_MAP[type as keyof typeof TYPE_OPERATOR_MAP]
+        return `${operator} ${value}`
+      },
+      types: {
+        equals: { label: 'Is exactly', initialValue: null },
+        not: { label: 'Is not exactly', initialValue: null },
+        gt: { label: 'Is greater than', initialValue: null },
+        lt: { label: 'Is less than', initialValue: null },
+        gte: { label: 'Is greater than or equal to', initialValue: null },
+        lte: { label: 'Is less than or equal to', initialValue: null },
+        empty: { label: 'Is empty', initialValue: null },
+        not_empty: { label: 'Is not empty', initialValue: null },
+      },
+    },
   }
 }
 

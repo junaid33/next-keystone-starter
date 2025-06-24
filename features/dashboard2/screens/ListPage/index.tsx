@@ -8,6 +8,7 @@ import { getListItemsAction } from '../../actions/getListItemsAction'
 import { getListByPath } from '../../actions/getListByPath'
 import { getAdminMetaAction } from '../../actions'
 import { buildOrderByClause } from '../../lib/buildOrderByClause'
+import { buildWhereClause } from '../../lib/buildWhereClause'
 import { notFound } from 'next/navigation'
 import { ListPageClient } from './ListPageClient'
 
@@ -42,14 +43,31 @@ export async function ListPage({ params, searchParams }: PageProps) {
   // Build dynamic orderBy clause using Keystone's defaults
   const orderBy = buildOrderByClause(list, searchParamsObj)
 
+  // Build filters from URL params using Keystone's approach
+  const filterWhere = buildWhereClause(list, searchParamsObj)
+
+  // Build search where clause
+  const searchWhere = searchString ? { 
+    OR: [
+      { name: { contains: searchString, mode: 'insensitive' } },
+      { id: { contains: searchString, mode: 'insensitive' } }
+    ]
+  } : {}
+
+  // Combine search and filters - following Keystone's pattern
+  const whereConditions = []
+  if (Object.keys(searchWhere).length > 0) {
+    whereConditions.push(searchWhere)
+  }
+  if (Object.keys(filterWhere).length > 0) {
+    whereConditions.push(filterWhere)
+  }
+
+  const where = whereConditions.length > 0 ? { AND: whereConditions } : {}
+
   // Build GraphQL variables - following the same pattern as existing code
   const variables = {
-    where: searchString ? { 
-      OR: [
-        { name: { contains: searchString, mode: 'insensitive' } },
-        { id: { contains: searchString, mode: 'insensitive' } }
-      ]
-    } : {},
+    where,
     take: pageSize,
     skip: (currentPage - 1) * pageSize,
     orderBy
