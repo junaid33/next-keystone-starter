@@ -20,6 +20,13 @@ interface ListItemsResponse {
   count: number
 }
 
+interface CacheOptions {
+  next?: {
+    tags?: string[]
+    revalidate?: number
+  }
+}
+
 // Server-side GraphQL selections for different field types - copied from getItemAction.ts
 const FIELD_GRAPHQL_SELECTIONS: Record<string, (fieldPath: string, fieldMeta?: any) => string> = {
   bigInt: (fieldPath) => fieldPath,
@@ -65,7 +72,8 @@ function getFieldGraphQLSelection(field: any): string {
 export async function getListItemsAction(
   listKey: string, 
   variables: ListItemsVariables,
-  selectedFields: string[] = ['id']
+  selectedFields: string[] = ['id'],
+  cacheOptions?: CacheOptions
 ): Promise<{ success: true; data: ListItemsResponse } | { success: false; error: string }> {
   console.log(`🔍 Fetching list items for ${listKey}:`, { variables, selectedFields })
   
@@ -125,7 +133,7 @@ export async function getListItemsAction(
     console.log(`📊 Query variables:`, variables)
     
     // Execute the query
-    const response = await keystoneClient(query, variables)
+    const response = await keystoneClient(query, variables, cacheOptions)
     
     if (!response.success) {
       console.error(`❌ GraphQL query failed:`, response.error)
