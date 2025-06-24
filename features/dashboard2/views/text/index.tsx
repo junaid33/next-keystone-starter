@@ -167,7 +167,7 @@ export function Field(props: FieldProps) {
         <div><strong>errorMessage:</strong> {JSON.stringify(errorMessage)}</div>
         <div><strong>value:</strong> {JSON.stringify(value)}</div>
       </div>
-    <NullableFieldWrapper
+      <NullableFieldWrapper
       isAllowed={field.isNullable}
       autoFocus={isNull && autoFocus}
       label={field.label}
