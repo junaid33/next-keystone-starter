@@ -25,7 +25,7 @@ export function DashboardLayout({ children, adminMeta, authenticatedItem, router
       <DashboardProvider>
         <AdminMetaProvider>
           <SidebarProvider>
-            <Sidebar />
+            <Sidebar adminMeta={adminMeta} />
             <SidebarInset className="min-w-0">
               {children}
             </SidebarInset>

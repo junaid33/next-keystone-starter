@@ -16,11 +16,14 @@ import {
   SidebarMenuItem, 
   SidebarMenuButton 
 } from '@/components/ui/sidebar'
-import { useAdminMeta } from '../hooks/useAdminMeta'
+import { AdminMeta } from '../hooks/useAdminMeta'
 import { Home, Database, Users, Settings } from 'lucide-react'
 
-export function Sidebar() {
-  const { adminMeta } = useAdminMeta()
+interface SidebarProps {
+  adminMeta: AdminMeta | null
+}
+
+export function Sidebar({ adminMeta }: SidebarProps) {
   const currentPath = usePathname()
 
   const lists = adminMeta?.lists || {}
