@@ -18,7 +18,11 @@
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
       "Bash(git cherry-pick:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "mcp__github__search_code",
+      "Bash(curl:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": []
   }
