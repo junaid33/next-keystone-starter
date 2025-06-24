@@ -1,3 +1,3 @@
-import { ItemPage } from "@/features/dashboard2/screens/ItemPage";
+import { ItemPage } from "@/features/dashboard/screens/ItemPage";
 
 export default ItemPage;

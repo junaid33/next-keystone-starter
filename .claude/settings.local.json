@@ -23,7 +23,9 @@
       "Bash(curl:*)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(touch:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }
