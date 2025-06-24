@@ -24,15 +24,11 @@ export function DashboardLayout({ children, adminMeta, authenticatedItem, router
     <ErrorBoundary>
       <DashboardProvider>
         <AdminMetaProvider>
-          <SidebarProvider defaultOpen>
-            <div className="min-h-screen bg-background font-sans antialiased">
-              <Sidebar />
-              <SidebarInset className="flex flex-col">
-                <div className="flex-1 space-y-4 p-4 md:p-6">
-                  {children}
-                </div>
-              </SidebarInset>
-            </div>
+          <SidebarProvider>
+            <Sidebar />
+            <SidebarInset className="min-w-0">
+              {children}
+            </SidebarInset>
           </SidebarProvider>
         </AdminMetaProvider>
       </DashboardProvider>
