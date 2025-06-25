@@ -2,9 +2,9 @@
  * GraphQL utilities for data fetching with SWR
  */
 
-import { getAuthHeaders } from '@/features/dashboard/lib/cookies';
+import { getAuthHeaders } from '@/features/dashboard2/lib/cookies';
 import { GraphQLClient, ClientError } from 'graphql-request';
-import { getGraphQLEndpoint } from '@/features/dashboard/lib/getBaseUrl';
+import { getGraphQLEndpoint } from '@/features/dashboard2/lib/getBaseUrl';
 
 // Define response type for keystoneClient
 export type KeystoneResponse<T = any> =

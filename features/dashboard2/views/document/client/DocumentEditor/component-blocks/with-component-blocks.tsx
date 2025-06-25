@@ -23,7 +23,7 @@ import {
 } from './utils'
 import { getInitialPropsValue } from './initial-values'
 import { getKeysForArrayValue, getNewArrayElementKey, setKeysForArrayValue } from './preview-props'
-import { weakMemoize } from '@/features/dashboard/lib/weakMemoize'
+import { weakMemoize } from '@/features/dashboard2/lib/weakMemoize'
 
 function getAncestorComponentBlock(editor: Editor) {
   if (editor.selection) {

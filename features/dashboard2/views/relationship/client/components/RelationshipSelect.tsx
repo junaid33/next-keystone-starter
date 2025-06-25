@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { getRelationshipOptions } from "@/features/dashboard2/actions";
+import { getRelationshipOptions } from "@/features/dashboard2/actions/relationship";
 import { Select, MultiSelect } from "./Select";
 import type { Option } from "./Select";
 import useSWR from "swr";

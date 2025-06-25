@@ -1,12 +1,12 @@
 "use client";
 import { Fragment, useState } from "react";
 import useSWR from "swr";
-import { getRelationshipOptions } from "@/features/dashboard/actions";
+import { getRelationshipOptions } from "@/features/dashboard2/actions/relationship";
 import { RelationshipSelect } from "./components/RelationshipSelect";
 import { ClientField } from "./Field";
 import Link from "next/link";
-import { useList } from "@/features/dashboard/hooks/useAdminMeta";
-import { basePath } from "@/features/dashboard/lib/config";
+import { useList } from "@/features/dashboard2/hooks/useAdminMeta";
+import { basePath } from "@/features/dashboard2/lib/config";
 import { FieldContainer } from "@/components/ui/field-container";
 import { FieldLabel } from "@/components/ui/field-label";
 import { FieldDescription } from "@/components/ui/field-description";

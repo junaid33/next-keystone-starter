@@ -1,7 +1,7 @@
 'use client'
 
 import { RelationshipSelect } from './client/components/RelationshipSelect'
-import { getList } from '@/features/dashboard2/actions'
+import { getList } from '@/features/dashboard2/actions/getList'
 import useSWR from 'swr'
 
 interface ClientRelationshipFilterProps {

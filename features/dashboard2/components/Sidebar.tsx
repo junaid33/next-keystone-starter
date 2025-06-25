@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { AdminMeta } from '../hooks/useAdminMeta'
 import { Home, Database, ChevronRight, Package } from 'lucide-react'
-import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
+import { Logo, LogoIcon } from '@/features/dashboard2/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
 
 interface User {

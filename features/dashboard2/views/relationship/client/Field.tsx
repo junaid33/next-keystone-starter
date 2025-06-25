@@ -2,9 +2,10 @@
 
 import React, { Fragment } from "react";
 import useSWR from "swr";
-import { getAuthenticatedUser, getList } from "@/features/dashboard2/actions";
+import { getAuthenticatedUser } from "@/features/dashboard2/actions/auth";
+import { getList } from "@/features/dashboard2/actions/getList";
 import { RelationshipSelect } from "./components/RelationshipSelect";
-import Cards from "./components/Cards";
+import { Cards } from "./components/Cards";
 import { CreateItemDrawer } from "./components/CreateItemDrawer";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
