@@ -107,7 +107,7 @@ export function ListPageClient({
   ]
 
   const header = (
-    <div className="pb-4 pt-4 md:pt-6">
+    <div>
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
         {list.label}
       </h1>

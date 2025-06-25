@@ -95,6 +95,7 @@ function FieldSelectionContent({
               const fieldsWithId = ['id', ...Array.from(newSelectedFields)]
               setNewSelectedFields(fieldsWithId)
             }}
+            onSelect={(e) => e.preventDefault()}
             disabled={field.isDisabled}
           >
             {field.label}
