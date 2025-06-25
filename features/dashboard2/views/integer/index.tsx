@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
@@ -219,6 +220,24 @@ export function controller(
         if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
         if (type === 'not') return { [config.path]: { not: { equals: value } } }
         return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value === null) {
+            return [{ type: 'empty', value: null }]
+          }
+          if (!value) return []
+          if (type === 'equals') return { type: 'equals', value }
+          if (type === 'not') {
+            if (value?.equals === null) return { type: 'not_empty', value: null }
+            if (value?.equals === undefined) return []
+            return { type: 'not', value: value.equals }
+          }
+          if (type === 'gt' || type === 'gte' || type === 'lt' || type === 'lte') {
+            return { type, value }
+          }
+          return []
+        })
       },
       Label: ({ label, type, value }: { label: string; type: string; value: number }) => {
         if (type === 'empty' || type === 'not_empty') return label.toLowerCase()

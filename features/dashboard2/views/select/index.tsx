@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
@@ -22,6 +23,17 @@ import type {
 
 // Types matching Keystone exactly
 type Option = { label: string; value: string }
+
+const FILTER_TYPES = {
+  matches: {
+    label: 'Matches',
+    initialValue: [],
+  },
+  not_matches: {
+    label: 'Does not match',
+    initialValue: [],
+  },
+}
 type Value =
   | { value: Option | null; kind: 'create' }
   | { value: Option | null; initial: Option | null; kind: 'update' }
@@ -292,6 +304,68 @@ export function controller(config: Config): FieldController<Value> & {
     },
     serialize: value => ({ [config.path]: t(value.value?.value ?? null) }),
     validate: (value, opts) => validate(value, opts.isRequired),
+    filter: {
+      Filter: ({ value, onChange, type }: any) => {
+        const selectedValues = new Set(value || [])
+        
+        return (
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {optionsWithStringValues.map(option => (
+              <div key={option.value} className="flex items-center space-x-2">
+                <Checkbox
+                  checked={selectedValues.has(option.value)}
+                  onCheckedChange={(checked) => {
+                    const newSelection = new Set(selectedValues)
+                    if (checked) {
+                      newSelection.add(option.value)
+                    } else {
+                      newSelection.delete(option.value)
+                    }
+                    onChange(Array.from(newSelection))
+                  }}
+                />
+                <Label className="text-sm">{option.label}</Label>
+              </div>
+            ))}
+          </div>
+        )
+      },
+      graphql: ({ type, value: options }: { type: string; value: string[] }) => ({
+        [config.path]: {
+          [type === 'not_matches' ? 'notIn' : 'in']: options.map(x => t(x)),
+        },
+      }),
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value != null) {
+            return { type: 'matches', value: [value] }
+          }
+          if (type === 'notIn' || type === 'in') {
+            if (!value) return []
+            return {
+              type: type === 'notIn' ? 'not_matches' : 'matches',
+              value: value.filter((x: any) => x != null),
+            }
+          }
+          return []
+        })
+      },
+      Label: ({ type, value }: { type: string; value: string[] }) => {
+        if (value.length === 0) {
+          return type === 'not_matches' ? `is set` : `is not set`
+        }
+        const values = new Set(value)
+        const labels = optionsWithStringValues
+          .filter(opt => values.has(opt.value))
+          .map(i => i.label)
+        const prefix = type === 'not_matches' ? `is not` : `is`
+
+        if (value.length === 1) return `${prefix} ${labels[0]}`
+        if (value.length === 2) return `${prefix} ${labels.join(' or ')}`
+        return `${prefix} ${labels[0]} and ${value.length - 1} more`
+      },
+      types: FILTER_TYPES,
+    },
   }
 }
 

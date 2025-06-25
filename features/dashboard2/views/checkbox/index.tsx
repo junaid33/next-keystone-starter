@@ -6,6 +6,7 @@ import React from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Check } from 'lucide-react'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
@@ -119,6 +120,17 @@ export function controller(
             equals: type === 'not' ? !value : value,
           },
         }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (value == null) return []
+          if (type === 'equals') return { type: 'is', value }
+          if (type === 'not') {
+            if (value.equals == null) return []
+            return { type: 'not', value: value.equals }
+          }
+          return []
+        })
       },
       types: {
         is: {

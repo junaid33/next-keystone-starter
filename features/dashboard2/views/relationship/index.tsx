@@ -10,6 +10,7 @@ import { basePath } from "@/features/dashboard/lib/config";
 import { FieldContainer } from "@/components/ui/field-container";
 import { FieldLabel } from "@/components/ui/field-label";
 import { FieldDescription } from "@/components/ui/field-description";
+import { ClientRelationshipFilter } from "./ClientRelationshipFilter";
 
 const CellContainer: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -445,6 +446,58 @@ export const controller = (config: {
         }
       }
       return {};
+    },
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        if (type === 'empty' || type === 'not_empty') return null
+        
+        // Simple controlled component - no client-side data fetching
+        return (
+          <ClientRelationshipFilter
+            value={value}
+            onChange={onChange}
+            type={type}
+            autoFocus={autoFocus}
+            refListKey={config.fieldMeta.refListKey}
+            refLabelField={refLabelField || 'name'}
+            refSearchFields={refSearchFields || ['name']}
+          />
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: string | string[] }) => {
+        const many = config.fieldMeta.many || false
+        if (type === 'empty' && !many) return { [config.path]: { equals: null } }
+        if (type === 'empty' && many) return { [config.path]: { none: {} } }
+        if (type === 'not_empty' && !many) return { [config.path]: { NOT: { equals: null } } }
+        if (type === 'not_empty' && many) return { [config.path]: { some: {} } }
+        if (type === 'is') return { [config.path]: { id: { equals: value } } }
+        if (type === 'not_is') return { [config.path]: { NOT: { id: { equals: value } } } }
+        if (type === 'some') return { [config.path]: { some: { id: { in: value } } } }
+        if (type === 'not_some') return { [config.path]: { NOT: { some: { id: { in: value } } } } }
+        return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: () => [],
+      Label: ({ label, type, value }: { label: string; type: string; value: string | string[] }) => {
+        if (type === 'empty' || type === 'not_empty') return label.toLowerCase()
+        if (type === 'is' || type === 'not_is') return `${label.toLowerCase()} ${value}`
+        if (Array.isArray(value)) {
+          return `${label.toLowerCase()} (${value.length} selected)`
+        }
+        return `${label.toLowerCase()} ${value}`
+      },
+      types: {
+        empty: { label: 'Is empty', initialValue: null },
+        not_empty: { label: 'Is not empty', initialValue: null },
+        ...(config.fieldMeta.many
+          ? {
+              some: { label: 'Is one of', initialValue: [] },
+              not_some: { label: 'Is not one of', initialValue: [] },
+            }
+          : {
+              is: { label: 'Is', initialValue: null },
+              not_is: { label: 'Is not', initialValue: null },
+            }),
+      },
     },
   };
 };

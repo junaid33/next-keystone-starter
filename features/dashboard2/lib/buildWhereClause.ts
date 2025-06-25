@@ -10,12 +10,15 @@ export type Filter = {
   field: string
   type: string
   value: any
+  fieldPath: string
+  fieldMeta: any
 }
 
 // Server-side filter mappings for different field types - extracted from field controllers
 const FIELD_FILTER_MAPPINGS: Record<string, {
   types: Record<string, { label: string; initialValue: any }>;
   graphql: (fieldPath: string, fieldMeta: any) => (args: { type: string; value: any }) => Record<string, any>;
+  parseGraphQL?: (fieldPath: string, fieldMeta: any) => (value: any) => Array<{ type: string; value: any }>;
 }> = {
   text: {
     types: {
@@ -39,7 +42,7 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
       const filter = { [key]: value }
       return {
         [fieldPath]: {
-          ...(isNot ? { not: filter } : filter),
+          ...(isNot ? { NOT: filter } : filter),
           mode: fieldMeta?.shouldUseModeInsensitive ? 'insensitive' : undefined,
         },
       }
@@ -71,8 +74,8 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: number }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -89,9 +92,9 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
+      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
       const val = value === null ? null : parseFloat(value)
-      if (type === 'not') return { [fieldPath]: { not: { equals: val } } }
+      if (type === 'not') return { [fieldPath]: { NOT: { equals: val } } }
       return { [fieldPath]: { [type]: val } }
     },
   },
@@ -108,8 +111,50 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
+      return { [fieldPath]: { [type]: value } }
+    },
+  },
+  id: {
+    types: {
+      equals: { label: 'Equals', initialValue: '' },
+      not_equals: { label: 'Does not equal', initialValue: '' },
+      contains: { label: 'Contains', initialValue: '' },
+      not_contains: { label: 'Does not contain', initialValue: '' },
+    },
+    graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
+      if (type.startsWith('not_')) {
+        const actualType = type.replace('not_', '')
+        return { [fieldPath]: { NOT: { [actualType]: value } } }
+      }
+      return { [fieldPath]: { [type]: value } }
+    },
+  },
+  select: {
+    types: {
+      matches: { label: 'Matches', initialValue: [] },
+      not_matches: { label: 'Does not match', initialValue: [] },
+    },
+    graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string[] }) => ({
+      [fieldPath]: {
+        [type === 'not_matches' ? 'notIn' : 'in']: value,
+      },
+    }),
+  },
+  timestamp: {
+    types: {
+      equals: { label: 'Is exactly', initialValue: null },
+      not: { label: 'Is not exactly', initialValue: null },
+      lt: { label: 'Is before', initialValue: null },
+      gt: { label: 'Is after', initialValue: null },
+      empty: { label: 'Is empty', initialValue: null },
+      not_empty: { label: 'Is not empty', initialValue: null },
+    },
+    graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
+      if (type === 'empty') return { [fieldPath]: { equals: null } }
+      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -126,24 +171,31 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
-  id: {
+  relationship: {
     types: {
-      equals: { label: 'Equals', initialValue: '' },
-      not_equals: { label: 'Does not equal', initialValue: '' },
-      contains: { label: 'Contains', initialValue: '' },
-      not_contains: { label: 'Does not contain', initialValue: '' },
+      empty: { label: 'Is empty', initialValue: null },
+      not_empty: { label: 'Is not empty', initialValue: null },
+      is: { label: 'Is', initialValue: null },
+      not_is: { label: 'Is not', initialValue: null },
+      some: { label: 'Is one of', initialValue: [] },
+      not_some: { label: 'Is not one of', initialValue: [] },
     },
-    graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
-      if (type.startsWith('not_')) {
-        const actualType = type.replace('not_', '')
-        return { [fieldPath]: { not: { [actualType]: value } } }
-      }
-      return { [fieldPath]: { [type]: value } }
+    graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string | string[] }) => {
+      const many = fieldMeta?.many || false
+      if (type === 'empty' && !many) return { [fieldPath]: { equals: null } }
+      if (type === 'empty' && many) return { [fieldPath]: { none: {} } }
+      if (type === 'not_empty' && !many) return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not_empty' && many) return { [fieldPath]: { some: {} } }
+      if (type === 'is') return { [fieldPath]: { id: { equals: value } } }
+      if (type === 'not_is') return { [fieldPath]: { NOT: { id: { equals: value } } } }
+      if (type === 'some') return { [fieldPath]: { some: { id: { in: value } } } }
+      if (type === 'not_some') return { [fieldPath]: { NOT: { some: { id: { in: value } } } } }
+      return { [fieldPath]: { [type]: value } } // uh
     },
   },
 }
@@ -160,9 +212,10 @@ export function buildWhereClause(
   const possibleFilters: Record<string, { type: string; field: string; fieldPath: string; fieldMeta: any }> = {}
   
   for (const [fieldPath, field] of Object.entries(list.fields)) {
-    if (typeof field.viewsIndex === 'number') {
+    const typedField = field as any
+    if (typeof typedField.viewsIndex === 'number') {
       try {
-        const fieldType = getFieldTypeFromViewsIndex(field.viewsIndex)
+        const fieldType = getFieldTypeFromViewsIndex(typedField.viewsIndex)
         const filterMapping = getFieldFilterMapping(fieldType)
         
         if (filterMapping) {
@@ -171,7 +224,7 @@ export function buildWhereClause(
               type: filterType,
               field: fieldType,
               fieldPath,
-              fieldMeta: field.fieldMeta,
+              fieldMeta: typedField.fieldMeta,
             }
           }
         }

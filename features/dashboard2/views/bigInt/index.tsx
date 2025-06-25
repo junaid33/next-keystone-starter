@@ -7,11 +7,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
   FieldProps,
 } from '../../types'
+
+const TYPE_OPERATOR_MAP = {
+  equals: '=',
+  not: '≠',
+  gt: '>',
+  lt: '<',
+  gte: '≥',
+  lte: '≤',
+} as const
 
 // Types matching Keystone exactly
 type Value =
@@ -198,6 +208,62 @@ export function controller(
     serialize: value => ({ [config.path]: value.value }),
     hasAutoIncrementDefault: config.fieldMeta?.defaultValue === 'autoincrement',
     validate: (value, opts) => validate(value, opts) === undefined,
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        if (type === 'empty' || type === 'not_empty') return null
+
+        return (
+          <Input
+            inputMode="numeric"
+            autoFocus={autoFocus}
+            value={value ?? ''}
+            onChange={(e) => {
+              const inputValue = e.target.value === '' ? null : e.target.value
+              onChange(inputValue)
+            }}
+            placeholder="Enter a large integer..."
+          />
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: string }) => {
+        if (type === 'empty') return { [config.path]: { equals: null } }
+        if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
+        if (type === 'not') return { [config.path]: { not: { equals: value } } }
+        return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value === null) {
+            return [{ type: 'empty', value: null }]
+          }
+          if (!value) return []
+          if (type === 'equals') return { type: 'equals', value: value as unknown as string }
+          if (type === 'not') {
+            if (value?.equals === null) return { type: 'not_empty', value: null }
+            return { type: 'not', value: value.equals as unknown as string }
+          }
+          if (type === 'gt' || type === 'gte' || type === 'lt' || type === 'lte') {
+            return { type, value: value as unknown as string }
+          }
+          return []
+        })
+      },
+      Label: ({ label, type, value }: { label: string; type: string; value: string }) => {
+        if (type === 'empty' || type === 'not_empty') return label.toLowerCase()
+        const operator = TYPE_OPERATOR_MAP[type as keyof typeof TYPE_OPERATOR_MAP]
+        return `${operator} ${value}`
+      },
+      types: {
+        equals: { label: 'Is exactly', initialValue: null },
+        not: { label: 'Is not exactly', initialValue: null },
+        gt: { label: 'Is greater than', initialValue: null },
+        lt: { label: 'Is less than', initialValue: null },
+        gte: { label: 'Is greater than or equal to', initialValue: null },
+        lte: { label: 'Is less than or equal to', initialValue: null },
+        empty: { label: 'Is empty', initialValue: null },
+        not_empty: { label: 'Is not empty', initialValue: null },
+      },
+    },
   }
 }
 

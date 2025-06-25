@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { entriesTyped } from '../../lib/entriesTyped'
 
 // Types matching Keystone exactly
 type InnerTextValue = { kind: 'null'; prev: string } | { kind: 'value'; value: string }
@@ -310,6 +311,22 @@ export const controller = (config: {
             mode: config.fieldMeta.shouldUseModeInsensitive ? 'insensitive' : undefined,
           },
         }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (!value) return []
+          if (type === 'equals') return { type: 'is_i', value }
+          if (type === 'contains') return { type: 'contains_i', value }
+          if (type === 'startsWith') return { type: 'starts_with_i', value }
+          if (type === 'endsWith') return { type: 'ends_with_i', value }
+          if (type === 'not') {
+            if (value?.equals) return { type: 'not_i', value: value.equals }
+            if (value?.contains) return { type: 'not_contains_i', value: value.contains }
+            if (value?.startsWith) return { type: 'not_starts_with_i', value: value.startsWith }
+            if (value?.endsWith) return { type: 'not_ends_with_i', value: value.endsWith }
+          }
+          return []
+        })
       },
       types: {
         contains_i: {

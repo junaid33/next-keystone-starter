@@ -1,22 +1,44 @@
 /**
- * Timestamp field view - Keystone implementation with Shadcn UI
+ * Timestamp field view - Keystone implementation with ShadCN UI
  */
+
+'use client'
 
 import React, { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Calendar } from 'lucide-react'
+import { CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { cn } from '@/lib/utils'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
   FieldProps,
 } from '../../types'
 
-// Types matching Keystone exactly
-type Value =
-  | { kind: 'create'; value: string | null }
-  | { kind: 'update'; initial: string | null; value: string | null }
+export type Value =
+  | {
+      kind: 'create'
+      value: string | null
+    }
+  | {
+      kind: 'update'
+      value: string | null
+      initial: string | null
+    }
+
+export type TimestampFieldMeta = {
+  defaultValue: string | { kind: 'now' } | null
+  updatedAt: boolean
+}
 
 interface TimestampFieldProps {
   field: {
@@ -35,15 +57,8 @@ interface TimestampFieldProps {
 interface CellProps {
   item: Record<string, any>
   field: any
-  value?: string
 }
 
-type TimestampFieldMeta = {
-  defaultValue: string | { kind: 'now' } | null
-  updatedAt: boolean
-}
-
-// Validation function - similar to Keystone
 function validate(
   value: Value,
   fieldMeta: TimestampFieldMeta,
@@ -53,8 +68,10 @@ function validate(
   const isEmpty = !value.value
 
   // if we receive null initially on the item view and the current value is null,
-  // we should always allow saving it
-  if (value.kind === 'update' && (value as any).initial === null && isEmpty) return
+  // we should always allow saving it because:
+  // - the value might be null in the database and we don't want to prevent saving the whole item because of that
+  // - we might have null because of an access control error
+  if (value.kind === 'update' && value.initial === null && isEmpty) return
 
   if (
     value.kind === 'create' &&
@@ -85,46 +102,19 @@ export function Field({
     ? validate(value, field.fieldMeta, isRequired, field.label)
     : undefined
 
-  // Convert ISO string to datetime-local format
-  const toDatetimeLocal = (isoString: string | null) => {
-    if (!isoString) return ''
-    const date = new Date(isoString)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    const seconds = String(date.getSeconds()).padStart(2, '0')
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
-  }
-
-  // Convert datetime-local format to ISO string
-  const fromDatetimeLocal = (datetimeLocal: string) => {
-    if (!datetimeLocal) return null
-    return new Date(datetimeLocal).toISOString()
-  }
-
-  const setToNow = () => {
-    if (!onChange) return
-    const now = new Date().toISOString()
-    onChange({ ...value, value: now })
-    setDirty(true)
-  }
+  const dateValue = value.value ? new Date(value.value) : undefined
 
   if (isReadOnly) {
-    const displayValue = value.value
-      ? new Intl.DateTimeFormat('en-US', {
-          dateStyle: 'long',
-          timeStyle: 'long',
-        }).format(new Date(value.value))
-      : 'yyyy-mm-dd --:--:--'
-
     return (
       <div className="space-y-2">
         <Label>{field.label}</Label>
         <Input
           readOnly
-          value={displayValue}
+          value={
+            dateValue
+              ? dateValue.toLocaleString()
+              : 'yyyy-mm-dd --:--:--'
+          }
           className="bg-muted"
         />
         {field.description && (
@@ -137,31 +127,61 @@ export function Field({
   return (
     <div className="space-y-2">
       <Label>{field.label}</Label>
-      <div className="flex gap-2">
-        <Input
-          type="datetime-local"
-          step="1"
-          autoFocus={autoFocus}
-          required={isRequired}
-          onBlur={() => setDirty(true)}
-          onChange={(e) => {
-            if (!onChange) return
-            const isoValue = fromDatetimeLocal(e.target.value)
-            onChange({ ...value, value: isoValue })
-          }}
-          value={toDatetimeLocal(value.value)}
-          className={validationMessage ? 'border-red-500' : ''}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={setToNow}
-          title="Set to now"
-        >
-          <Calendar className="h-4 w-4" />
-        </Button>
-      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant={"outline"}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !dateValue && "text-muted-foreground",
+              validationMessage && "border-red-500"
+            )}
+            autoFocus={autoFocus}
+            onBlur={() => setDirty(true)}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dateValue ? format(dateValue, "PPP p") : <span>Pick a date and time</span>}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={dateValue}
+            onSelect={(date) => {
+              if (date && onChange) {
+                // Set time to current time if not set
+                const now = new Date()
+                date.setHours(now.getHours(), now.getMinutes(), now.getSeconds())
+                onChange({ ...value, value: date.toISOString() })
+              } else if (!date && onChange) {
+                onChange({ ...value, value: null })
+              }
+              setDirty(true)
+            }}
+            initialFocus
+          />
+          {dateValue && (
+            <div className="p-3 border-t">
+              <Label className="text-sm">Time</Label>
+              <Input
+                type="time"
+                step="1"
+                value={dateValue ? format(dateValue, "HH:mm:ss") : ""}
+                onChange={(e) => {
+                  if (onChange && dateValue) {
+                    const [hours, minutes, seconds] = e.target.value.split(':').map(Number)
+                    const newDate = new Date(dateValue)
+                    newDate.setHours(hours, minutes, seconds || 0)
+                    onChange({ ...value, value: newDate.toISOString() })
+                    setDirty(true)
+                  }
+                }}
+                className="mt-1"
+              />
+            </div>
+          )}
+        </PopoverContent>
+      </Popover>
       {field.description && (
         <p className="text-sm text-muted-foreground">{field.description}</p>
       )}
@@ -172,18 +192,11 @@ export function Field({
   )
 }
 
-export function Cell({ item, field, value }: CellProps) {
-  const fieldValue = value ?? item[field.path]
+export function Cell({ item, field }: CellProps) {
+  const value = item[field.path]
   return (
     <span className="text-sm">
-      {fieldValue ? (
-        new Intl.DateTimeFormat('en-US', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }).format(new Date(fieldValue))
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      )}
+      {value ? format(new Date(value), "MMM d, yyyy p") : <span className="text-muted-foreground">—</span>}
     </span>
   )
 }
@@ -194,20 +207,16 @@ export function CardValue({ item, field }: CellProps) {
     <div>
       <div className="text-sm font-medium">{field.label}</div>
       <div className="text-sm text-muted-foreground">
-        {value ? (
-          new Intl.DateTimeFormat('en-US', {
-            dateStyle: 'long',
-            timeStyle: 'medium',
-          }).format(new Date(value))
-        ) : (
-          '—'
-        )}
+        {value ? format(new Date(value), "MMM d, yyyy p") : '—'}
       </div>
     </div>
   )
 }
 
-export function controller(config: FieldControllerConfig<TimestampFieldMeta>): FieldController<Value> & {
+export function controller(config: FieldControllerConfig<TimestampFieldMeta>): FieldController<
+  Value,
+  string | null
+> & {
   fieldMeta: TimestampFieldMeta
 } {
   return {
@@ -215,13 +224,13 @@ export function controller(config: FieldControllerConfig<TimestampFieldMeta>): F
     label: config.label,
     description: config.description,
     graphqlSelection: config.path,
-    fieldMeta: config.fieldMeta || { defaultValue: null, updatedAt: false },
+    fieldMeta: config.fieldMeta,
     defaultValue: {
       kind: 'create',
       value:
-        typeof config.fieldMeta?.defaultValue === 'string' ? config.fieldMeta.defaultValue : null,
+        typeof config.fieldMeta.defaultValue === 'string' ? config.fieldMeta.defaultValue : null,
     },
-    deserialize: data => {
+    deserialize: (data: any) => {
       const value = data[config.path]
       return {
         kind: 'update',
@@ -234,7 +243,128 @@ export function controller(config: FieldControllerConfig<TimestampFieldMeta>): F
       return { [config.path]: null }
     },
     validate: (value, opts) =>
-      validate(value, config.fieldMeta || { defaultValue: null, updatedAt: false }, opts.isRequired, config.label) === undefined,
+      validate(value, config.fieldMeta, opts.isRequired, config.label) === undefined,
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        const [isDirty, setDirty] = useState(false)
+
+        if (type === 'empty' || type === 'not_empty') return null
+        const dateValue = value ? new Date(value) : undefined
+
+        return (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dateValue && "text-muted-foreground"
+                )}
+                autoFocus={autoFocus}
+                onBlur={() => setDirty(true)}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateValue ? format(dateValue, "PPP p") : <span>Pick a date and time</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateValue}
+                onSelect={(date) => {
+                  if (date) {
+                    // Set time to current time if not set
+                    const now = new Date()
+                    date.setHours(now.getHours(), now.getMinutes(), now.getSeconds())
+                    onChange(date.toISOString())
+                  } else {
+                    onChange(null)
+                  }
+                  setDirty(true)
+                }}
+                initialFocus
+              />
+              {dateValue && (
+                <div className="p-3 border-t">
+                  <Label className="text-sm">Time</Label>
+                  <Input
+                    type="time"
+                    step="1"
+                    value={dateValue ? format(dateValue, "HH:mm:ss") : ""}
+                    onChange={(e) => {
+                      if (dateValue) {
+                        const [hours, minutes, seconds] = e.target.value.split(':').map(Number)
+                        const newDate = new Date(dateValue)
+                        newDate.setHours(hours, minutes, seconds || 0)
+                        onChange(newDate.toISOString())
+                        setDirty(true)
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: string }) => {
+        if (type === 'empty') return { [config.path]: { equals: null } }
+        if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
+        if (type === 'not') return { [config.path]: { not: { equals: value } } }
+        return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value === null) {
+            return { type: 'empty', value: null }
+          }
+          if (!value) return []
+          if (type === 'equals') return { type: 'equals', value: value as unknown as string }
+          if (type === 'not') {
+            if (value?.equals === null) return { type: 'not_empty', value: null }
+            return { type: 'not', value: value.equals as unknown as string }
+          }
+          if (type === 'gt' || type === 'lt') {
+            return { type, value: value as unknown as string }
+          }
+          return []
+        })
+      },
+      Label: ({ label, type, value }: { label: string; type: string; value: string }) => {
+        if (type === 'empty' || type === 'not_empty' || value == null) {
+          return label.toLowerCase()
+        }
+
+        return `${label.toLowerCase()} ${format(new Date(value), "MMM d, yyyy p")}`
+      },
+      types: {
+        equals: {
+          label: 'Is exactly',
+          initialValue: null,
+        },
+        not: {
+          label: 'Is not exactly',
+          initialValue: null,
+        },
+        lt: {
+          label: 'Is before',
+          initialValue: null,
+        },
+        gt: {
+          label: 'Is after',
+          initialValue: null,
+        },
+        empty: {
+          label: 'Is empty',
+          initialValue: null,
+        },
+        not_empty: {
+          label: 'Is not empty',
+          initialValue: null,
+        },
+      },
+    },
   }
 }
 

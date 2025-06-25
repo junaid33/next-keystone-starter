@@ -5,11 +5,21 @@
 import React, { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
   FieldProps,
 } from '../../types'
+
+const TYPE_OPERATOR_MAP = {
+  equals: '=',
+  not: '≠',
+  gt: '>',
+  lt: '<',
+  gte: '≥',
+  lte: '≤',
+} as const
 
 // Types matching Keystone exactly
 type Value =
@@ -157,6 +167,68 @@ export function controller(
       return { [config.path]: Number.isFinite(v) ? v : null }
     },
     validate: (value, opts) => validate(value, opts) === undefined,
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        const [isDirty, setDirty] = useState(false)
+        if (type === 'empty' || type === 'not_empty') return null
+
+        return (
+          <Input
+            type="number"
+            step="any"
+            inputMode="decimal"
+            autoFocus={autoFocus}
+            value={value ?? ''}
+            onBlur={() => setDirty(true)}
+            onChange={(e) => {
+              const inputValue = e.target.value === '' ? null : e.target.value
+              onChange(inputValue)
+            }}
+            placeholder="Enter number..."
+          />
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: string }) => {
+        if (type === 'empty') return { [config.path]: { equals: null } }
+        if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
+        const val = value === null ? null : parseFloat(value)
+        if (type === 'not') return { [config.path]: { not: { equals: val } } }
+        return { [config.path]: { [type]: val } }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value === null) {
+            return [{ type: 'empty', value: null }]
+          }
+          if (!value) return []
+          if (type === 'equals') return { type: 'equals', value: value.toString() }
+          if (type === 'not') {
+            if (value?.equals === null) return { type: 'not_empty', value: null }
+            if (value?.equals === undefined) return []
+            return { type: 'not', value: value.equals.toString() }
+          }
+          if (type === 'gt' || type === 'gte' || type === 'lt' || type === 'lte') {
+            return { type, value: value.toString() }
+          }
+          return []
+        })
+      },
+      Label: ({ label, type, value }: { label: string; type: string; value: string }) => {
+        if (type === 'empty' || type === 'not_empty') return label.toLowerCase()
+        const operator = TYPE_OPERATOR_MAP[type as keyof typeof TYPE_OPERATOR_MAP]
+        return `${operator} ${value}`
+      },
+      types: {
+        equals: { label: 'Is exactly', initialValue: null },
+        not: { label: 'Is not exactly', initialValue: null },
+        gt: { label: 'Is greater than', initialValue: null },
+        lt: { label: 'Is less than', initialValue: null },
+        gte: { label: 'Is greater than or equal to', initialValue: null },
+        lte: { label: 'Is less than or equal to', initialValue: null },
+        empty: { label: 'Is empty', initialValue: null },
+        not_empty: { label: 'Is not empty', initialValue: null },
+      },
+    },
   }
 }
 

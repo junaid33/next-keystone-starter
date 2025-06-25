@@ -1,15 +1,27 @@
 /**
- * Decimal field view - Keystone implementation with Shadcn UI
+ * Decimal field view - Keystone implementation with ShadCN UI
  */
+
+'use client'
 
 import React, { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
   FieldProps,
 } from '../../types'
+
+const TYPE_OPERATOR_MAP = {
+  equals: '=',
+  not: '≠',
+  gt: '>',
+  lt: '<',
+  gte: '≥',
+  lte: '≤',
+} as const
 
 // Types matching Keystone exactly
 type Value =
@@ -40,7 +52,20 @@ interface CellProps {
   field: any
 }
 
-// Validation function - exact copy from Keystone but without Decimal library
+// Simple decimal validation (without full Decimal.js library)
+function validateDecimal(input: string): { isValid: boolean; number?: number; error?: string } {
+  try {
+    const num = parseFloat(input)
+    if (isNaN(num) || !isFinite(num)) {
+      return { isValid: false, error: 'Not a valid decimal number' }
+    }
+    return { isValid: true, number: num }
+  } catch (e) {
+    return { isValid: false, error: 'Invalid decimal format' }
+  }
+}
+
+// Validation function - adapted from Keystone
 function validate_(
   value: Value,
   validation: Validation,
@@ -48,22 +73,17 @@ function validate_(
   label: string
 ): string | undefined {
   const { value: input, kind } = value
-  if (kind === 'update' && value.initial === null && input === null) return
+  if (kind === 'update' && (value as any).initial === null && input === null) return
   if (isRequired && input === null) return `${label} is required`
   if (typeof input !== 'string') return
   
-  // Basic validation without Decimal library
-  const numericInput = parseFloat(input)
-  if (input !== '' && (isNaN(numericInput) || !isFinite(numericInput))) {
-    return `${label} must be a valid decimal number`
-  }
+  const { isValid, number, error } = validateDecimal(input)
+  if (!isValid) return `${label}: ${error}`
   
-  if (validation.min !== null && numericInput < parseFloat(validation.min)) {
+  if (validation.min && number! < parseFloat(validation.min))
     return `${label} must be greater than or equal to ${validation.min}`
-  }
-  if (validation.max !== null && numericInput > parseFloat(validation.max)) {
+  if (validation.max && number! > parseFloat(validation.max))
     return `${label} must be less than or equal to ${validation.max}`
-  }
 }
 
 export function Field({
@@ -87,6 +107,8 @@ export function Field({
     <div className="space-y-2">
       <Label>{field.label}</Label>
       <Input
+        type="number"
+        step="any"
         inputMode="decimal"
         autoFocus={autoFocus}
         readOnly={isReadOnly}
@@ -99,7 +121,7 @@ export function Field({
         }}
         value={value.value ?? ''}
         className={errorMessage ? 'border-red-500' : ''}
-        placeholder="0.00"
+        placeholder="Enter decimal number..."
       />
       {field.description && (
         <p className="text-sm text-muted-foreground">{field.description}</p>
@@ -116,7 +138,7 @@ export function Cell({ item, field }: CellProps) {
   return (
     <span className="text-sm font-mono">
       {value !== null && value !== undefined ? 
-        value.toString() : 
+        Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 10 }) : 
         <span className="text-muted-foreground">—</span>
       }
     </span>
@@ -129,7 +151,10 @@ export function CardValue({ item, field }: CellProps) {
     <div>
       <div className="text-sm font-medium">{field.label}</div>
       <div className="text-sm text-muted-foreground font-mono">
-        {value !== null && value !== undefined ? value.toString() : '—'}
+        {value !== null && value !== undefined ? 
+          Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 10 }) : 
+          '—'
+        }
       </div>
     </div>
   )
@@ -153,17 +178,69 @@ export function controller(
     description: config.description,
     graphqlSelection: config.path,
     validation: config.fieldMeta?.validation || { min: null, max: null },
-    defaultValue: { 
-      kind: 'create', 
-      value: config.fieldMeta?.defaultValue || null 
-    },
-    deserialize: data => ({ 
-      kind: 'update', 
-      value: data[config.path], 
-      initial: data[config.path] 
-    }),
+    defaultValue: { kind: 'create', value: config.fieldMeta?.defaultValue || null },
+    deserialize: data => ({ kind: 'update', value: data[config.path], initial: data[config.path] }),
     serialize: value => ({ [config.path]: value.value }),
     validate: (value, opts) => validate(value, opts) === undefined,
+    filter: {
+      Filter: ({ value, onChange, type, autoFocus }: any) => {
+        if (type === 'empty' || type === 'not_empty') return null
+
+        return (
+          <Input
+            type="number"
+            step="any"
+            inputMode="decimal"
+            autoFocus={autoFocus}
+            value={value ?? ''}
+            onChange={(e) => {
+              const inputValue = e.target.value === '' ? null : e.target.value
+              onChange(inputValue)
+            }}
+            placeholder="Enter decimal number..."
+          />
+        )
+      },
+      graphql: ({ type, value }: { type: string; value: string }) => {
+        if (type === 'empty') return { [config.path]: { equals: null } }
+        if (type === 'not_empty') return { [config.path]: { not: { equals: null } } }
+        if (type === 'not') return { [config.path]: { not: { equals: value } } }
+        return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: (value: any) => {
+        return entriesTyped(value).flatMap(([type, value]) => {
+          if (type === 'equals' && value === null) {
+            return [{ type: 'empty', value: null }]
+          }
+          if (!value) return []
+          if (type === 'equals') return { type: 'equals', value: value as unknown as string }
+          if (type === 'not') {
+            if (value?.equals === null) return { type: 'not_empty', value: null }
+            if (value?.equals === undefined) return []
+            return { type: 'not', value: value.equals as unknown as string }
+          }
+          if (type === 'gt' || type === 'gte' || type === 'lt' || type === 'lte') {
+            return { type, value: value as unknown as string }
+          }
+          return []
+        })
+      },
+      Label: ({ label, type, value }: { label: string; type: string; value: string }) => {
+        if (type === 'empty' || type === 'not_empty') return label.toLowerCase()
+        const operator = TYPE_OPERATOR_MAP[type as keyof typeof TYPE_OPERATOR_MAP]
+        return `${operator} ${value}`
+      },
+      types: {
+        equals: { label: 'Is exactly', initialValue: null },
+        not: { label: 'Is not exactly', initialValue: null },
+        gt: { label: 'Is greater than', initialValue: null },
+        lt: { label: 'Is less than', initialValue: null },
+        gte: { label: 'Is greater than or equal to', initialValue: null },
+        lte: { label: 'Is less than or equal to', initialValue: null },
+        empty: { label: 'Is empty', initialValue: null },
+        not_empty: { label: 'Is not empty', initialValue: null },
+      },
+    },
   }
 }
 
