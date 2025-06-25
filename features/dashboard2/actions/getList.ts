@@ -1,37 +1,42 @@
 /**
- * Get list metadata by listKey - for relationships and other cases where we don't have the path
+ * Get list metadata by listKey - uses enhanced AdminMeta from SWR
  */
 
 'use server'
 
 import { getAdminMetaAction } from './getAdminMetaAction'
-import { getGqlNames } from '../lib/getGqlNames'
 
 export async function getList(listKey: string) {
   try {
-    const response = await getAdminMetaAction(listKey)
+    // Get the full enhanced admin meta (which already has gqlNames for all lists)
+    const response = await getAdminMetaAction()
     
     if (!response.success) {
       return null
     }
 
-    const list = response.data.list
-    
-    if (!list) {
+    const adminMeta = response.data
+    if (!adminMeta?.lists) {
       return null
     }
 
-    // Generate GraphQL names using Keystone's exact function
-    const graphqlNames = getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural || list.key + 's'
+    // Find the list by key
+    const rawList = adminMeta.lists.find((l: any) => l.key === listKey)
+    
+    if (!rawList) {
+      return null
+    }
+
+    // Transform fields into a record for easier access
+    const fields: Record<string, any> = {}
+    rawList.fields.forEach((field: any) => {
+      fields[field.path] = field
     })
 
+    // List is already enhanced with gqlNames from getAdminMetaAction
     return {
-      ...list,
-      graphql: {
-        names: graphqlNames
-      }
+      ...rawList,
+      fields // Return fields as a record
     }
   } catch (error) {
     console.error('Error in getList:', error)

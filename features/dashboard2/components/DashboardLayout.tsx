@@ -1,6 +1,6 @@
 /**
- * Dashboard2Layout - Main layout component inspired by Keystone with ShadCN UI styling
- * Combines Keystone's admin UI patterns with Dashboard 1's design system
+ * Dashboard2Layout - Client component that receives server-side data
+ * Follows Dashboard1's pattern: server layout fetches data, client layout provides it
  */
 
 'use client'
@@ -16,16 +16,15 @@ interface DashboardLayoutProps {
   children: React.ReactNode
   adminMeta?: any
   authenticatedItem?: any
-  router?: any
 }
 
-export function DashboardLayout({ children, adminMeta, authenticatedItem, router }: DashboardLayoutProps) {
+export function DashboardLayout({ children, adminMeta, authenticatedItem }: DashboardLayoutProps) {
   return (
     <ErrorBoundary>
       <DashboardProvider>
         <AdminMetaProvider>
           <SidebarProvider>
-            <Sidebar adminMeta={adminMeta} />
+            <Sidebar adminMeta={adminMeta} user={authenticatedItem} />
             <SidebarInset className="min-w-0">
               {children}
             </SidebarInset>

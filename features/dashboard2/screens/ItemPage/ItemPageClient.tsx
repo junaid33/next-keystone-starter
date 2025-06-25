@@ -583,14 +583,6 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
               </Badge>
             )}
 
-            {/* Debug info - remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="p-4 bg-gray-100 rounded text-xs">
-                <div><strong>isRequireds:</strong> {JSON.stringify(isRequireds)}</div>
-                <div><strong>invalidFields:</strong> {JSON.stringify(Array.from(invalidFields))}</div>
-                <div><strong>forceValidation:</strong> {JSON.stringify(forceValidation)}</div>
-              </div>
-            )}
 
             {/* Main Fields */}
             {Object.keys(fieldsSplit.mainFields).length > 0 && (

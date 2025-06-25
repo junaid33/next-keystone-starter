@@ -1,6 +1,6 @@
 /**
  * CreatePageClient for Dashboard 2
- * Client component with form functionality
+ * Client component with form functionality matching ItemPage layout
  */
 
 'use client'
@@ -8,12 +8,12 @@
 import React, { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, ArrowLeft, AlertTriangle } from 'lucide-react'
+import { Save, ArrowLeft, AlertTriangle, Loader2, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { PageContainer } from '../../components/PageContainer'
+import { PageBreadcrumbs } from '../../components/PageBreadcrumbs'
 import { useDashboard } from '../../context/DashboardProvider'
 import { Fields } from '../../components/Fields'
 import { useCreateItem } from '../../utils/useCreateItem'
@@ -24,104 +24,23 @@ interface CreatePageClientProps {
   list: any
 }
 
-function ToolbarActions({ 
-  onSave, 
-  onCancel, 
-  isLoading, 
-  hasChanges,
-  list 
-}: {
-  onSave: () => void
-  onCancel: () => void
-  isLoading: boolean
-  hasChanges: boolean
-  list: any
+// Cancel Button Component (matches ItemPage pattern)
+function CancelButton({ 
+  onCancel,
+  isDesktop = true 
+}: { 
+  onCancel: () => void;
+  isDesktop?: boolean;
 }) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={onSave}
-              disabled={isLoading}
-              className="min-w-20"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-background border-t-current rounded-full" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Create {list.singular}
-                </>
-              )}
-            </Button>
-            <Button variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-          </div>
-          
-          <div className="text-sm text-muted-foreground">
-            {hasChanges ? 'Unsaved changes' : 'No changes'}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function MobileToolbar({ 
-  onSave, 
-  onCancel, 
-  isLoading, 
-  hasChanges,
-  list 
-}: {
-  onSave: () => void
-  onCancel: () => void
-  isLoading: boolean
-  hasChanges: boolean
-  list: any
-}) {
-  return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-background border rounded-lg shadow-lg p-2 md:hidden">
-      <Button
-        onClick={onSave}
-        disabled={isLoading}
-        size="sm"
-      >
-        {isLoading ? (
-          <div className="animate-spin h-4 w-4 border-2 border-background border-t-current rounded-full" />
-        ) : (
-          <Save className="h-4 w-4" />
-        )}
-        Create
-      </Button>
-      <Button variant="outline" size="sm" onClick={onCancel}>
-        Cancel
-      </Button>
-    </div>
-  )
-}
-
-function Sidebar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
-      <div className="sticky top-6 space-y-4">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function MainContent({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex-1 min-w-0 space-y-6">
-      {children}
-    </div>
+    <Button variant="outline" size="sm" className="text-xs" onClick={onCancel}>
+      <X className="size-3 shrink-0" />
+      {isDesktop ? (
+        'Cancel'
+      ) : (
+        <span className="hidden sm:inline">Cancel</span>
+      )}
+    </Button>
   )
 }
 
@@ -155,61 +74,144 @@ export function CreatePageClient({ listKey, list }: CreatePageClientProps) {
 
   if (!list) {
     return (
-      <PageContainer title="List not found">
+      <div className="container mx-auto py-6">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             The requested list "{listKey}" was not found.
           </AlertDescription>
         </Alert>
-      </PageContainer>
+      </div>
     )
   }
 
-  const breadcrumbs = [
-    { type: 'link' as const, label: 'Dashboard', href: basePath },
-    { type: 'link' as const, label: list.label, href: `${basePath}/${list.path}` },
-    { type: 'page' as const, label: 'Create' }
-  ]
-
-  const header = (
-    <div className="flex items-center gap-4">
-      <Button variant="ghost" size="sm" asChild>
-        <Link href={`${basePath}/${list.path}`}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to {list.label}
-        </Link>
-      </Button>
-      <Separator orientation="vertical" className="h-6" />
-      <div>
-        <h1 className="text-lg font-semibold md:text-2xl">
-          Create {list.singular}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Add a new {list.singular.toLowerCase()} to {list.label.toLowerCase()}
-        </p>
-      </div>
-    </div>
-  )
-
   if (!createItem) {
     return (
-      <PageContainer title={`Create ${list.singular}`} header={header} breadcrumbs={breadcrumbs}>
+      <div className="container mx-auto py-6">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             Failed to initialize creation form for {list.label}.
           </AlertDescription>
         </Alert>
-      </PageContainer>
+      </div>
     )
   }
 
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { type: 'link' as const, label: 'Dashboard', href: '/' },
+    { type: 'link' as const, label: list.label, href: `/${list.path}` },
+    { type: 'page' as const, label: 'Create' }
+  ]
+
+  // Split fields by position for sidebar/main layout (same pattern as ItemPage)
+  const fieldsSplit = useMemo(() => {
+    const sidebarFields: Record<string, any> = {}
+    const mainFields: Record<string, any> = {}
+    
+    Object.entries(enhancedFields).forEach(([key, field]) => {
+      // For now, put all fields in main - same as ItemPage logic
+      mainFields[key] = field
+    })
+    
+    return { sidebarFields, mainFields }
+  }, [enhancedFields])
+
   return (
-    <PageContainer title={`Create ${list.singular}`} header={header} breadcrumbs={breadcrumbs}>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex gap-6">
-          <MainContent>
+    <>
+      {/* Breadcrumbs */}
+      <PageBreadcrumbs items={breadcrumbItems} />
+      
+      <main className="w-full max-w-8xl p-4 md:p-6 pb-16 lg:pb-6">
+        <div className="grid lg:grid-cols-[minmax(240px,2fr)_3fr] gap-6 gap-y-8 min-h-[calc(100vh-8rem)]">
+          {/* Sidebar */}
+          <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7.5rem)] flex flex-col h-full">
+            <div className="space-y-6 flex-grow overflow-y-auto pb-2">
+              <div>
+                <h1
+                  className="text-lg font-semibold md:text-2xl"
+                  title={`Create ${list.singular}`}
+                >
+                  Create {list.singular}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Add a new {list.singular.toLowerCase()} to {list.label.toLowerCase()}
+                </p>
+              </div>
+
+              {/* Sidebar Fields (if any) */}
+              {Object.keys(fieldsSplit.sidebarFields).length > 0 && (
+                <Fields {...createItem.props} fields={fieldsSplit.sidebarFields} />
+              )}
+            </div>
+
+            {/* Action buttons - visible only on larger screens */}
+            <div className="hidden lg:flex flex-col mr-auto">
+              {/* Status indicators above buttons */}
+              <div className="flex justify-center mb-2">
+                {createItem.state === 'loading' && (
+                  <div className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="animate-spin h-3.5 w-3.5" />
+                    <span>Creating...</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <CancelButton 
+                  onCancel={handleCancel}
+                  isDesktop={true}
+                />
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleSave}
+                  disabled={createItem.state === 'loading'}
+                >
+                  Create {list.singular}
+                  <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
+                </Button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Floating action bar - visible only on smaller screens */}
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-10 lg:hidden flex flex-col items-center gap-1.5">
+            {/* Status indicators above the button container */}
+            <div className="flex justify-center">
+              {createItem.state === 'loading' && (
+                <div className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="animate-spin h-3.5 w-3.5" />
+                  <span>Creating...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Button container */}
+            <div className="bg-background border rounded-md px-3 py-2 shadow-md w-full">
+              <div className="flex flex-wrap items-center gap-2">
+                <CancelButton 
+                  onCancel={handleCancel}
+                  isDesktop={false}
+                />
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleSave}
+                  disabled={createItem.state === 'loading'}
+                >
+                  <span className="hidden sm:inline">Create {list.singular}</span>
+                  <span className="sm:hidden">Create</span>
+                  <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="space-y-6">
             {/* GraphQL errors */}
             {(createItem.error?.networkError || createItem.error?.graphQLErrors?.length) && (
               <Alert variant="destructive">
@@ -223,38 +225,14 @@ export function CreatePageClient({ listKey, list }: CreatePageClientProps) {
               </Alert>
             )}
 
-            {/* Form fields */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <Fields {...createItem.props} />
-              </CardContent>
-            </Card>
-          </MainContent>
-
-          <Sidebar>
-            <ToolbarActions
-              onSave={handleSave}
-              onCancel={handleCancel}
-              isLoading={createItem.state === 'loading'}
-              hasChanges={true} // In create mode, we always have "changes"
-              list={list}
-            />
-          </Sidebar>
+            {/* Main Fields */}
+            {Object.keys(fieldsSplit.mainFields).length > 0 && (
+              <Fields {...createItem.props} fields={fieldsSplit.mainFields} />
+            )}
+          </div>
         </div>
-
-        {/* Mobile floating toolbar */}
-        <MobileToolbar
-          onSave={handleSave}
-          onCancel={handleCancel}
-          isLoading={createItem.state === 'loading'}
-          hasChanges={true}
-          list={list}
-        />
-      </div>
-    </PageContainer>
+      </main>
+    </>
   )
 }
 

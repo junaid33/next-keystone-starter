@@ -150,23 +150,6 @@ export function RelationshipSelect({
   const currentOptions =
     page === 0 ? optionsData?.items ?? [] : accumulatedOptions; // Use nullish coalescing
 
-  // Debug information for the query
-  const debugQuery = listData && listData.graphql?.names ? `
-    query GetOptions($where: ${listData.graphql.names.whereInputName}!, $take: Int!, $skip: Int!) {
-      items: ${listData.graphql.names.listQueryName}(where: $where, take: $take, skip: $skip) {
-        id
-        ${labelField}
-        ${extraSelection}
-      }
-      count: ${listData.graphql.names.listQueryCountName}(where: $where)
-    }
-  ` : null;
-
-  const debugVariables = {
-    where,
-    take: PAGE_SIZE,
-    skip: page * PAGE_SIZE,
-  };
 
   const handleSearch = useCallback(async (searchValue: string): Promise<Option[]> => {
     setSearch(searchValue);
@@ -206,80 +189,10 @@ export function RelationshipSelect({
     }
   }, [listData, labelField, extraSelection, searchFields, PAGE_SIZE]);
 
-  // Debug card showing the query and variables
-  const DebugCard = () => (
-    <div style={{ 
-      margin: '10px 0', 
-      padding: '10px', 
-      border: '1px solid #ccc', 
-      backgroundColor: '#f9f9f9',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontFamily: 'monospace'
-    }}>
-      <strong>🐛 DEBUG: Relationship Query</strong>
-      <br />
-      <strong>List:</strong> {list?.key || 'NULL LIST'}
-      <br />
-      <strong>Search:</strong> "{search}"
-      <br />
-      <strong>Options Count:</strong> {currentOptions.length}
-      <br />
-      <strong>Loading:</strong> {isLoading ? 'Yes' : 'No'}
-      <br />
-      <strong>List Data Available:</strong> {listData ? 'Yes' : 'No'}
-      <br />
-      <strong>List Key:</strong> {listData?.key}
-      <br />
-      <strong>List Has gqlNames:</strong> {listData?.graphql?.names ? 'Yes' : 'No'}
-      <br />
-      <details>
-        <summary><strong>List Data:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          {JSON.stringify(listData, null, 2)}
-        </pre>
-      </details>
-      <details>
-        <summary><strong>GQL Names:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          {listData?.graphql?.names ? JSON.stringify(listData.graphql.names, null, 2) : 'No gqlNames found'}
-        </pre>
-      </details>
-      <details>
-        <summary><strong>Query:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          {debugQuery || 'No query available - check if listData.graphql.names exists'}
-        </pre>
-      </details>
-      <details>
-        <summary><strong>Variables:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          {JSON.stringify(debugVariables, null, 2)}
-        </pre>
-      </details>
-      <details>
-        <summary><strong>Where Clause:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          {JSON.stringify(where, null, 2)}
-        </pre>
-      </details>
-      <details>
-        <summary><strong>SWR Response:</strong></summary>
-        <pre style={{ whiteSpace: 'pre-wrap', margin: '5px 0' }}>
-          Data: {JSON.stringify(optionsData, null, 2)}
-          <br />
-          Loading: {optionsLoading}
-          <br />
-          Error: {JSON.stringify(error, null, 2)}
-        </pre>
-      </details>
-    </div>
-  );
 
   if (state.kind === "many") {
     return (
       <div>
-        <DebugCard />
         <MultiSelect
           value={state.value?.map((item: any) => ({
             value: item.id,
@@ -306,7 +219,6 @@ export function RelationshipSelect({
 
   return (
     <div>
-      <DebugCard />
       <Select
         value={
           state.value

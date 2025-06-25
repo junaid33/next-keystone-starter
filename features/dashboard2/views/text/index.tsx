@@ -158,16 +158,6 @@ export function Field(props: FieldProps) {
 
   return (
     <div className="space-y-2">
-      {/* DEBUG INFO */}
-      <div className="p-2 bg-yellow-100 border rounded text-xs">
-        <div><strong>Field:</strong> {field.path}</div>
-        <div><strong>isRequired:</strong> {JSON.stringify(isRequired)}</div>
-        <div><strong>forceValidation:</strong> {JSON.stringify(forceValidation)}</div>
-        <div><strong>shouldShowErrors:</strong> {JSON.stringify(shouldShowErrors)}</div>
-        <div><strong>validationMessages:</strong> {JSON.stringify(validationMessages)}</div>
-        <div><strong>errorMessage:</strong> {JSON.stringify(errorMessage)}</div>
-        <div><strong>value:</strong> {JSON.stringify(value)}</div>
-      </div>
       <NullableFieldWrapper
       isAllowed={field.isNullable}
       autoFocus={isNull && autoFocus}

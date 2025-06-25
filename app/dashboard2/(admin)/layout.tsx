@@ -1,12 +1,21 @@
 export const dynamic = 'force-dynamic';
 
 import { DashboardLayout } from '@/features/dashboard2/components/DashboardLayout';
-import { getAdminMetaAction } from '@/features/dashboard2/actions/getAdminMetaAction';
+import { getAdminMetaAction, getAuthenticatedUser } from '@/features/dashboard2/actions';
 
 export default async function ListLayout({ children }: { children: React.ReactNode }) {
-  // Fetch adminMeta server-side to avoid loading states
-  const adminMetaResponse = await getAdminMetaAction();
+  // Fetch adminMeta and user data server-side to avoid loading states
+  const [adminMetaResponse, userResponse] = await Promise.all([
+    getAdminMetaAction(),
+    getAuthenticatedUser()
+  ]);
+  
   const adminMeta = adminMetaResponse.success ? adminMetaResponse.data : null;
+  const user = userResponse.success ? userResponse.data?.authenticatedItem : null;
 
-  return <DashboardLayout adminMeta={adminMeta}>{children}</DashboardLayout>;
+  return (
+    <DashboardLayout adminMeta={adminMeta} authenticatedItem={user}>
+      {children}
+    </DashboardLayout>
+  );
 }

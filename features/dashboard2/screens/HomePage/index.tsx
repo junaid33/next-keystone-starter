@@ -1,60 +1,16 @@
 /**
- * HomePage for Dashboard 2
- * Combines Keystone's GraphQL data fetching with Dashboard 1's ShadCN UI styling
+ * HomePage for Dashboard 2 - Server Component
+ * Follows Dashboard1's server-side rendering approach
  */
 
-'use client'
-
-import React, { useMemo } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { PlusIcon, Database, AlertTriangle } from 'lucide-react'
-import useSWR from 'swr'
+import { PlusIcon, Database } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Skeleton } from '@/components/ui/skeleton'
 import { PageContainer } from '../../components/PageContainer'
-import { useAdminMeta } from '../../hooks/useAdminMeta'
-import { useDashboard } from '../../context/DashboardProvider'
+import { getAdminMetaAction, getListCounts } from '../../actions'
 import { cn } from '@/lib/utils'
-
-// GraphQL query builder for list counts - following Keystone's pattern
-function buildListCountsQuery(lists: Record<string, any>) {
-  const listEntries = Object.values(lists)
-  if (listEntries.length === 0) return null
-
-  const countQueries = listEntries.map((list: any) => 
-    `${list.key}: ${list.gqlNames?.listQueryCountName || `${list.key.toLowerCase()}sCount`}`
-  ).join('\n      ')
-
-  return `
-    query KsFetchListCounts {
-      keystone {
-        adminMeta {
-          lists {
-            key
-          }
-        }
-      }
-      ${countQueries}
-    }
-  `
-}
-
-// Data fetcher for SWR - using your existing GraphQL infrastructure
-async function fetchListCounts(lists: Record<string, any>) {
-  const query = buildListCountsQuery(lists)
-  if (!query) return {}
-
-  // This would use your actual GraphQL client
-  // For now, return mock data - replace with actual implementation
-  const listKeys = Object.keys(lists)
-  const mockCounts: Record<string, number> = {}
-  listKeys.forEach(key => {
-    mockCounts[key] = Math.floor(Math.random() * 100)
-  })
-  return mockCounts
-}
 
 interface ListCardProps {
   list: any
@@ -63,9 +19,8 @@ interface ListCardProps {
 }
 
 function ListCard({ list, count, hideCreate = false }: ListCardProps) {
-  const { basePath } = useDashboard()
   const isSingleton = list.isSingleton || false
-  const href = `${basePath}/${list.path}${isSingleton ? '/1' : ''}`
+  const href = `/dashboard2/${list.path}${isSingleton ? '/1' : ''}`
 
   return (
     <Card className={cn(
@@ -79,7 +34,7 @@ function ListCard({ list, count, hideCreate = false }: ListCardProps) {
           <p className="mt-1 text-xs text-muted-foreground">
             {isSingleton 
               ? 'Singleton' 
-              : count === null 
+              : count === null || count === undefined
                 ? 'Unknown'
                 : `${count} item${count !== 1 ? 's' : ''}`
             }
@@ -89,7 +44,7 @@ function ListCard({ list, count, hideCreate = false }: ListCardProps) {
       
       {!hideCreate && !isSingleton && (
         <Link 
-          href={`${basePath}/${list.path}/create`}
+          href={`/dashboard2/${list.path}/create`}
           className="absolute top-3 right-3"
         >
           <Button
@@ -107,35 +62,6 @@ function ListCard({ list, count, hideCreate = false }: ListCardProps) {
   )
 }
 
-function LoadingGrid() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} className="bg-gradient-to-bl from-background to-muted/80">
-          <CardContent className="p-4">
-            <Skeleton className="h-4 w-24 mb-2" />
-            <Skeleton className="h-3 w-16" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  )
-}
-
-function ErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
-  return (
-    <Alert variant="destructive">
-      <AlertTriangle className="h-4 w-4" />
-      <AlertDescription className="flex items-center justify-between">
-        <span>Failed to load dashboard data: {error.message}</span>
-        <Button variant="outline" size="sm" onClick={onRetry}>
-          Retry
-        </Button>
-      </AlertDescription>
-    </Alert>
-  )
-}
-
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -148,44 +74,51 @@ function EmptyState() {
   )
 }
 
-export function HomePage() {
-  const { adminMeta } = useAdminMeta()
-  const lists = adminMeta?.lists ?? {}
-  const listsArray = Object.values(lists)
+export async function HomePage() {
+  // Fetch admin meta server-side
+  const adminMetaResponse = await getAdminMetaAction()
+  
+  if (!adminMetaResponse.success) {
+    console.error('Failed to fetch admin meta:', adminMetaResponse.error)
+    return (
+      <PageContainer 
+        title="Dashboard" 
+        header={<h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>}
+        breadcrumbs={[{ type: 'page' as const, label: 'Dashboard' }]}
+      >
+        <EmptyState />
+      </PageContainer>
+    )
+  }
 
-  // SWR for data fetching - following your existing patterns
-  const { data: countData, error, mutate } = useSWR(
-    lists && Object.keys(lists).length > 0 ? ['list-counts', lists] : null,
-    () => fetchListCounts(lists),
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: true,
-      dedupingInterval: 30000, // 30 seconds
+  const adminMeta = adminMetaResponse.data
+  const lists = adminMeta?.lists || []
+  // Lists are already enhanced with gqlNames from getAdminMetaAction
+  const enhancedLists = lists.filter((list: any) => !list.isHidden)
+
+  // Fetch list counts server-side
+  let countData: Record<string, number> = {}
+  if (enhancedLists.length > 0) {
+    const countResponse = await getListCounts(enhancedLists)
+    if (countResponse.success && countResponse.data) {
+      countData = countResponse.data
     }
+  }
+
+  const header = (
+    <div className="flex flex-col">
+      <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
+      {enhancedLists.length > 0 && (
+        <p className="text-muted-foreground">{enhancedLists.length} Models</p>
+      )}
+    </div>
   )
 
   const breadcrumbs = [
     { type: 'page' as const, label: 'Dashboard' }
   ]
 
-  const header = (
-    <div className="flex flex-col">
-      <h1 className="text-lg font-semibold md:text-2xl">Dashboard</h1>
-      {listsArray.length > 0 && (
-        <p className="text-muted-foreground">{listsArray.length} Models</p>
-      )}
-    </div>
-  )
-
-  if (error) {
-    return (
-      <PageContainer title="Dashboard" header={header} breadcrumbs={breadcrumbs}>
-        <ErrorState error={error} onRetry={() => mutate()} />
-      </PageContainer>
-    )
-  }
-
-  if (listsArray.length === 0) {
+  if (enhancedLists.length === 0) {
     return (
       <PageContainer title="Dashboard" header={header} breadcrumbs={breadcrumbs}>
         <EmptyState />
@@ -195,26 +128,22 @@ export function HomePage() {
 
   return (
     <PageContainer title="Dashboard" header={header} breadcrumbs={breadcrumbs}>
-      <div className="space-y-6">
-        <div>
-          <h2 className="tracking-wide uppercase font-medium mb-3 text-muted-foreground text-sm">
+      <div className="w-full max-w-4xl p-4 md:p-6 flex flex-col gap-4">
+        <div className="mb-4">
+          <h2 className="tracking-wide uppercase font-medium mb-2 text-muted-foreground text-sm">
             Data Models
           </h2>
           
-          {!countData ? (
-            <LoadingGrid />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4">
-              {listsArray.map((list: any) => (
-                <ListCard
-                  key={list.key}
-                  list={list}
-                  count={countData[list.key] ?? null}
-                  hideCreate={list.hideCreate ?? false}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4">
+            {enhancedLists.map((list: any) => (
+              <ListCard
+                key={list.key}
+                list={list}
+                count={countData[list.key] ?? null}
+                hideCreate={list.hideCreate ?? false}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </PageContainer>

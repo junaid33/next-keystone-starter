@@ -38,12 +38,20 @@ import {
 import { AdminMeta } from '../hooks/useAdminMeta'
 import { Home, Database, ChevronRight, Package } from 'lucide-react'
 import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
+import { UserProfileClient } from './UserProfileClient'
+
+interface User {
+  id: string;
+  email: string;
+  name?: string;
+}
 
 interface SidebarProps {
   adminMeta: AdminMeta | null
+  user?: User | null
 }
 
-export function Sidebar({ adminMeta }: SidebarProps) {
+export function Sidebar({ adminMeta, user }: SidebarProps) {
   const { isMobile, setOpenMobile } = useSidebar()
   const pathname = usePathname()
 
@@ -208,6 +216,10 @@ export function Sidebar({ adminMeta }: SidebarProps) {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      
+      <SidebarFooter>
+        {user && <UserProfileClient user={user} />}
+      </SidebarFooter>
       
       <SidebarRail />
     </SidebarComponent>

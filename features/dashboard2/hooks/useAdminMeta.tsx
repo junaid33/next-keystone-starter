@@ -5,7 +5,7 @@
 
 'use client'
 
-import { createContext, useContext, ReactNode } from 'react'
+import React, { createContext, useContext, ReactNode } from 'react'
 import useSWR from 'swr'
 import { getAdminMetaAction } from '../actions/getAdminMetaAction'
 
@@ -62,6 +62,8 @@ export function AdminMetaProvider({ children }: { children: ReactNode }) {
       if (!result.success) {
         throw new Error(result.error || 'Failed to load admin metadata')
       }
+      
+      // Lists are already enhanced with gqlNames from getAdminMetaAction
       return result.data
     },
     {

@@ -1,11 +1,10 @@
 /**
- * Get list metadata by path - following Keystone's pattern
+ * Get list metadata by path - uses consistent enhancement pattern
  */
 
 'use server'
 
 import { getAdminMetaAction } from './getAdminMetaAction'
-import { getGqlNames } from '../lib/getGqlNames'
 
 export async function getListByPath(path: string) {
   try {
@@ -21,30 +20,22 @@ export async function getListByPath(path: string) {
     }
 
     // Find the list by path
-    const list = adminMeta.lists.find((l: any) => l.path === path)
+    const rawList = adminMeta.lists.find((l: any) => l.path === path)
     
-    if (!list) {
+    if (!rawList) {
       return undefined
     }
 
     // Transform fields into a record for easier access
     const fields: Record<string, any> = {}
-    list.fields.forEach((field: any) => {
+    rawList.fields.forEach((field: any) => {
       fields[field.path] = field
     })
 
-    // Generate GraphQL names using Keystone's exact function
-    const graphqlNames = getGqlNames({
-      listKey: list.key,
-      pluralGraphQLName: list.plural || list.key + 's'
-    })
-
+    // List is already enhanced with gqlNames from getAdminMetaAction
     return {
-      ...list,
-      fields, // Return fields as a record
-      graphql: {
-        names: graphqlNames
-      }
+      ...rawList,
+      fields // Return fields as a record
     }
   } catch (error) {
     console.error('Error in getListByPath:', error)
