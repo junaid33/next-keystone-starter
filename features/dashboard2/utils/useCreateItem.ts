@@ -4,7 +4,8 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
-import { deserializeItemToValue, serializeValueToOperationItem } from './utils'
+import { serializeValueToOperationItem } from './useHasChanges'
+import { createItemAction } from '../actions/item-actions'
 
 interface CreateItemError {
   networkError?: Error
@@ -19,8 +20,8 @@ interface CreateItemState {
   forceValidation: boolean
 }
 
-export function useCreateItem(list: any) {
-  if (!list) return null
+export function useCreateItem(list: any, enhancedFields: Record<string, any>) {
+  if (!list || !enhancedFields) return null
 
   const [state, setState] = useState<CreateItemState>({
     state: 'idle',
@@ -30,31 +31,31 @@ export function useCreateItem(list: any) {
     forceValidation: false
   })
 
-  // Initialize default values for the form
+  // Initialize default values for the form using enhanced fields
   const defaultValue = useMemo(() => {
     const value: Record<string, any> = {}
     
-    // Initialize each field with its default value
-    Object.entries(list.fields || {}).forEach(([key, field]: [string, any]) => {
+    // Initialize each field with its default value from the controller
+    Object.entries(enhancedFields).forEach(([key, field]: [string, any]) => {
       if (field.controller?.defaultValue !== undefined) {
         value[key] = field.controller.defaultValue
       }
     })
     
     return value
-  }, [list.fields])
+  }, [enhancedFields])
 
   // Update state value
   const onChange = useCallback((newValue: Record<string, any>) => {
     setState(prev => ({ ...prev, value: newValue }))
   }, [])
 
-  // Validate fields
+  // Validate fields using enhanced fields
   const validate = useCallback(() => {
     const invalidFields = new Set<string>()
     
-    Object.entries(list.fields || {}).forEach(([key, field]: [string, any]) => {
-      const isRequired = field.isRequired || false
+    Object.entries(enhancedFields).forEach(([key, field]: [string, any]) => {
+      const isRequired = field.createView?.isRequired || false
       const value = state.value[key]
       
       // Basic required field validation
@@ -62,7 +63,7 @@ export function useCreateItem(list: any) {
         invalidFields.add(key)
       }
       
-      // Field-specific validation
+      // Field-specific validation using controller
       if (field.controller?.validate) {
         const isValid = field.controller.validate(value, { isRequired })
         if (!isValid) {
@@ -72,7 +73,7 @@ export function useCreateItem(list: any) {
     })
     
     return invalidFields
-  }, [list.fields, state.value])
+  }, [enhancedFields, state.value])
 
   // Create item function
   const create = useCallback(async () => {
@@ -92,19 +93,26 @@ export function useCreateItem(list: any) {
     }
 
     try {
-      // Serialize the value for GraphQL mutation
-      const data = serializeValueToOperationItem(list.fields, state.value)
+      // Serialize the value for GraphQL mutation using enhanced fields
+      const data = serializeValueToOperationItem('create', enhancedFields, state.value)
       
-      // TODO: Replace with actual GraphQL mutation
-      // This would use your actual GraphQL client
-      console.log('Creating item with data:', data)
+      // Get labelField from list to include in selected fields
+      const selectedFields = `id ${list.labelField || ''}`
       
-      // Mock successful creation
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      const mockItem = { id: `new-${Date.now()}`, ...data }
+      // Call the server action to create the item
+      const result = await createItemAction(list.key, data, selectedFields)
+      
+      if (result.errors && result.errors.length > 0) {
+        setState(prev => ({ 
+          ...prev, 
+          state: 'error',
+          error: { graphQLErrors: result.errors }
+        }))
+        return null
+      }
       
       setState(prev => ({ ...prev, state: 'success' }))
-      return mockItem
+      return result.data?.item || null
       
     } catch (error: any) {
       setState(prev => ({
@@ -117,26 +125,28 @@ export function useCreateItem(list: any) {
       }))
       return null
     }
-  }, [list.fields, state.value, validate])
+  }, [enhancedFields, state.value, validate])
 
-  // Props for the Fields component
+  // Props for the Fields component - using enhanced fields
   const props = useMemo(() => ({
     view: 'createView' as const,
     position: 'form' as const,
-    fields: list.fields || {},
+    list,
+    fields: enhancedFields,
     groups: list.groups || [],
     value: { ...defaultValue, ...state.value },
     onChange,
     forceValidation: state.forceValidation,
     invalidFields: state.invalidFields,
     isRequireds: Object.fromEntries(
-      Object.entries(list.fields || {}).map(([key, field]: [string, any]) => [
+      Object.entries(enhancedFields).map(([key, field]: [string, any]) => [
         key, 
-        field.isRequired || false
+        field.createView?.isRequired || false
       ])
     )
   }), [
-    list.fields, 
+    list,
+    enhancedFields, 
     list.groups, 
     defaultValue, 
     state.value, 

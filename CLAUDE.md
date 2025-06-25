@@ -64,24 +64,38 @@ This is a Next.js 15 + KeystoneJS 6 application with a **dual dashboard architec
 
 **Why Dashboard2**: Rebuilding dashboard because original has extensive type errors that break functionality when fixed. Dashboard2 follows KeystoneJS examples more closely using GitHub MCP while preserving the UI work from dashboard1.
 
-**Current Focus**: List page implementation
+**Current Focus**: Core dashboard functionality completion
 
-### Active Issues - List Page Cells
-- **Fields not showing**: Many cells display "object, object" instead of proper values
-- **Working cells**: Text fields display correctly
-- **Broken cell types**:
-  - Relationship cells - not rendering relationships properly
-  - Password cells - not showing correctly 
-  - Document/description cells - not displaying rich content
-- **Need to fix**: Cell implementations using KeystoneJS repo examples
+### Remaining Major Issues
 
-### TODO List
-- [x] Fix relationship cell implementation to properly display related data
-- [x] Fix password cell to show appropriate masked/hidden display (3 asterisks when set)
-- [x] Fix document cell to render rich text content properly
-- [ ] Review KeystoneJS repo examples for correct cell patterns
-- [ ] Compare with dashboard1 views that work correctly
-- [ ] Ensure all field types have proper cell implementations
+#### 1. Item Page UI Layout (PRIORITY)
+- **Status**: Functionality works perfectly, but missing Dashboard1's button layout
+- **Needed**: Copy button positioning and responsive design from Dashboard1
+- **Details**: Need left-side button layout, mobile screen handling, proper spacing
+- **Why Priority**: Item page layout will inform create page design
+
+#### 2. Create Pages Completely Broken
+- **Status**: Not working at all, needs complete rebuild
+- **Error**: `TypeError: field.views is undefined` in Fields component
+- **Approach**: Use KeystoneJS GitHub MCP examples, mirror item page patterns
+- **Dependencies**: Fix item page UI first since create pages should mirror it
+
+#### 3. Dashboard Home Page Issues
+- **Missing counts**: Model counts not displaying (Dashboard1 shows these correctly)
+- **Server rendering**: Getting "no models configured" flash, Dashboard1 server renders properly
+- **Hardcoded styling**: Dashboard text uses hardcoded color instead of text-foreground
+- **Root cause**: Not properly server-side rendering the dashboard data
+
+#### 4. Sidebar User UI Missing
+- **Missing components**: User avatar, email display, dropdown menu
+- **Needed from Dashboard1**: User info section with GraphQL API link, direct user access
+- **Note**: User data fetching approach may need adjustment for Dashboard2
+
+### TODO List (Priority Order)
+- [ ] **Fix item page UI layout** - Copy Dashboard1's button positioning and responsive design
+- [ ] **Rebuild create pages** - Use KeystoneJS GitHub MCP examples, mirror item page
+- [ ] **Fix dashboard home page** - Proper server rendering, counts, remove hardcoded colors  
+- [ ] **Add sidebar user UI** - Copy Dashboard1's user avatar/email/dropdown functionality
 
 ### Fixed Cell Issues
 - **Relationship cells**: Now properly display `item.label || item.id` with links, handle null/empty data

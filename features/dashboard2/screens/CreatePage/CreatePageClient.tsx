@@ -5,7 +5,7 @@
 
 'use client'
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Save, ArrowLeft, AlertTriangle } from 'lucide-react'
@@ -17,6 +17,7 @@ import { PageContainer } from '../../components/PageContainer'
 import { useDashboard } from '../../context/DashboardProvider'
 import { Fields } from '../../components/Fields'
 import { useCreateItem } from '../../utils/useCreateItem'
+import { enhanceFields } from '../../utils/enhanceFields'
 
 interface CreatePageClientProps {
   listKey: string
@@ -128,15 +129,23 @@ export function CreatePageClient({ listKey, list }: CreatePageClientProps) {
   const { basePath } = useDashboard()
   const router = useRouter()
   
-  // Use the create item hook - similar to Keystone's useCreateItem
-  const createItem = useCreateItem(list)
+  // Create enhanced fields like Keystone does - same pattern as ItemPage
+  const enhancedFields = useMemo(() => {
+    return enhanceFields(list.fields || {}, list.key)
+  }, [list.fields, list.key])
+  
+  // Use the create item hook with enhanced fields
+  const createItem = useCreateItem(list, enhancedFields)
 
   const handleSave = useCallback(async () => {
     if (!createItem) return
     
     const item = await createItem.create()
-    if (item) {
+    console.log('CREATE RESULT:', item) // Debug the actual response
+    if (item?.id) {
       router.push(`${basePath}/${list.path}/${item.id}`)
+    } else {
+      console.error('No item.id in response:', item)
     }
   }, [createItem, router, basePath, list])
 

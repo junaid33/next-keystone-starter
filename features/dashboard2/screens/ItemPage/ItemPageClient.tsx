@@ -8,6 +8,7 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Fields } from '../../components/Fields'
+import { PageBreadcrumbs } from '../../components/PageBreadcrumbs'
 import { useInvalidFields } from '../../utils/useInvalidFields'
 import { useHasChanges, serializeValueToOperationItem } from '../../utils/useHasChanges'
 import { enhanceFields } from '../../utils/enhanceFields'
@@ -23,6 +24,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger 
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
+import { 
+  AlertCircle,
+  Check,
+  Copy,
+  Loader2,
+  Undo2,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { updateItemAction, deleteItemAction } from '../../actions/item-actions'
 
@@ -44,15 +54,17 @@ function useEventCallback<Func extends (...args: any[]) => unknown>(callback: Fu
   return cb as any
 }
 
-// Delete Button Component (adapted from Keystone)
+// Delete Button Component (adapted from Keystone with responsive design)
 function DeleteButton({ 
   list, 
   value, 
-  onError 
+  onError,
+  isDesktop = true 
 }: { 
   list: any; 
   value: Record<string, unknown>; 
-  onError: (error: Error) => void 
+  onError: (error: Error) => void;
+  isDesktop?: boolean;
 }) {
   const itemId = ((value.id ?? '') as string | number).toString()
   const router = useRouter()
@@ -90,7 +102,14 @@ function DeleteButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive">Delete</Button>
+        <Button variant="destructive" size="sm" className="text-xs">
+          <X className="size-3 shrink-0" />
+          {isDesktop ? (
+            'Delete'
+          ) : (
+            <span className="hidden sm:inline">Delete</span>
+          )}
+        </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -115,13 +134,18 @@ function DeleteButton({
   )
 }
 
-// Reset Button Component (adapted from Keystone)
-function ResetButton(props: { onReset: () => void; hasChanges?: boolean }) {
+// Reset Button Component (adapted from Keystone with responsive design)
+function ResetButton(props: { onReset: () => void; hasChanges?: boolean; isDesktop?: boolean }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" disabled={!props.hasChanges}>
-          Reset
+        <Button variant="outline" size="sm" className="text-xs" disabled={!props.hasChanges}>
+          <Undo2 className="size-3 shrink-0" />
+          {props.isDesktop ? (
+            'Reset'
+          ) : (
+            <span className="hidden sm:inline">Reset</span>
+          )}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -224,6 +248,7 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
   // State for form values - initialized with deserialized data
   const [value, setValue] = useState(() => initialValue)
   const [loading, setLoading] = useState(false)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [forceValidation, setForceValidation] = useState(false)
   const [errorDialogValue, setErrorDialogValue] = useState<Error | null>(null)
   
@@ -258,9 +283,9 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
   // Check if we have changes using Keystone's exact pattern with enhanced fields
   const hasChanges = useHasChanges('update', enhancedFields, value, initialValue)
 
-  // Save handler following Keystone's exact pattern
-  const handleSave = useEventCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Save handler following Keystone's exact pattern with save state
+  const handleSave = useEventCallback(async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     
     // Check for invalid fields - exact Keystone pattern
     const newForceValidation = invalidFields.size !== 0
@@ -270,6 +295,7 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
       return
     }
     
+    setSaveState('saving')
     setLoading(true)
     
     try {
@@ -294,13 +320,18 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
             onClick: () => setErrorDialogValue(new Error(error.message))
           }
         })
+        setSaveState('idle')
         return
       }
       
       toast.success(`Saved changes to ${list.singular.toLowerCase()}`)
+      setSaveState('saved')
       
       // Reset validation state after successful save
       setForceValidation(false)
+      
+      // Reset to idle after showing saved state
+      setTimeout(() => setSaveState('idle'), 3000)
       
       // TODO: Add onSaveSuccess callback like Keystone does (for refetching data)
       
@@ -312,6 +343,7 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
           onClick: () => setErrorDialogValue(error)
         }
       })
+      setSaveState('idle')
     } finally {
       setLoading(false)
     }
@@ -325,6 +357,32 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
 
   const pageLabel = (item[list.labelField] || item.id || itemId) as string
   const pageTitle = list.isSingleton || typeof pageLabel !== 'string' ? list.label : pageLabel
+
+  // Copy ID to clipboard handler
+  const handleCopyId = useCallback(() => {
+    navigator.clipboard.writeText(itemId)
+    toast.success('ID copied to clipboard')
+  }, [itemId])
+
+  // Split fields by position for sidebar/main layout
+  const fieldsSplit = useMemo(() => {
+    const sidebarFields: Record<string, any> = {}
+    const mainFields: Record<string, any> = {}
+    
+    Object.entries(enhancedFields).forEach(([key, field]) => {
+      // For now, put all fields in main - you can add logic here for sidebar fields
+      mainFields[key] = field
+    })
+    
+    return { sidebarFields, mainFields }
+  }, [enhancedFields])
+
+  // Breadcrumb items
+  const breadcrumbItems = [
+    { type: 'link' as const, label: 'Dashboard', href: '/' },
+    { type: 'link' as const, label: list.label, href: `/${list.path}` },
+    { type: 'page' as const, label: pageLabel }
+  ]
 
   // If item doesn't exist
   if (!item || Object.keys(item).length === 0) {
@@ -355,70 +413,200 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
   }
 
   return (
-    <div className="container mx-auto">
-      {/* Header */}
-      <div className="border-b bg-white px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">{pageTitle}</h1>
-            <p className="text-gray-600 mt-1">{list.description}</p>
-          </div>
-        </div>
-      </div>
+    <>
+      {/* Breadcrumbs */}
+      <PageBreadcrumbs items={breadcrumbItems} />
+      
+      <main className="w-full max-w-8xl p-4 md:p-6 pb-16 lg:pb-6">
+        <div className="grid lg:grid-cols-[minmax(240px,2fr)_3fr] gap-6 gap-y-8 min-h-[calc(100vh-8rem)]">
+          {/* Sidebar */}
+          <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7.5rem)] flex flex-col h-full">
+            <div className="space-y-6 flex-grow overflow-y-auto pb-2">
+              <div>
+                <h1
+                  className="text-lg font-semibold md:text-2xl"
+                  title={pageLabel}
+                >
+                  {pageLabel}
+                </h1>
+                <div className="mt-6">
+                  <div className="relative border rounded-md bg-muted/40 transition-all">
+                    <div className="p-1 flex items-center gap-3">
+                      <div className="flex gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0">
+                          <div className="bg-background shadow-xs border rounded-sm py-0.5 px-1 text-[.65rem] text-muted-foreground">
+                            ID
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-mono truncate">
+                            {itemId}
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-sm h-6 w-6 flex-shrink-0"
+                        onClick={handleCopyId}
+                      >
+                        <Copy className="size-3" />
+                        <span className="sr-only">Copy ID</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-      {/* Main Content */}
-      <form onSubmit={handleSave} className="flex flex-col lg:flex-row">
-        {/* Main Form Area */}
-        <div className="flex-1 p-6">
-          <div className="space-y-6">
-            {/* Debug info */}
-            <div className="p-4 bg-gray-100 rounded text-xs">
-              <div><strong>isRequireds:</strong> {JSON.stringify(isRequireds)}</div>
-              <div><strong>invalidFields:</strong> {JSON.stringify(Array.from(invalidFields))}</div>
-              <div><strong>forceValidation:</strong> {JSON.stringify(forceValidation)}</div>
+              {/* Sidebar Fields */}
+              {Object.keys(fieldsSplit.sidebarFields).length > 0 && (
+                <Fields
+                  list={list}
+                  fields={fieldsSplit.sidebarFields}
+                  value={value}
+                  onChange={setValue}
+                  forceValidation={forceValidation}
+                  invalidFields={invalidFields}
+                  isRequireds={isRequireds}
+                />
+              )}
             </div>
-            
-            {/* Dynamic Fields using Keystone pattern */}
-            <Fields
-              list={list}
-              fields={enhancedFields}
-              value={value}
-              onChange={setValue}
-              forceValidation={forceValidation}
-              invalidFields={invalidFields}
-              isRequireds={isRequireds}
-            />
+
+            {/* Action buttons - visible only on larger screens */}
+            <div className="hidden lg:flex flex-col mr-auto">
+              {/* Status indicators above buttons */}
+              <div className="flex justify-center mb-2">
+                {saveState === 'saving' && (
+                  <div className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
+                    <Loader2 className="animate-spin h-3.5 w-3.5" />
+                    <span>Saving...</span>
+                  </div>
+                )}
+                {saveState === 'saved' && (
+                  <div className="flex items-center gap-x-1.5 text-xs text-emerald-500">
+                    <Check className="h-3.5 w-3.5" />
+                    <span>Saved</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                {!list.hideDelete && (
+                  <DeleteButton 
+                    list={list} 
+                    value={value} 
+                    onError={setErrorDialogValue}
+                    isDesktop={true}
+                  />
+                )}
+                {hasChanges && (
+                  <ResetButton 
+                    hasChanges={hasChanges} 
+                    onReset={handleReset}
+                    isDesktop={true}
+                  />
+                )}
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleSave}
+                  disabled={!hasChanges || loading || saveState === 'saving'}
+                >
+                  Save Changes
+                  <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
+                </Button>
+              </div>
+            </div>
+          </aside>
+
+          {/* Floating action bar - visible only on smaller screens */}
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-10 lg:hidden flex flex-col items-center gap-1.5">
+            {/* Status indicators above the button container */}
+            <div className="flex justify-center">
+              {saveState === 'saving' && (
+                <div className="flex items-center gap-x-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="animate-spin h-3.5 w-3.5" />
+                  <span>Saving...</span>
+                </div>
+              )}
+              {saveState === 'saved' && (
+                <div className="flex items-center gap-x-1.5 text-xs text-emerald-500">
+                  <Check className="h-3.5 w-3.5" />
+                  <span>Saved</span>
+                </div>
+              )}
+            </div>
+
+            {/* Button container */}
+            <div className="bg-background border rounded-md px-3 py-2 shadow-md w-full">
+              <div className="flex flex-wrap items-center gap-2">
+                {!list.hideDelete && (
+                  <DeleteButton 
+                    list={list} 
+                    value={value} 
+                    onError={setErrorDialogValue}
+                    isDesktop={false}
+                  />
+                )}
+                {hasChanges && (
+                  <ResetButton 
+                    hasChanges={hasChanges} 
+                    onReset={handleReset}
+                    isDesktop={false}
+                  />
+                )}
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleSave}
+                  disabled={!hasChanges || loading || saveState === 'saving'}
+                >
+                  <span className="hidden sm:inline">Save Changes</span>
+                  <span className="sm:hidden">Save</span>
+                  <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Sidebar */}
-        <div className="lg:w-80 border-l bg-gray-50 p-6">
-          <div className="space-y-4">
-            <h3 className="font-medium">Actions</h3>
-            
-            {/* Save Button */}
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={!hasChanges || loading}
-            >
-              {loading ? 'Saving...' : 'Save'}
-            </Button>
+          {/* Main content */}
+          <div className="space-y-6">
+            {/* Error display */}
+            {errorDialogValue && (
+              <Badge className="border border-red-200 bg-red-50 text-red-700 items-start gap-4 p-4">
+                <AlertCircle className="h-5 w-5" />
+                <div>
+                  <h2 className="font-medium">Error</h2>
+                  <p>{errorDialogValue.message}</p>
+                </div>
+              </Badge>
+            )}
 
-            {/* Reset Button */}
-            <ResetButton hasChanges={hasChanges} onReset={handleReset} />
+            {/* Debug info - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="p-4 bg-gray-100 rounded text-xs">
+                <div><strong>isRequireds:</strong> {JSON.stringify(isRequireds)}</div>
+                <div><strong>invalidFields:</strong> {JSON.stringify(Array.from(invalidFields))}</div>
+                <div><strong>forceValidation:</strong> {JSON.stringify(forceValidation)}</div>
+              </div>
+            )}
 
-            {/* Delete Button */}
-            {!list.hideDelete && (
-              <DeleteButton 
-                list={list} 
-                value={value} 
-                onError={setErrorDialogValue}
+            {/* Main Fields */}
+            {Object.keys(fieldsSplit.mainFields).length > 0 && (
+              <Fields
+                list={list}
+                fields={fieldsSplit.mainFields}
+                value={value}
+                onChange={setValue}
+                forceValidation={forceValidation}
+                invalidFields={invalidFields}
+                isRequireds={isRequireds}
               />
             )}
           </div>
         </div>
-      </form>
+      </main>
 
       {/* Error Dialog */}
       {errorDialogValue && (
@@ -427,6 +615,6 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
           onClose={() => setErrorDialogValue(null)} 
         />
       )}
-    </div>
+    </>
   )
 }
