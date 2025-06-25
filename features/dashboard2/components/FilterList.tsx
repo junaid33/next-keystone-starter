@@ -173,33 +173,29 @@ function FilterPill({ filter, field }: FilterPillProps) {
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
-        <div
-          className="inline-flex items-center rounded-md text-muted-foreground shadow-xs h-8"
-          role="group"
-        >
-          <div className="flex border rounded-s-md h-full">
-            <Button
-              variant="outline"
-              className="max-h-full rounded-none rounded-s-[calc(theme(borderRadius.md)-1px)] [&_svg]:size-3 w-8 h-8 px-2 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 shadow-xs border-r-0"
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove()
-              }}
-            >
-              <XIcon />
-            </Button>
-          </div>
+        <div className="inline-flex">
           <Button
+            className="h-7 rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+            variant="outline"
+            size="icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove()
+            }}
+          >
+            <XIcon size={16} aria-hidden="true" />
+          </Button>
+          <Button
+            className="h-7 rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10 justify-start uppercase text-xs max-w-64"
             variant="outline"
             size="sm"
-            className="py-0 shadow-none justify-start uppercase rounded-l-none border-l-0 [&_svg]:size-3.5 text-xs px-2 h-8 max-w-64"
           >
-            <span className="opacity-75 truncate">{field.label}</span>
-            <ChevronRightIcon className="shrink-0" />
+            <span className="opacity-75 mr-1">{field.label}</span>
+            <ChevronRightIcon className="shrink-0 mx-0.5" size={14} />
             <span className="font-semibold truncate">
               {filterLabel}
             </span>
-            <ChevronDownIcon className="shrink-0" />
+            <ChevronDownIcon className="shrink-0 ml-1" size={14} />
           </Button>
         </div>
       </PopoverTrigger>

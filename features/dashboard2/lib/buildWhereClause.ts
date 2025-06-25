@@ -120,17 +120,32 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
   },
   id: {
     types: {
-      equals: { label: 'Equals', initialValue: '' },
-      not_equals: { label: 'Does not equal', initialValue: '' },
-      contains: { label: 'Contains', initialValue: '' },
-      not_contains: { label: 'Does not contain', initialValue: '' },
+      is: { label: 'Is exactly', initialValue: '' },
+      not: { label: 'Is not exactly', initialValue: '' },
+      gt: { label: 'Is greater than', initialValue: '' },
+      lt: { label: 'Is less than', initialValue: '' },
+      gte: { label: 'Is greater than or equal to', initialValue: '' },
+      lte: { label: 'Is less than or equal to', initialValue: '' },
+      in: { label: 'Is one of', initialValue: '' },
+      not_in: { label: 'Is not one of', initialValue: '' },
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
-      if (type.startsWith('not_')) {
-        const actualType = type.replace('not_', '')
-        return { [fieldPath]: { not: { [actualType]: value } } }
+      const valueWithoutWhitespace = value.replace(/\s/g, '');
+      if (type === 'not') {
+        return {
+          [fieldPath]: {
+            not: { equals: valueWithoutWhitespace },
+          },
+        };
       }
-      return { [fieldPath]: { [type]: value } }
+      const key = type === 'is' ? 'equals' : type === 'not_in' ? 'notIn' : type;
+      return {
+        [fieldPath]: {
+          [key]: ['in', 'not_in'].includes(type)
+            ? valueWithoutWhitespace.split(',')
+            : valueWithoutWhitespace,
+        },
+      };
     },
   },
   select: {

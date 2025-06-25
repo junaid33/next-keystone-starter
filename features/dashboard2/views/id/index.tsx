@@ -114,54 +114,65 @@ export function controller(
     serialize: () => ({}), // ID fields are never serialized for updates
     validate: () => true, // ID fields don't need validation
     filter: {
-      Filter: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+      Filter: ({ value, onChange, autoFocus, type }: { value: string; onChange: (value: string) => void; autoFocus?: boolean; type?: string }) => (
         <Input
+          type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter ID..."
+          autoFocus={autoFocus}
+          placeholder={type === "in" || type === "not_in" ? "e.g. id1, id2, id3" : "Enter ID..."}
+          className="w-full"
         />
       ),
-      Label: ({ label, value }: { label: string; value: string }) => {
-        const trimmedLabel = label.toLowerCase().replace(' exactly', '')
-        return `${trimmedLabel} "${value}"`
+      Label: ({ label, type, value }: { label: string; type: string; value: string }) => {
+        let renderedValue = value.replace(/\s/g, "");
+        if (['in', 'not_in'].includes(type)) {
+          renderedValue = value.split(',').join(', ');
+        }
+        return `${label}: ${renderedValue}`;
       },
       graphql: ({ type, value }: { type: string; value: string }) => {
-        if (type.startsWith('not_')) {
-          const actualType = type.replace('not_', '')
-          return { [config.path]: { not: { [actualType]: value } } }
+        const valueWithoutWhitespace = value.replace(/\s/g, '');
+        if (type === 'not') {
+          return {
+            [config.path]: {
+              not: { equals: valueWithoutWhitespace },
+            },
+          };
         }
-        return { [config.path]: { [type]: value } }
+        const key = type === 'is' ? 'equals' : type === 'not_in' ? 'notIn' : type;
+        return {
+          [config.path]: {
+            [key]: ['in', 'not_in'].includes(type)
+              ? valueWithoutWhitespace.split(',')
+              : valueWithoutWhitespace,
+          },
+        };
       },
       parseGraphQL: (value: any) => {
         return Object.entries(value).flatMap(([type, filterValue]) => {
           if (!filterValue) return []
-          if (type === 'equals') return { type: 'equals', value: filterValue as string }
-          if (type === 'contains') return { type: 'contains', value: filterValue as string }
-          if (type === 'not') {
-            const notValue = filterValue as any
-            if (notValue?.equals) return { type: 'not_equals', value: notValue.equals as string }
-            if (notValue?.contains) return { type: 'not_contains', value: notValue.contains as string }
+          if (type === 'equals') return { type: 'is', value: filterValue as string }
+          if (type === 'notIn') return { type: 'not_in', value: Array.isArray(filterValue) ? filterValue.join(', ') : filterValue }
+          if (type === 'in') return { type: 'in', value: Array.isArray(filterValue) ? filterValue.join(', ') : filterValue }
+          if (type === 'not' && (filterValue as any)?.equals) {
+            return { type: 'not', value: (filterValue as any).equals as string }
+          }
+          if (type === 'gt' || type === 'gte' || type === 'lt' || type === 'lte') {
+            return { type, value: filterValue as string }
           }
           return []
         })
       },
       types: {
-        equals: {
-          label: 'Equals',
-          initialValue: '',
-        },
-        not_equals: {
-          label: 'Does not equal',
-          initialValue: '',
-        },
-        contains: {
-          label: 'Contains',
-          initialValue: '',
-        },
-        not_contains: {
-          label: 'Does not contain',
-          initialValue: '',
-        },
+        is: { label: 'Is exactly', initialValue: '' },
+        not: { label: 'Is not exactly', initialValue: '' },
+        gt: { label: 'Is greater than', initialValue: '' },
+        lt: { label: 'Is less than', initialValue: '' },
+        gte: { label: 'Is greater than or equal to', initialValue: '' },
+        lte: { label: 'Is less than or equal to', initialValue: '' },
+        in: { label: 'Is one of', initialValue: '' },
+        not_in: { label: 'Is not one of', initialValue: '' },
       },
     },
   }
