@@ -82,7 +82,7 @@ export function FilterBar({ list, selectedFields = new Set() }: FilterBarProps) 
   return (
     <div>
       {/* Controls Row */}
-      <div className="flex flex-wrap items-center gap-2 px-4 md:px-6 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {/* Search */}
         <div className="relative flex-1 min-w-56">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -111,33 +111,33 @@ export function FilterBar({ list, selectedFields = new Set() }: FilterBarProps) 
           <FilterAdd list={list}>
             <Button
               variant="outline"
-              size="sm"
-              className="flex gap-1.5 px-3 text-xs font-medium"
+              size="icon"
+              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
             >
-              <SlidersHorizontal className="h-3 w-3" />
-              FILTER
+              <SlidersHorizontal className="stroke-muted-foreground" />
+              <span className="hidden lg:inline">Filter</span>
             </Button>
           </FilterAdd>
 
           <SortSelection listMeta={list}>
             <Button
               variant="outline"
-              size="sm"
-              className="flex gap-1.5 px-3 text-xs font-medium"
+              size="icon"
+              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
             >
-              <ArrowUpDown className="h-3 w-3" />
-              SORT
+              <ArrowUpDown className="stroke-muted-foreground" />
+              <span className="hidden lg:inline">Sort</span>
             </Button>
           </SortSelection>
 
           <FieldSelection listMeta={list} selectedFields={selectedFields}>
             <Button
               variant="outline"
-              size="sm"
-              className="flex gap-1.5 px-3 text-xs font-medium"
+              size="icon"
+              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
             >
-              <Columns3 className="h-3 w-3" />
-              COLUMNS
+              <Columns3 className="stroke-muted-foreground" />
+              <span className="hidden lg:inline">Display</span>
             </Button>
           </FieldSelection>
 
@@ -145,12 +145,12 @@ export function FilterBar({ list, selectedFields = new Set() }: FilterBarProps) 
             <Link
               href={`${basePath}/${list.path}/create`}
               className={cn(
-                buttonVariants({ size: "sm" }),
-                "flex gap-1.5 px-3 text-xs font-medium"
+                buttonVariants({ size: "icon" }),
+                "lg:px-4 lg:py-2 lg:w-auto rounded-lg"
               )}
             >
-              <CirclePlus className="h-3 w-3" />
-              CREATE
+              <CirclePlus />
+              <span className="hidden lg:inline">Create {list.singular}</span>
             </Link>
           )}
         </div>

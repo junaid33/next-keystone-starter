@@ -208,6 +208,39 @@ export function buildWhereClause(
   list: any,
   searchParams: Record<string, any>
 ): Record<string, any> {
+  const whereConditions: any[] = []
+
+  // Handle search parameter - following dashboard1's exact logic
+  if (searchParams?.search) {
+    const searchConditions = []
+    const searchTerm = searchParams.search.trim()
+    
+    // Check if the search term could be an ID (basic validation)
+    const idField = list.fields?.id
+    if (idField && searchTerm) {
+      // For string IDs, add exact match
+      searchConditions.push({ id: { equals: searchTerm } })
+    }
+    
+    // Use initialSearchFields from the list for text searching
+    const searchFields = list.initialSearchFields || []
+    for (const fieldKey of searchFields) {
+      const field = list.fields[fieldKey]
+      if (field) {
+        searchConditions.push({
+          [field.path]: {
+            contains: searchTerm,
+            mode: field.search === "insensitive" ? "insensitive" : "insensitive", // Default to insensitive
+          },
+        })
+      }
+    }
+
+    if (searchConditions.length > 0) {
+      whereConditions.push({ OR: searchConditions })
+    }
+  }
+
   // Build map of possible filters using server-side mappings
   const possibleFilters: Record<string, { type: string; field: string; fieldPath: string; fieldMeta: any }> = {}
   
@@ -238,6 +271,8 @@ export function buildWhereClause(
   // Parse filters from search params - exact Keystone logic
   const filters: Filter[] = []
   for (const key in searchParams) {
+    if (key === 'search') continue // Skip search param, already handled above
+    
     const filter = possibleFilters[key]
     if (!filter) continue
     
@@ -254,7 +289,7 @@ export function buildWhereClause(
   }
   
   // Convert filters to GraphQL where clause using server-side mappings
-  const whereConditions = filters.map(filter => {
+  const filterConditions = filters.map(filter => {
     const filterMapping = getFieldFilterMapping(filter.field)
     if (!filterMapping) return {}
     
@@ -264,9 +299,16 @@ export function buildWhereClause(
     })
   }).filter(condition => Object.keys(condition).length > 0)
   
+  // Add filter conditions to whereConditions
+  whereConditions.push(...filterConditions)
+  
   // Return combined where clause
   if (whereConditions.length === 0) {
     return {}
+  }
+  
+  if (whereConditions.length === 1) {
+    return whereConditions[0]
   }
   
   return { AND: whereConditions }

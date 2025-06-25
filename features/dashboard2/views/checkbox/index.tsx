@@ -5,12 +5,10 @@
 import React from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Check } from 'lucide-react'
 import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
   FieldControllerConfig,
-  FieldProps,
 } from '../../types'
 
 interface CheckboxFieldProps {

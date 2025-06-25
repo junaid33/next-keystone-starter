@@ -90,6 +90,13 @@ This is a Next.js 15 + KeystoneJS 6 application with a **dual dashboard architec
 - **Checkbox cells**: Show actual checkboxes (checked/unchecked) for better visual feedback vs KeystoneJS icon-only approach
 - **ListTable rendering**: Fixed to properly use Cell components instead of String() conversion that caused "object, object"
 
+### Fixed Search & UI Issues
+- **Search functionality**: Fixed GraphQL errors by using proper field type detection (ID fields use `equals`, text fields use `contains`/`mode`)
+- **Page layout**: Added border below breadcrumbs, "Create and manage X" descriptions, removed padding issues
+- **Button styling**: Matched dashboard1 responsive design (icons on mobile, text on desktop) 
+- **Table layout**: Fixed full-width table display, proper spacing
+- **TypeScript errors**: Fixed checkbox filter type definitions
+
 **Reference Files**:
 - `/features/dashboard2/views/repomix-keystonejs-views.xml` - KeystoneJS examples
 - `/features/dashboard2/views/relationship/` - Current relationship implementation

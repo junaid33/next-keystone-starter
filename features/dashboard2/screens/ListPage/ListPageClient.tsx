@@ -107,8 +107,13 @@ export function ListPageClient({
   ]
 
   const header = (
-    <div className="flex items-center justify-between">
-      <h1 className="text-lg font-semibold md:text-2xl">{list.label}</h1>
+    <div className="pb-4 pt-4 md:pt-6">
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+        {list.label}
+      </h1>
+      <p className="text-muted-foreground">
+        {list.description || `Create and manage ${list.label.toLowerCase()}`}
+      </p>
     </div>
   )
 
@@ -119,32 +124,37 @@ export function ListPageClient({
 
   return (
     <PageContainer title={list.label} header={header} breadcrumbs={breadcrumbs}>
-      <div className="space-y-4">
-        {/* Filter Bar - includes search, filters, sorting, field selection, and create button */}
+      {/* Filter Bar - includes search, filters, sorting, field selection, and create button */}
+      <div className="px-4 md:px-6">
         <FilterBar list={list} selectedFields={selectedFields} />
+      </div>
 
-
-        {/* Data table */}
-        {error ? (
+      {/* Data table - full width */}
+      {error ? (
+        <div className="px-4 md:px-6">
           <Alert variant="destructive">
             <AlertDescription>
               Failed to load items: {error}
             </AlertDescription>
           </Alert>
-        ) : isEmpty ? (
+        </div>
+      ) : isEmpty ? (
+        <div className="px-4 md:px-6">
           <EmptyState isFiltered={false} />
-        ) : data?.count === 0 ? (
+        </div>
+      ) : data?.count === 0 ? (
+        <div className="px-4 md:px-6">
           <EmptyState isFiltered={isFiltered} />
-        ) : (
-          <ListTable
-            data={data}
-            list={list}
-            selectedFields={selectedFields}
-            currentPage={currentPage}
-            pageSize={pageSize}
-          />
-        )}
-      </div>
+        </div>
+      ) : (
+        <ListTable
+          data={data}
+          list={list}
+          selectedFields={selectedFields}
+          currentPage={currentPage}
+          pageSize={pageSize}
+        />
+      )}
     </PageContainer>
   )
 }

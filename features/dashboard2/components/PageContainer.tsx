@@ -32,7 +32,7 @@ export function PageContainer({ children, title, header, breadcrumbs }: PageCont
   return (
     <div className="flex flex-col space-y-4">
       {/* Header with breadcrumbs */}
-      <header className="flex h-16 shrink-0 items-center gap-2">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
@@ -62,13 +62,13 @@ export function PageContainer({ children, title, header, breadcrumbs }: PageCont
 
       {/* Page header section */}
       {header && (
-        <div className="flex flex-col space-y-1.5 px-4">
+        <div className="flex flex-col space-y-1.5 px-4 md:px-6">
           {header}
         </div>
       )}
 
       {/* Main content */}
-      <main className="flex-1 px-4">
+      <main className="flex-1">
         {children}
       </main>
     </div>

@@ -46,13 +46,9 @@ export async function ListPage({ params, searchParams }: PageProps) {
   // Build filters from URL params using Keystone's approach
   const filterWhere = buildWhereClause(list, searchParamsObj)
 
-  // Build search where clause
-  const searchWhere = searchString ? { 
-    OR: [
-      { name: { contains: searchString, mode: 'insensitive' } },
-      { id: { contains: searchString, mode: 'insensitive' } }
-    ]
-  } : {}
+  // Build search where clause using dashboard1's proper implementation
+  const searchParameters = searchString ? { search: searchString } : {}
+  const searchWhere = buildWhereClause(list, searchParameters)
 
   // Combine search and filters - following Keystone's pattern
   const whereConditions = []
