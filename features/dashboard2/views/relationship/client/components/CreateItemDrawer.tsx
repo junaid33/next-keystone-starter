@@ -2,78 +2,66 @@ import { useCallback, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Drawer,
-  DrawerContent,
   DrawerHeader,
   DrawerTitle,
   DrawerBody,
   DrawerFooter,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
-import { useList } from "@/features/dashboard/hooks/useAdminMeta"; // Assuming useAdminMeta is the correct path
-import { useCreateItem } from "@/features/dashboard/hooks/useCreateItem";
+import { useList } from "../../../../hooks/useAdminMeta";
+import { useCreateItem } from "../../../../utils/useCreateItem";
+import { enhanceFields } from "../../../../utils/enhanceFields";
 import { GraphQLErrorNotice } from "@/features/dashboard/components/GraphQLErrorNotice";
-import type { List } from '@/features/dashboard/types'; // Import the List type
-import type { FieldMeta } from '@/features/dashboard/types'; // Assuming path
-import { Fields } from "@/features/dashboard/components/Fields";
+import { Fields } from "../../../../components/Fields";
 
 interface CreateItemDrawerProps {
   listKey: string;
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (isOpen: boolean) => void;
-  trigger: React.ReactNode;
   onClose: () => void;
   onCreate: (item: { id: string; label: string }) => void;
 }
 
-interface CreateItemDrawerInnerProps {
-  enhancedList: List; // Use the imported List type
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (isOpen: boolean) => void;
-  onClose: () => void;
-  onCreate: (item: { id: string; label: string }) => void;
-}
-
-// Inner component that calls the hook unconditionally
 function CreateItemDrawerInner({
-  enhancedList,
-  isDrawerOpen,
-  setIsDrawerOpen,
+  list,
   onClose,
   onCreate,
-}: CreateItemDrawerInnerProps) {
-  // Hook is now called unconditionally within this component's lifecycle
-  const createItemState = useCreateItem(enhancedList);
+}: {
+  list: any;
+  onClose: () => void;
+  onCreate: (item: { id: string; label: string }) => void;
+}) {
+  // Create enhanced fields like in CreatePage
+  const enhancedFields = useMemo(() => {
+    return enhanceFields(list.fields || {}, list.key)
+  }, [list.fields, list.key])
+  
+  const createItemState = useCreateItem(list, enhancedFields);
 
   const handleSubmit = useCallback(async () => {
-    try {
-      const item = await createItemState.create();
-      if (item) {
-        onCreate({
-          id: item.id,
-          label: item[enhancedList.labelField] || item.id,
-        });
-        // Optionally close drawer on success
-        // setIsDrawerOpen(false);
-        // onClose();
-      }
-    } catch (err) {
-      // Error state is managed by useCreateItem and displayed by GraphQLErrorNotice
-      console.error("Failed to create item:", err); // Keep for debugging if needed
+    if (!createItemState) return;
+    const item = await createItemState.create();
+    if (item) {
+      onCreate({
+        id: item.id,
+        label: item.label || item.id,
+      });
     }
-  }, [enhancedList, createItemState, onCreate /*, setIsDrawerOpen, onClose */]);
+  }, [createItemState, onCreate]);
 
   const handleClose = useCallback(() => {
-    // Removed createItemState.reset() as it doesn't exist on the hook
     onClose();
-    setIsDrawerOpen(false);
-  }, [onClose, setIsDrawerOpen]);
+  }, [onClose]);
+
+  if (!createItemState) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    // DrawerContent is rendered by the outer component now
     <>
       <DrawerHeader>
-        <DrawerTitle>Create {enhancedList.singular}</DrawerTitle>
+        <DrawerTitle>Create {list.singular}</DrawerTitle>
       </DrawerHeader>
 
       <DrawerBody className="py-2">
@@ -83,8 +71,7 @@ function CreateItemDrawerInner({
             errors={createItemState.error.graphQLErrors}
           />
         )}
-        {/* Pass the props returned by the hook to Fields, asserting the correct type for fields */}
-        <Fields {...createItemState.props as { fields: Record<string, FieldMeta> } & Omit<typeof createItemState.props, 'fields'>} />
+        <Fields {...createItemState.props} />
       </DrawerBody>
 
       <DrawerFooter>
@@ -93,16 +80,12 @@ function CreateItemDrawerInner({
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={
-            createItemState.state === "loading" ||
-            // Safely check invalidFields before accessing size
-            (createItemState.invalidFields && createItemState.invalidFields.size > 0)
-          }
+          disabled={createItemState.state === "loading"}
         >
           {createItemState.state === "loading" ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            "Create"
+            `Create ${list.singular}`
           )}
         </Button>
       </DrawerFooter>
@@ -110,43 +93,26 @@ function CreateItemDrawerInner({
   );
 }
 
-// Outer component handles loading and conditionally renders the Inner component
 export function CreateItemDrawer({
   listKey,
-  isDrawerOpen,
-  setIsDrawerOpen,
-  trigger,
   onClose,
   onCreate,
 }: CreateItemDrawerProps) {
   const { list, isLoading } = useList(listKey);
 
+  if (isLoading || !list) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-      <DrawerTrigger asChild>
-        {/* Wrap trigger in a div to ensure it's a single child */}
-        <div>{trigger}</div>
-      </DrawerTrigger>
-      <DrawerContent>
-        {isLoading || !list ? (
-          // Display loading indicator inside the drawer content area
-          <div className="flex items-center justify-center h-64"> {/* Added fixed height */}
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : (
-          // Render the inner component when data is ready
-          <CreateItemDrawerInner
-            enhancedList={list}
-            isDrawerOpen={isDrawerOpen}
-            setIsDrawerOpen={setIsDrawerOpen}
-            onClose={onClose}
-            onCreate={onCreate}
-          />
-          // <>
-          // {JSON.stringify({list})}
-          // </>
-        )}
-      </DrawerContent>
-    </Drawer>
+    <CreateItemDrawerInner
+      list={list}
+      onClose={onClose}
+      onCreate={onCreate}
+    />
   );
 }
