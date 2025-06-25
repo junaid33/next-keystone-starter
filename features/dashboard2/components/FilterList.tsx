@@ -120,7 +120,7 @@ export function FilterList({ list }: FilterListProps) {
   if (activeFilters.length === 0) return null
 
   return (
-    <div className="flex gap-1.5 border-t bg-muted/40 py-2 px-4 md:px-6 items-center">
+    <div className="flex gap-1.5 border-t bg-muted/40 py-2 -mx-4 md:-mx-6 px-4 md:px-6 items-center">
       <div className="flex items-center gap-1.5 border-r border-muted-foreground/30 pr-2 mr-1.5">
         <FilterIcon
           className="stroke-muted-foreground/50 size-4"
@@ -174,14 +174,13 @@ function FilterPill({ filter, field }: FilterPillProps) {
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
       <PopoverTrigger asChild>
         <div
-          className="inline-flex items-center rounded-md text-muted-foreground shadow-xs h-6"
+          className="inline-flex items-center rounded-md text-muted-foreground shadow-xs h-8"
           role="group"
         >
           <div className="flex border rounded-s-md h-full">
             <Button
-              variant="ghost"
-              size="icon"
-              className="max-h-full rounded-none rounded-s-[calc(theme(borderRadius.md)-1px)] [&_svg]:size-3 w-6 h-6 px-2 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
+              variant="outline"
+              className="max-h-full rounded-none rounded-s-[calc(theme(borderRadius.md)-1px)] [&_svg]:size-3 w-8 h-8 px-2 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950 shadow-xs border-r-0"
               onClick={(e) => {
                 e.stopPropagation()
                 onRemove()
@@ -193,14 +192,14 @@ function FilterPill({ filter, field }: FilterPillProps) {
           <Button
             variant="outline"
             size="sm"
-            className="py-0 shadow-none justify-start uppercase flex-wrap rounded-l-none border-l-0 [&_svg]:size-3.5 text-xs px-2 h-full"
+            className="py-0 shadow-none justify-start uppercase rounded-l-none border-l-0 [&_svg]:size-3.5 text-xs px-2 h-8 max-w-64"
           >
             <span className="opacity-75 truncate">{field.label}</span>
-            <ChevronRightIcon />
+            <ChevronRightIcon className="shrink-0" />
             <span className="font-semibold truncate">
               {filterLabel}
             </span>
-            <ChevronDownIcon />
+            <ChevronDownIcon className="shrink-0" />
           </Button>
         </div>
       </PopoverTrigger>
