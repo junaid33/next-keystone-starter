@@ -95,6 +95,7 @@ This is a Next.js 15 + KeystoneJS 6 application with a **dual dashboard architec
 - **Page layout**: Added border below breadcrumbs, "Create and manage X" descriptions, removed padding issues
 - **Button styling**: Matched dashboard1 responsive design (icons on mobile, text on desktop) 
 - **Table layout**: Fixed full-width table display, proper spacing
+- **Filter UI**: Replaced basic badges with dashboard1's sophisticated filter pills with editing capability
 - **TypeScript errors**: Fixed checkbox filter type definitions
 
 **Reference Files**:
