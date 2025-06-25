@@ -5,6 +5,9 @@
 import React from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { FieldContainer } from '@/components/ui/field-container'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
 import { entriesTyped } from '../../lib/entriesTyped'
 import type {
   FieldController,
@@ -32,28 +35,30 @@ export function Field({ field, value, onChange, autoFocus }: CheckboxFieldProps)
   const isReadOnly = onChange == null
 
   return (
-    <div className="flex items-center space-x-2">
-      <Checkbox
-        id={field.path}
-        checked={value}
-        onCheckedChange={onChange}
-        disabled={isReadOnly}
-        autoFocus={autoFocus}
-      />
-      <div className="grid gap-1.5 leading-none">
-        <Label
-          htmlFor={field.path}
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {field.label}
-        </Label>
-        {field.description && (
-          <p className="text-xs text-muted-foreground">
-            {field.description}
-          </p>
-        )}
+    <FieldContainer>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id={field.path}
+          checked={value}
+          onCheckedChange={onChange}
+          disabled={isReadOnly}
+          autoFocus={autoFocus}
+        />
+        <div className="grid gap-1.5 leading-none">
+          <Label
+            htmlFor={field.path}
+            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {field.label}
+          </Label>
+          {field.description && (
+            <FieldDescription className="text-xs">
+              {field.description}
+            </FieldDescription>
+          )}
+        </div>
       </div>
-    </div>
+    </FieldContainer>
   )
 }
 

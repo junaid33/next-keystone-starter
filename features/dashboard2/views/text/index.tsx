@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FieldContainer } from '@/components/ui/field-container'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
 import { entriesTyped } from '../../lib/entriesTyped'
 
 // Types matching Keystone exactly
@@ -99,7 +102,6 @@ function deserializeTextValue(value: string | null): InnerTextValue {
 function NullableFieldWrapper({
   isAllowed,
   autoFocus,
-  label,
   isReadOnly,
   isNull,
   onChange,
@@ -108,7 +110,6 @@ function NullableFieldWrapper({
 }: {
   isAllowed: boolean
   autoFocus?: boolean
-  label: string
   isReadOnly?: boolean
   isNull: boolean
   onChange: () => void
@@ -117,7 +118,6 @@ function NullableFieldWrapper({
 }) {
   return (
     <div className="space-y-2">
-      <Label className={errorMessage ? "text-red-600" : ""}>{label}</Label>
       {children}
       {errorMessage && (
         <div className="text-sm text-red-600" role="alert">
@@ -157,55 +157,56 @@ export function Field(props: FieldProps) {
     : undefined
 
   return (
-    <div className="space-y-2">
-      <NullableFieldWrapper
-      isAllowed={field.isNullable}
-      autoFocus={isNull && autoFocus}
-      label={field.label}
-      isReadOnly={isReadOnly}
-      isNull={isNull}
-      onChange={() => {
-        if (!onChange) return
-
-        const inner =
-          value.inner.kind === 'value'
-            ? ({ kind: 'null', prev: value.inner.value } as const)
-            : ({ kind: 'value', value: value.inner.prev } as const)
-
-        onChange({ ...value, inner })
-      }}
-    >
-      <FieldComponent
-        autoFocus={autoFocus}
-        placeholder={field.description}
-        disabled={isNull}
-        readOnly={isReadOnly}
-        required={isRequired}
-        aria-invalid={!!errorMessage}
-        onBlur={() => {
-          setShouldShowErrors(true)
-        }}
-        onChange={(e: any) => {
-          if (!onChange) return
-          onChange({
-            ...value,
-            inner: {
-              kind: 'value',
-              value: e.target.value,
-            },
-          })
-        }}
-        // maintain the previous value when set to null in aid of continuity for
-        // the user. it will be cleared when the item is saved
-        value={value.inner.kind === 'value' ? value.inner.value : value.inner.prev}
-      />
-      {errorMessage && (
-        <div className="text-sm text-red-600" role="alert">
-          {errorMessage}
-        </div>
+    <FieldContainer>
+      <FieldLabel className={errorMessage ? "text-red-600" : ""}>
+        {field.label}
+      </FieldLabel>
+      {field.description && (
+        <FieldDescription>{field.description}</FieldDescription>
       )}
-    </NullableFieldWrapper>
-    </div>
+      <NullableFieldWrapper
+        isAllowed={field.isNullable}
+        autoFocus={isNull && autoFocus}
+        isReadOnly={isReadOnly}
+        isNull={isNull}
+        onChange={() => {
+          if (!onChange) return
+
+          const inner =
+            value.inner.kind === 'value'
+              ? ({ kind: 'null', prev: value.inner.value } as const)
+              : ({ kind: 'value', value: value.inner.prev } as const)
+
+          onChange({ ...value, inner })
+        }}
+        errorMessage={errorMessage}
+      >
+        <FieldComponent
+          autoFocus={autoFocus}
+          placeholder={field.description}
+          disabled={isNull}
+          readOnly={isReadOnly}
+          required={isRequired}
+          aria-invalid={!!errorMessage}
+          onBlur={() => {
+            setShouldShowErrors(true)
+          }}
+          onChange={(e: any) => {
+            if (!onChange) return
+            onChange({
+              ...value,
+              inner: {
+                kind: 'value',
+                value: e.target.value,
+              },
+            })
+          }}
+          // maintain the previous value when set to null in aid of continuity for
+          // the user. it will be cleared when the item is saved
+          value={value.inner.kind === 'value' ? value.inner.value : value.inner.prev}
+        />
+      </NullableFieldWrapper>
+    </FieldContainer>
   )
 }
 

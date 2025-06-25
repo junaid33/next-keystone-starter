@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FieldContainer } from '@/components/ui/field-container'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
 import { Eye, EyeOff, Asterisk } from 'lucide-react'
 import type {
   FieldController,
@@ -154,8 +157,11 @@ export function Field({
     const isSelected = value.isSet == null ? undefined : value.isSet
 
     return (
-      <div className="space-y-2">
-        <Label>{field.label}</Label>
+      <FieldContainer>
+        <FieldLabel>{field.label}</FieldLabel>
+        {field.description && (
+          <FieldDescription>{field.description}</FieldDescription>
+        )}
         <div className="flex items-center space-x-2">
           <Checkbox
             checked={isSelected}
@@ -166,17 +172,17 @@ export function Field({
             {isIndeterminate ? 'Access denied' : 'Value is set'}
           </Label>
         </div>
-        {field.description && (
-          <p className="text-sm text-muted-foreground">{field.description}</p>
-        )}
-      </div>
+      </FieldContainer>
     )
   }
 
   if (value.kind === 'initial') {
     return (
-      <div className="space-y-2">
-        <Label>{field.label}</Label>
+      <FieldContainer>
+        <FieldLabel>{field.label}</FieldLabel>
+        {field.description && (
+          <FieldDescription>{field.description}</FieldDescription>
+        )}
         <div>
           <Button
             ref={triggerRef}
@@ -195,18 +201,15 @@ export function Field({
             {field.label.toLowerCase()}
           </Button>
         </div>
-        {field.description && (
-          <p className="text-sm text-muted-foreground">{field.description}</p>
-        )}
-      </div>
+      </FieldContainer>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <Label>{field.label}</Label>
+    <FieldContainer>
+      <FieldLabel>{field.label}</FieldLabel>
       {field.description && (
-        <p className="text-sm text-muted-foreground">{field.description}</p>
+        <FieldDescription>{field.description}</FieldDescription>
       )}
       
       <div className="flex flex-col md:flex-row gap-4">
@@ -258,7 +261,7 @@ export function Field({
       {validationMessage && (
         <p className="text-sm text-red-600" role="alert">{validationMessage}</p>
       )}
-    </div>
+    </FieldContainer>
   )
 }
 

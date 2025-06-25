@@ -7,6 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FieldContainer } from '@/components/ui/field-container'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
 import {
   Select,
   SelectContent,
@@ -157,7 +160,10 @@ export function Field({
       case 'radio':
         return (
           <div className="space-y-2">
-            <Label>{field.label}</Label>
+            <FieldLabel>{field.label}</FieldLabel>
+            {field.description && (
+              <FieldDescription>{field.description}</FieldDescription>
+            )}
             <RadioGroup
               disabled={isNull || isReadOnly}
               required={isRequired}
@@ -171,9 +177,6 @@ export function Field({
                 </div>
               ))}
             </RadioGroup>
-            {field.description && (
-              <p className="text-sm text-muted-foreground">{field.description}</p>
-            )}
             {errorMessage && (
               <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
             )}
@@ -182,7 +185,10 @@ export function Field({
       default:
         return (
           <div className="space-y-2">
-            <Label>{field.label}</Label>
+            <FieldLabel>{field.label}</FieldLabel>
+            {field.description && (
+              <FieldDescription>{field.description}</FieldDescription>
+            )}
             <Select
               disabled={isNull || isReadOnly}
               required={isRequired}
@@ -200,9 +206,6 @@ export function Field({
                 ))}
               </SelectContent>
             </Select>
-            {field.description && (
-              <p className="text-sm text-muted-foreground">{field.description}</p>
-            )}
             {errorMessage && (
               <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
             )}
@@ -212,16 +215,18 @@ export function Field({
   })()
 
   return (
-    <NullableFieldWrapper
-      isAllowed={!isRequired}
-      autoFocus={isNull && autoFocus}
-      label={field.label}
-      isReadOnly={isReadOnly}
-      isNull={isNull}
-      onChange={onNullChange}
-    >
-      {fieldElement}
-    </NullableFieldWrapper>
+    <FieldContainer>
+      <NullableFieldWrapper
+        isAllowed={!isRequired}
+        autoFocus={isNull && autoFocus}
+        label={field.label}
+        isReadOnly={isReadOnly}
+        isNull={isNull}
+        onChange={onNullChange}
+      >
+        {fieldElement}
+      </NullableFieldWrapper>
+    </FieldContainer>
   )
 }
 
