@@ -264,18 +264,14 @@ export function Field({
 
 export function Cell({ item, field, value }: CellProps) {
   const fieldValue = value ?? item[field.path]?.isSet
-  return (
-    <div className="flex items-center">
-      {fieldValue ? (
-        <div className="flex" aria-label="is set">
-          <Asterisk className="h-3 w-3" />
-          <Asterisk className="h-3 w-3" />
-          <Asterisk className="h-3 w-3" />
-        </div>
-      ) : (
-        <span className="text-muted-foreground sr-only">not set</span>
-      )}
+  return fieldValue ? (
+    <div className="flex items-center" aria-label="is set">
+      <Asterisk className="h-3 w-3" />
+      <Asterisk className="h-3 w-3" />
+      <Asterisk className="h-3 w-3" />
     </div>
+  ) : (
+    <span className="sr-only">not set</span>
   )
 }
 

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useDashboard } from '../context/DashboardProvider';
 import { Pagination } from './Pagination';
-import { getFieldTypeFromViewsIndex } from '../views/getFieldTypeFromViewsIndex';
+import { getFieldViews } from '../views/registry';
 
 interface ListItem {
   id: string;
@@ -115,8 +115,8 @@ export function ListTable({
     const field = list.fields[fieldKey];
     if (!field) return null;
 
-    // Handle ID field or first field - always linkable
-    if (fieldKey === 'id' || isFirstField) {
+    // Handle ID field or first field - always linkable for text/string fields
+    if (fieldKey === 'id' || (isFirstField && (field.viewsIndex === 0 || field.viewsIndex === 1))) {
       return (
         <Link 
           href={`${basePath}/${list.path}/${encodeURIComponent(item.id)}`}
@@ -127,7 +127,32 @@ export function ListTable({
       );
     }
 
-    // If the field has no value, render null state
+    // Get the appropriate Cell component and render it
+    if (field.viewsIndex !== undefined) {
+      try {
+        const fieldViews = getFieldViews(field.viewsIndex);
+        const CellComponent = fieldViews.Cell;
+        
+        if (CellComponent) {
+          // Create linkTo prop for linkable cells
+          const linkTo = (CellComponent as any).supportsLinkTo ? {
+            href: `${basePath}/${list.path}/${encodeURIComponent(item.id)}`
+          } : undefined;
+          
+          return (
+            <CellComponent 
+              field={field} 
+              item={item} 
+              linkTo={linkTo}
+            />
+          );
+        }
+      } catch (err) {
+        console.warn(`Failed to render cell for field ${fieldKey}:`, err);
+      }
+    }
+
+    // Fallback for fields without Cell components - handle null/undefined
     if (item[fieldKey] === null || item[fieldKey] === undefined) {
       return (
         <div 
@@ -139,32 +164,20 @@ export function ListTable({
       );
     }
 
-    // Check if field has a Cell component from Dashboard 2 views
-    if (field.viewsIndex !== undefined) {
-      try {
-        const fieldType = getFieldTypeFromViewsIndex(field.viewsIndex);
-        
-        // For now, we'll use basic rendering until we have all field views implemented
-        // This matches how Keystone falls back to basic rendering
-        return (
-          <span style={{ userSelect: 'text' }} className="select-text">
-            {String(item[fieldKey])}
-          </span>
-        );
-      } catch (err) {
-        // Fallback if field type not found
-        return (
-          <span style={{ userSelect: 'text' }} className="select-text">
-            {String(item[fieldKey])}
-          </span>
-        );
-      }
+    // Basic fallback for primitive values
+    const value = item[fieldKey];
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return (
+        <span style={{ userSelect: 'text' }} className="select-text">
+          {String(value)}
+        </span>
+      );
     }
 
-    // Fallback to basic string representation with proper text selection
+    // For complex objects, show a placeholder instead of [object Object]
     return (
-      <span style={{ userSelect: 'text' }} className="select-text">
-        {String(item[fieldKey])}
+      <span className="text-muted-foreground italic text-xs">
+        Complex data
       </span>
     );
   };

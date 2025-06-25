@@ -64,9 +64,17 @@ export const Cell = ({ field, item }: { field: any; item: any }) => {
   }
 
   const data = item[field.path];
+  if (!data) {
+    return <CellContainer></CellContainer>;
+  }
+
   const items = (Array.isArray(data) ? data : [data]).filter((item) => item);
-  const displayItems = items.length < 5 ? items : items.slice(0, 3);
-  const overflow = items.length < 5 ? 0 : items.length - 3;
+  if (items.length === 0) {
+    return <CellContainer></CellContainer>;
+  }
+
+  const displayItems = items.length < 3 ? items : items.slice(0, 2);
+  const overflow = items.length < 3 ? 0 : items.length - 2;
 
   return (
     <CellContainer>
@@ -78,9 +86,11 @@ export const Cell = ({ field, item }: { field: any; item: any }) => {
           </Link>
         </Fragment>
       ))}
-      <span className="opacity-50 font-medium">
-        {overflow ? `, and ${overflow} more` : null}
-      </span>
+      {overflow > 0 && (
+        <span className="opacity-50 font-medium">
+          {`, and ${overflow} more`}
+        </span>
+      )}
     </CellContainer>
   );
 };

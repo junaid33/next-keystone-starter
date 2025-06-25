@@ -62,12 +62,13 @@ export function Field({ field, value, onChange, autoFocus }: CheckboxFieldProps)
 export function Cell({ item, field, value }: CellProps) {
   const fieldValue = value ?? item[field.path]
   return (
-    <div className="flex items-center justify-center">
-      {fieldValue ? (
-        <Check className="h-4 w-4 text-green-600" aria-label="true" />
-      ) : (
-        <span className="sr-only">false</span>
-      )}
+    <div className="flex items-center justify-start">
+      <Checkbox
+        checked={Boolean(fieldValue)}
+        disabled
+        className="pointer-events-none"
+        aria-label={fieldValue ? "true" : "false"}
+      />
     </div>
   )
 }

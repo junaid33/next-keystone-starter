@@ -223,10 +223,17 @@ function serialize(nodes: any) {
  */
 export function Cell({ item, field, linkTo }: any) {
   const value = item[field.path]?.document
-  if (!value) return null
+  if (!value || !Array.isArray(value)) {
+    return linkTo ? (
+      <CellLink {...linkTo}></CellLink>
+    ) : (
+      <CellContainer></CellContainer>
+    )
+  }
+  
   const plainText = serialize(value)
-  const cutText =
-    plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText
+  const cutText = plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText
+  
   return linkTo ? (
     <CellLink {...linkTo}>{cutText}</CellLink>
   ) : (

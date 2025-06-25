@@ -60,6 +60,41 @@ This is a Next.js 15 + KeystoneJS 6 application with a **dual dashboard architec
 - **UI**: Radix UI primitives, Tailwind CSS, Lucide React icons
 - **Data**: GraphQL (GraphQL Yoga), SWR for client state
 
+## Current Development Status - Dashboard2
+
+**Why Dashboard2**: Rebuilding dashboard because original has extensive type errors that break functionality when fixed. Dashboard2 follows KeystoneJS examples more closely using GitHub MCP while preserving the UI work from dashboard1.
+
+**Current Focus**: List page implementation
+
+### Active Issues - List Page Cells
+- **Fields not showing**: Many cells display "object, object" instead of proper values
+- **Working cells**: Text fields display correctly
+- **Broken cell types**:
+  - Relationship cells - not rendering relationships properly
+  - Password cells - not showing correctly 
+  - Document/description cells - not displaying rich content
+- **Need to fix**: Cell implementations using KeystoneJS repo examples
+
+### TODO List
+- [x] Fix relationship cell implementation to properly display related data
+- [x] Fix password cell to show appropriate masked/hidden display (3 asterisks when set)
+- [x] Fix document cell to render rich text content properly
+- [ ] Review KeystoneJS repo examples for correct cell patterns
+- [ ] Compare with dashboard1 views that work correctly
+- [ ] Ensure all field types have proper cell implementations
+
+### Fixed Cell Issues
+- **Relationship cells**: Now properly display `item.label || item.id` with links, handle null/empty data
+- **Password cells**: Show 3 asterisk icons when set, hidden "not set" text when empty (matches KeystoneJS)
+- **Document cells**: Extract plain text from Slate document structure, truncate at 100 chars
+- **Checkbox cells**: Show actual checkboxes (checked/unchecked) for better visual feedback vs KeystoneJS icon-only approach
+- **ListTable rendering**: Fixed to properly use Cell components instead of String() conversion that caused "object, object"
+
+**Reference Files**:
+- `/features/dashboard2/views/repomix-keystonejs-views.xml` - KeystoneJS examples
+- `/features/dashboard2/views/relationship/` - Current relationship implementation
+- `/features/dashboard2/views/password/` - Current password implementation
+
 ## Development Notes
 
 - GraphQL endpoint available at `/api/graphql`
