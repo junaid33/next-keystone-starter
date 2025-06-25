@@ -8,42 +8,17 @@
 
 import React, { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { 
-  Search, 
-  Plus, 
-  Filter, 
-  MoreHorizontal, 
-  Trash2, 
-  RotateCcw,
   SearchX,
   Table as TableIcon 
 } from 'lucide-react'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Skeleton } from '@/components/ui/skeleton'
 import { PageContainer } from '../../components/PageContainer'
 import { FilterBar } from '../../components/FilterBar'
+import { ListTable } from '../../components/ListTable'
 import { useDashboard } from '../../context/DashboardProvider'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { useSelectedFields } from '../../hooks/useSelectedFields'
+import { useSort } from '../../hooks/useSort'
 
 interface ListPageClientProps {
   list: any
@@ -80,83 +55,6 @@ function EmptyState({ isFiltered }: { isFiltered: boolean }) {
   )
 }
 
-function LoadingTable() {
-  return (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-12">
-              <Skeleton className="h-4 w-4" />
-            </TableHead>
-            <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-24" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <TableRow key={i}>
-              <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-4" /></TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  )
-}
-
-function Pagination({ 
-  currentPage, 
-  pageSize, 
-  total, 
-  onPageChange 
-}: { 
-  currentPage: number
-  pageSize: number
-  total: number
-  onPageChange: (page: number) => void
-}) {
-  const totalPages = Math.ceil(total / pageSize)
-  const start = (currentPage - 1) * pageSize + 1
-  const end = Math.min(currentPage * pageSize, total)
-
-  if (totalPages <= 1) return null
-
-  return (
-    <div className="flex items-center justify-between">
-      <div className="text-sm text-muted-foreground">
-        Showing {start} to {end} of {total} items
-      </div>
-      <div className="flex items-center space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage <= 1}
-        >
-          Previous
-        </Button>
-        <div className="text-sm font-medium">
-          Page {currentPage} of {totalPages}
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage >= totalPages}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
-  )
-}
 
 export function ListPageClient({ 
   list, 
@@ -166,9 +64,9 @@ export function ListPageClient({
 }: ListPageClientProps) {
   const router = useRouter()
   const { basePath } = useDashboard()
-  
-  // State
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  // Hooks for sorting and field selection
+  const selectedFields = useSelectedFields(list)
+  const sort = useSort(list)
 
   // Extract data from props
   const data = initialData
@@ -222,34 +120,9 @@ export function ListPageClient({
   return (
     <PageContainer title={list.label} header={header} breadcrumbs={breadcrumbs}>
       <div className="space-y-4">
-        {/* Filter Bar - includes search, filters, and create button */}
-        <FilterBar list={list} />
+        {/* Filter Bar - includes search, filters, sorting, field selection, and create button */}
+        <FilterBar list={list} selectedFields={selectedFields} />
 
-        {/* Selection toolbar */}
-        {selectedItems.size > 0 && (
-          <div className="bg-muted/50 border rounded-lg p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
-                {selectedItems.size} item{selectedItems.size !== 1 ? 's' : ''} selected
-              </span>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setSelectedItems(new Set())}
-                >
-                  Clear selection
-                </Button>
-                {!list.hideDelete && (
-                  <Button variant="destructive" size="sm">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Data table */}
         {error ? (
@@ -263,85 +136,13 @@ export function ListPageClient({
         ) : data?.count === 0 ? (
           <EmptyState isFiltered={isFiltered} />
         ) : (
-          <div className="space-y-4">
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox />
-                    </TableHead>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.items?.map((item: any) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedItems.has(item.id)}
-                          onCheckedChange={(checked) => {
-                            const newSelected = new Set(selectedItems)
-                            if (checked) {
-                              newSelected.add(item.id)
-                            } else {
-                              newSelected.delete(item.id)
-                            }
-                            setSelectedItems(newSelected)
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Link 
-                          href={`${basePath}/${list.path}/${item.id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {item.id}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{item.name || '—'}</TableCell>
-                      <TableCell>
-                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`${basePath}/${list.path}/${item.id}`}>
-                                View
-                              </Link>
-                            </DropdownMenuItem>
-                            {!list.hideDelete && (
-                              <DropdownMenuItem className="text-destructive">
-                                Delete
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            
-            {data && (
-              <Pagination
-                currentPage={currentPage}
-                pageSize={pageSize}
-                total={data.count}
-                onPageChange={handlePageChange}
-              />
-            )}
-          </div>
+          <ListTable
+            data={data}
+            list={list}
+            selectedFields={selectedFields}
+            currentPage={currentPage}
+            pageSize={pageSize}
+          />
         )}
       </div>
     </PageContainer>

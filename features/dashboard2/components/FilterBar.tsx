@@ -13,6 +13,8 @@ import {
 } from "lucide-react"
 import { FilterAdd } from "./FilterAdd"
 import { FilterList } from "./FilterList"
+import { SortSelection } from "./SortSelection"
+import { FieldSelection } from "./FieldSelection"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import Link from "next/link"
@@ -21,10 +23,10 @@ import { enhanceFields } from '../utils/enhanceFields'
 
 interface FilterBarProps {
   list: any
-  selectedFields?: string[]
+  selectedFields?: Set<string>
 }
 
-export function FilterBar({ list, selectedFields = [] }: FilterBarProps) {
+export function FilterBar({ list, selectedFields = new Set() }: FilterBarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -109,24 +111,46 @@ export function FilterBar({ list, selectedFields = [] }: FilterBarProps) {
           <FilterAdd list={list}>
             <Button
               variant="outline"
-              size="icon"
-              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
+              size="sm"
+              className="flex gap-1.5 px-3 text-xs font-medium"
             >
-              <SlidersHorizontal className="stroke-muted-foreground" />
-              <span className="hidden lg:inline">Filter</span>
+              <SlidersHorizontal className="h-3 w-3" />
+              FILTER
             </Button>
           </FilterAdd>
+
+          <SortSelection listMeta={list}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex gap-1.5 px-3 text-xs font-medium"
+            >
+              <ArrowUpDown className="h-3 w-3" />
+              SORT
+            </Button>
+          </SortSelection>
+
+          <FieldSelection listMeta={list} selectedFields={selectedFields}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex gap-1.5 px-3 text-xs font-medium"
+            >
+              <Columns3 className="h-3 w-3" />
+              COLUMNS
+            </Button>
+          </FieldSelection>
 
           {!list.hideCreate && (
             <Link
               href={`${basePath}/${list.path}/create`}
               className={cn(
-                buttonVariants({ size: "icon" }),
-                "lg:px-4 lg:py-2 lg:w-auto rounded-lg"
+                buttonVariants({ size: "sm" }),
+                "flex gap-1.5 px-3 text-xs font-medium"
               )}
             >
-              <CirclePlus />
-              <span className="hidden lg:inline">Create {list.singular}</span>
+              <CirclePlus className="h-3 w-3" />
+              CREATE
             </Link>
           )}
         </div>
