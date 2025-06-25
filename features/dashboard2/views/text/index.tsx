@@ -295,12 +295,14 @@ export const controller = (config: {
                 .replace(/_i$/, '')
                 .replace('not_', '')
                 .replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())
-        const filter = { [key]: value }
+        
+        const baseFilter = { 
+          [key]: value,
+          ...(config.fieldMeta.shouldUseModeInsensitive ? { mode: 'insensitive' } : {})
+        }
+        
         return {
-          [config.path]: {
-            ...(isNot ? { not: filter } : filter),
-            mode: config.fieldMeta.shouldUseModeInsensitive ? 'insensitive' : undefined,
-          },
+          [config.path]: isNot ? { not: baseFilter } : baseFilter,
         }
       },
       parseGraphQL: (value: any) => {

@@ -39,12 +39,14 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
             .replace(/_i$/, '')
             .replace('not_', '')
             .replace(/_([a-z])/g, (_, char: string) => char.toUpperCase())
-      const filter = { [key]: value }
+      
+      const baseFilter = { 
+        [key]: value,
+        ...(fieldMeta?.shouldUseModeInsensitive ? { mode: 'insensitive' } : {})
+      }
+      
       return {
-        [fieldPath]: {
-          ...(isNot ? { NOT: filter } : filter),
-          mode: fieldMeta?.shouldUseModeInsensitive ? 'insensitive' : undefined,
-        },
+        [fieldPath]: isNot ? { not: baseFilter } : baseFilter,
       }
     },
   },
@@ -74,8 +76,8 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: number }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -92,9 +94,9 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
       const val = value === null ? null : parseFloat(value)
-      if (type === 'not') return { [fieldPath]: { NOT: { equals: val } } }
+      if (type === 'not') return { [fieldPath]: { not: { equals: val } } }
       return { [fieldPath]: { [type]: val } }
     },
   },
@@ -111,8 +113,8 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -126,7 +128,7 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type.startsWith('not_')) {
         const actualType = type.replace('not_', '')
-        return { [fieldPath]: { NOT: { [actualType]: value } } }
+        return { [fieldPath]: { not: { [actualType]: value } } }
       }
       return { [fieldPath]: { [type]: value } }
     },
@@ -153,8 +155,8 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -171,8 +173,8 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
     },
     graphql: (fieldPath: string, fieldMeta: any) => ({ type, value }: { type: string; value: string }) => {
       if (type === 'empty') return { [fieldPath]: { equals: null } }
-      if (type === 'not_empty') return { [fieldPath]: { NOT: { equals: null } } }
-      if (type === 'not') return { [fieldPath]: { NOT: { equals: value } } }
+      if (type === 'not_empty') return { [fieldPath]: { not: { equals: null } } }
+      if (type === 'not') return { [fieldPath]: { not: { equals: value } } }
       return { [fieldPath]: { [type]: value } }
     },
   },
@@ -189,12 +191,12 @@ const FIELD_FILTER_MAPPINGS: Record<string, {
       const many = fieldMeta?.many || false
       if (type === 'empty' && !many) return { [fieldPath]: { equals: null } }
       if (type === 'empty' && many) return { [fieldPath]: { none: {} } }
-      if (type === 'not_empty' && !many) return { [fieldPath]: { NOT: { equals: null } } }
+      if (type === 'not_empty' && !many) return { [fieldPath]: { not: { equals: null } } }
       if (type === 'not_empty' && many) return { [fieldPath]: { some: {} } }
       if (type === 'is') return { [fieldPath]: { id: { equals: value } } }
-      if (type === 'not_is') return { [fieldPath]: { NOT: { id: { equals: value } } } }
+      if (type === 'not_is') return { [fieldPath]: { not: { id: { equals: value } } } }
       if (type === 'some') return { [fieldPath]: { some: { id: { in: value } } } }
-      if (type === 'not_some') return { [fieldPath]: { NOT: { some: { id: { in: value } } } } }
+      if (type === 'not_some') return { [fieldPath]: { not: { some: { id: { in: value } } } } }
       return { [fieldPath]: { [type]: value } } // uh
     },
   },

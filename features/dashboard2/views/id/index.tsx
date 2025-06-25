@@ -100,7 +100,7 @@ type IdFieldMeta = {
 
 export function controller(
   config: FieldControllerConfig<IdFieldMeta>
-): FieldController<string> & {
+): FieldController<string, string> & {
   kind: 'autoincrement' | 'uuid' | 'cuid'
 } {
   return {
@@ -113,6 +113,57 @@ export function controller(
     deserialize: data => data[config.path] || '',
     serialize: () => ({}), // ID fields are never serialized for updates
     validate: () => true, // ID fields don't need validation
+    filter: {
+      Filter: ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Enter ID..."
+        />
+      ),
+      Label: ({ label, value }: { label: string; value: string }) => {
+        const trimmedLabel = label.toLowerCase().replace(' exactly', '')
+        return `${trimmedLabel} "${value}"`
+      },
+      graphql: ({ type, value }: { type: string; value: string }) => {
+        if (type.startsWith('not_')) {
+          const actualType = type.replace('not_', '')
+          return { [config.path]: { not: { [actualType]: value } } }
+        }
+        return { [config.path]: { [type]: value } }
+      },
+      parseGraphQL: (value: any) => {
+        return Object.entries(value).flatMap(([type, filterValue]) => {
+          if (!filterValue) return []
+          if (type === 'equals') return { type: 'equals', value: filterValue as string }
+          if (type === 'contains') return { type: 'contains', value: filterValue as string }
+          if (type === 'not') {
+            const notValue = filterValue as any
+            if (notValue?.equals) return { type: 'not_equals', value: notValue.equals as string }
+            if (notValue?.contains) return { type: 'not_contains', value: notValue.contains as string }
+          }
+          return []
+        })
+      },
+      types: {
+        equals: {
+          label: 'Equals',
+          initialValue: '',
+        },
+        not_equals: {
+          label: 'Does not equal',
+          initialValue: '',
+        },
+        contains: {
+          label: 'Contains',
+          initialValue: '',
+        },
+        not_contains: {
+          label: 'Does not contain',
+          initialValue: '',
+        },
+      },
+    },
   }
 }
 
