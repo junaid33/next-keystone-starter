@@ -6,9 +6,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   // Workaround since we diverged from Keystone reltionship and document views
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  // typescript: {
+  //   ignoreBuildErrors: true,
+  // },
   images: {
     remotePatterns: [
       {

@@ -235,7 +235,9 @@ export function Cell({ item, field, linkTo }: any) {
     return linkTo ? (
       <CellLink {...linkTo}></CellLink>
     ) : (
-      <CellContainer></CellContainer>
+      <CellContainer>
+        <span className="text-muted-foreground">—</span>
+      </CellContainer>
     )
   }
   
