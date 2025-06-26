@@ -1,4 +1,4 @@
-import { handleDashboardRoutes, getAuthenticatedUser } from '@/features/dashboard/middleware';
+import { handleDashboardRoutes, getAuthenticatedUser } from '@/features/dashboard2/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
