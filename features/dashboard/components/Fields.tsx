@@ -46,20 +46,12 @@ interface FieldsProps {
   isRequireds?: Record<string, any>
 }
 
-// Moved deserialization functions to ItemPageClient where they belong
-
-export function Fields({ list, fields, value, onChange, forceValidation, invalidFields, isRequireds }: FieldsProps) {
-  // Enhanced fields already have controllers and views - no need to recreate them
-
+export function Fields({ fields, value, onChange, forceValidation, invalidFields, isRequireds }: FieldsProps) {
   // Create serialized data exactly like Keystone for testFilter
   const serialized = useMemo(() => {
     const result: Record<string, unknown> = {}
     for (const [fieldKey, field] of Object.entries(fields)) {
-      try {
-        Object.assign(result, field.controller.serialize(value[fieldKey]))
-      } catch (error) {
-        console.error(`Error serializing field ${fieldKey}:`, error)
-      }
+      Object.assign(result, field.controller.serialize(value[fieldKey]))
     }
     return result
   }, [fields, value])
