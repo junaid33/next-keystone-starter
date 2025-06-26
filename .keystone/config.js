@@ -321,7 +321,7 @@ var import_session = require("@keystone-6/core/session");
 var import_schema = require("@graphql-tools/schema");
 
 // features/keystone/mutations/redirectToInit.ts
-async function redirectToInit(root, { ids }, context) {
+async function redirectToInit(root, args, context) {
   const userCount = await context.sudo().query.User.count({});
   if (userCount === 0) {
     return true;
@@ -332,19 +332,21 @@ var redirectToInit_default = redirectToInit;
 
 // features/keystone/mutations/index.ts
 var graphql = String.raw;
-var extendGraphqlSchema = (schema) => (0, import_schema.mergeSchemas)({
-  schemas: [schema],
-  typeDefs: graphql`
+function extendGraphqlSchema(baseSchema) {
+  return (0, import_schema.mergeSchemas)({
+    schemas: [baseSchema],
+    typeDefs: graphql`
       type Query {
         redirectToInit: Boolean
       }
     `,
-  resolvers: {
-    Query: {
-      redirectToInit: redirectToInit_default
+    resolvers: {
+      Query: {
+        redirectToInit: redirectToInit_default
+      }
     }
-  }
-});
+  });
+}
 
 // features/keystone/index.ts
 var databaseURL = process.env.DATABASE_URL || "file:./keystone.db";

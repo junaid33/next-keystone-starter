@@ -1,5 +1,6 @@
 import { keystoneContext } from '../../features/keystone/context'
 import { createYoga } from "graphql-yoga";
+// @ts-ignore
 import processRequest from "graphql-upload/processRequest.js";
 import { type NextApiRequest, type NextApiResponse } from 'next'
 
@@ -41,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     },
     graphqlEndpoint: "/api/graphql",
     schema: keystoneContext.graphql.schema,
-    context: ({ req, res }) => {
+    context: ({ req, res }: { req: any; res: any }) => {
       return keystoneContext.withRequest(req, res);
     },
     multipart: false,

@@ -1,11 +1,12 @@
 import { mergeSchemas } from "@graphql-tools/schema";
+import type { GraphQLSchema } from 'graphql';
 import redirectToInit from "./redirectToInit";
 
 const graphql = String.raw;
 
-export const extendGraphqlSchema = (schema) =>
-  mergeSchemas({
-    schemas: [schema],
+export function extendGraphqlSchema(baseSchema: GraphQLSchema) {
+  return mergeSchemas({
+    schemas: [baseSchema],
     typeDefs: graphql`
       type Query {
         redirectToInit: Boolean
@@ -17,3 +18,4 @@ export const extendGraphqlSchema = (schema) =>
       },
     },
   });
+}
