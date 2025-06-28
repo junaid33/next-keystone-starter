@@ -17,12 +17,12 @@ export function getFieldTypeFromViewsIndex(viewsIndex: number): string {
     3: "relationship",
     4: "checkbox",
     5: "document",
-    6: "integer",
-    7: "bigInt",
-    8: "float",
-    9: "decimal",
-    10: "select",
-    11: "timestamp",
+    6: "select",
+    7: "integer",
+    8: "timestamp",
+    9: "float",
+    10: "decimal",
+    11: "bigInt",
     12: "json"
   };
 

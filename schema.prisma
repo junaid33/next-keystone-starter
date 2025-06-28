@@ -41,13 +41,13 @@ model Todo {
   label        String    @default("")
   description  Json      @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
   isComplete   Boolean   @default(false)
-  isPrivate    Boolean   @default(false)
+  status       String?   @default("todo")
   priority     Int?      @default(1)
-  largeNumber  BigInt?
+  dueDate      DateTime?
   weight       Float?    @default(1)
   budget       Decimal?  @default("0.00") @postgresql.Decimal(10, 2)
-  status       String?   @default("todo")
-  dueDate      DateTime?
+  isPrivate    Boolean   @default(false)
+  largeNumber  BigInt?
   metadata     Json?
   secretNote   String?
   assignedTo   User?     @relation("Todo_assignedTo", fields: [assignedToId], references: [id])

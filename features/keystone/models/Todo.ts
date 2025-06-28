@@ -1,4 +1,4 @@
-import { list } from "@keystone-6/core";
+import { list, group } from "@keystone-6/core";
 import { allOperations } from "@keystone-6/core/access";
 import { 
   checkbox, 
@@ -37,7 +37,7 @@ export const Todo = list({
     },
   },
   fields: {
-    // Text fields
+    // Basic fields
     label: text({ validation: { isRequired: true } }),
     description: document({
       formatting: true,
@@ -50,58 +50,67 @@ export const Todo = list({
       ],
     }),
 
-    // Boolean fields
-    isComplete: checkbox({ defaultValue: false }),
-    isPrivate: checkbox({ defaultValue: false }),
-
-    // Number fields
-    priority: integer({ 
-      defaultValue: 1,
-      validation: { min: 1, max: 5 },
-      label: "Priority (1-5)"
-    }),
-    largeNumber: bigInt({
-      label: "Large Number Example",
-      ui: {
-        description: "Example field for testing BigInt values"
+    ...group({
+      label: "Task Status",
+      description: "Track completion and status of the task",
+      fields: {
+        isComplete: checkbox({ defaultValue: false }),
+        status: select({
+          type: "string",
+          options: [
+            { label: "Todo", value: "todo" },
+            { label: "In Progress", value: "in_progress" },
+            { label: "Done", value: "done" },
+            { label: "Blocked", value: "blocked" }
+          ],
+          defaultValue: "todo"
+        }),
+        priority: integer({ 
+          defaultValue: 1,
+          validation: { min: 1, max: 5 },
+          label: "Priority (1-5)"
+        }),
       }
     }),
-    weight: float({ 
-      defaultValue: 1.0,
-      label: "Weight"
-    }),
-    budget: decimal({ 
-      precision: 10,
-      scale: 2,
-      defaultValue: "0.00",
-      label: "Budget"
+
+    ...group({
+      label: "Planning & Budget",
+      description: "Schedule and resource allocation",
+      fields: {
+        dueDate: timestamp({
+          label: "Due Date"
+        }),
+        weight: float({ 
+          defaultValue: 1.0,
+          label: "Weight"
+        }),
+        budget: decimal({ 
+          precision: 10,
+          scale: 2,
+          defaultValue: "0.00",
+          label: "Budget"
+        }),
+      }
     }),
 
-    // Select fields
-    status: select({
-      type: "string",
-      options: [
-        { label: "Todo", value: "todo" },
-        { label: "In Progress", value: "in_progress" },
-        { label: "Done", value: "done" },
-        { label: "Blocked", value: "blocked" }
-      ],
-      defaultValue: "todo"
-    }),
-
-    // Date fields
-    dueDate: timestamp({
-      label: "Due Date"
-    }),
-
-    // Complex fields
-    metadata: json({
-      label: "Metadata"
-    }),
-
-    // Security fields
-    secretNote: password({
-      label: "Secret Note"
+    ...group({
+      label: "Advanced Fields",
+      description: "Additional data and security settings",
+      fields: {
+        isPrivate: checkbox({ defaultValue: false }),
+        largeNumber: bigInt({
+          label: "Large Number Example",
+          ui: {
+            description: "Example field for testing BigInt values"
+          }
+        }),
+        metadata: json({
+          label: "Metadata"
+        }),
+        secretNote: password({
+          label: "Secret Note"
+        }),
+      }
     }),
 
     // Virtual field - requires graphql import for proper setup

@@ -237,13 +237,13 @@ type Todo {
   label: String
   description: Todo_description_Document
   isComplete: Boolean
-  isPrivate: Boolean
+  status: String
   priority: Int
-  largeNumber: BigInt
+  dueDate: DateTime
   weight: Float
   budget: Decimal
-  status: String
-  dueDate: DateTime
+  isPrivate: Boolean
+  largeNumber: BigInt
   metadata: JSON
   secretNote: PasswordState
   assignedTo: User
@@ -253,11 +253,11 @@ type Todo_description_Document {
   document(hydrateRelationships: Boolean! = false): JSON!
 }
 
-scalar BigInt
+scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339#section-5.6")
 
 scalar Decimal
 
-scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339#section-5.6")
+scalar BigInt
 
 input TodoWhereUniqueInput {
   id: ID
@@ -270,15 +270,30 @@ input TodoWhereInput {
   id: IDFilter
   label: StringFilter
   isComplete: BooleanFilter
-  isPrivate: BooleanFilter
+  status: StringNullableFilter
   priority: IntNullableFilter
-  largeNumber: BigIntNullableFilter
+  dueDate: DateTimeNullableFilter
   weight: FloatNullableFilter
   budget: DecimalNullableFilter
-  status: StringNullableFilter
-  dueDate: DateTimeNullableFilter
+  isPrivate: BooleanFilter
+  largeNumber: BigIntNullableFilter
   secretNote: PasswordFilter
   assignedTo: UserWhereInput
+}
+
+input StringNullableFilter {
+  equals: String
+  in: [String!]
+  notIn: [String!]
+  lt: String
+  lte: String
+  gt: String
+  gte: String
+  contains: String
+  startsWith: String
+  endsWith: String
+  mode: QueryMode
+  not: StringNullableFilter
 }
 
 input IntNullableFilter {
@@ -292,15 +307,15 @@ input IntNullableFilter {
   not: IntNullableFilter
 }
 
-input BigIntNullableFilter {
-  equals: BigInt
-  in: [BigInt!]
-  notIn: [BigInt!]
-  lt: BigInt
-  lte: BigInt
-  gt: BigInt
-  gte: BigInt
-  not: BigIntNullableFilter
+input DateTimeNullableFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeNullableFilter
 }
 
 input FloatNullableFilter {
@@ -325,30 +340,15 @@ input DecimalNullableFilter {
   not: DecimalNullableFilter
 }
 
-input StringNullableFilter {
-  equals: String
-  in: [String!]
-  notIn: [String!]
-  lt: String
-  lte: String
-  gt: String
-  gte: String
-  contains: String
-  startsWith: String
-  endsWith: String
-  mode: QueryMode
-  not: StringNullableFilter
-}
-
-input DateTimeNullableFilter {
-  equals: DateTime
-  in: [DateTime!]
-  notIn: [DateTime!]
-  lt: DateTime
-  lte: DateTime
-  gt: DateTime
-  gte: DateTime
-  not: DateTimeNullableFilter
+input BigIntNullableFilter {
+  equals: BigInt
+  in: [BigInt!]
+  notIn: [BigInt!]
+  lt: BigInt
+  lte: BigInt
+  gt: BigInt
+  gte: BigInt
+  not: BigIntNullableFilter
 }
 
 input PasswordFilter {
@@ -359,26 +359,26 @@ input TodoOrderByInput {
   id: OrderDirection
   label: OrderDirection
   isComplete: OrderDirection
-  isPrivate: OrderDirection
+  status: OrderDirection
   priority: OrderDirection
-  largeNumber: OrderDirection
+  dueDate: OrderDirection
   weight: OrderDirection
   budget: OrderDirection
-  status: OrderDirection
-  dueDate: OrderDirection
+  isPrivate: OrderDirection
+  largeNumber: OrderDirection
 }
 
 input TodoUpdateInput {
   label: String
   description: JSON
   isComplete: Boolean
-  isPrivate: Boolean
+  status: String
   priority: Int
-  largeNumber: BigInt
+  dueDate: DateTime
   weight: Float
   budget: Decimal
-  status: String
-  dueDate: DateTime
+  isPrivate: Boolean
+  largeNumber: BigInt
   metadata: JSON
   secretNote: String
   assignedTo: UserRelateToOneForUpdateInput
@@ -399,13 +399,13 @@ input TodoCreateInput {
   label: String
   description: JSON
   isComplete: Boolean
-  isPrivate: Boolean
+  status: String
   priority: Int
-  largeNumber: BigInt
+  dueDate: DateTime
   weight: Float
   budget: Decimal
-  status: String
-  dueDate: DateTime
+  isPrivate: Boolean
+  largeNumber: BigInt
   metadata: JSON
   secretNote: String
   assignedTo: UserRelateToOneForCreateInput
