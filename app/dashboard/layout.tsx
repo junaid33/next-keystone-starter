@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Keystone Dashboard",
-  description: "Admin interface for Keystone data",
+  title: "Keystone x Next Dashboard",
+  description: "Admin interface",
 };
 
 export default function DashboardLayout({
