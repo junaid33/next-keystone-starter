@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ExternalLink, X } from "lucide-react";
+import { Plus, ExternalLink, X, Edit, Trash2 } from "lucide-react";
 import { FieldContainer } from "@/components/ui/field-container";
 import { FieldLabel } from "@/components/ui/field-label";
 import { CreateItemDrawer } from "./CreateItemDrawer";
 import { RelationshipSelect } from "./RelationshipSelect";
+import { InlineCreate } from "./InlineCreate";
+import { InlineEdit } from "./InlineEdit";
+import { useItemState } from "../hooks/useItemState";
+import Link from "next/link";
 
 interface RelationshipValue {
   id: string;
@@ -17,11 +21,43 @@ interface RelationshipValue {
 }
 
 interface CardsProps {
-  field: any;
+  field: {
+    refListKey: string;
+    refLabelField: string;
+    refSearchFields?: string[];
+    many?: boolean;
+    label: string;
+    path: string;
+    isRequired?: boolean;
+    hideCreate?: boolean;
+    displayOptions?: {
+      cardFields: string[];
+      inlineCreate?: {
+        fields: string[];
+      };
+      inlineEdit?: {
+        fields: string[];
+      };
+      linkToItem?: boolean;
+      removeMode?: "disconnect";
+      inlineConnect?: boolean;
+    };
+  };
   value: {
-    kind: 'many' | 'one';
-    value: RelationshipValue[] | RelationshipValue | null;
-    initialValue: RelationshipValue[] | RelationshipValue | null;
+    kind: "cards-view";
+    currentIds: Set<string>;
+    id: string | null;
+    initialIds: Set<string>;
+    itemBeingCreated: boolean;
+    itemsBeingEdited: Set<string>;
+    displayOptions: {
+      cardFields: string[];
+      linkToItem: boolean;
+      removeMode: "disconnect" | "none";
+      inlineCreate: { fields: string[] } | null;
+      inlineEdit: { fields: string[] } | null;
+      inlineConnect: boolean;
+    };
   };
   list: any;
   foreignList: any;
@@ -31,200 +67,336 @@ interface CardsProps {
   isDisabled?: boolean;
 }
 
+interface CardContainerProps {
+  children: React.ReactNode;
+  mode: "view" | "create" | "edit";
+  className?: string;
+}
+
+function CardContainer({ children, mode = "view", className = "" }: CardContainerProps) {
+  const borderColor = mode === "edit" ? "border-l-blue-500" : mode === "create" ? "border-l-green-500" : "border-l-gray-300";
+  
+  return (
+    <div className={`relative pl-6 ${className}`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded ${borderColor}`} />
+      {children}
+    </div>
+  );
+}
+
 export function Cards({ 
   field, 
   value, 
-  list, 
-  foreignList, 
-  forceValidation,
-  autoFocus,
+  list,
+  foreignList,
   onChange,
+  forceValidation = false,
   isDisabled = false
 }: CardsProps) {
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [counter, setCounter] = useState(1);
+  const [showConnectItems, setShowConnectItems] = useState(false);
+  const [hideConnectItemsLabel, setHideConnectItemsLabel] = useState<"Cancel" | "Done">("Cancel");
+  const editRef = useRef<HTMLDivElement | null>(null);
+  const isMountedRef = useRef(false);
   
-  const isReadOnly = !onChange || isDisabled;
-  const isMany = value.kind === 'many';
-  const currentValue = value.value;
-  const items = isMany ? (currentValue as RelationshipValue[] || []) : (currentValue ? [currentValue as RelationshipValue] : []);
+  // Use the hook to manage items state
+  const { items, setItems, loading, error, state } = useItemState({
+    selectedFields: value.displayOptions.cardFields,
+    localList: list,
+    field: { ...field, foreignList },
+    id: value.id,
+    currentIds: value.currentIds,
+  });
 
-  // Handle inline creation following Keystone's exact pattern
-  const handleCreateItem = (builtItemData: Record<string, unknown>) => {
-    if (!onChange) return;
-
-    const id = `_____temporary_${counter}`;
-    const label = (builtItemData?.[foreignList.labelField] as string | null) ?? 
-                  `[Unnamed ${foreignList.singular} ${counter}]`;
-    
-    setCounter(counter + 1);
-    
-    const newItem: RelationshipValue = {
-      id,
-      label,
-      data: builtItemData,
-      built: true,
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
     };
+  });
 
-    if (isMany) {
-      onChange({
-        ...value,
-        value: [...items, newItem],
-      });
-    } else {
-      onChange({
-        ...value,
-        value: newItem,
-      });
+  useEffect(() => {
+    if (value.itemsBeingEdited && editRef.current) {
+      editRef.current.focus();
     }
-  };
+  }, [value]);
+
+  const isReadOnly = !onChange || isDisabled;
+  const { displayOptions } = value;
+
+  // Convert currentIds to array with items
+  const currentIdsArrayWithFetchedItems = Array.from(value.currentIds)
+    .map(id => ({ id, item: items[id] }))
+    .filter(x => x.item);
 
   // Handle removing items
   const handleRemoveItem = (itemId: string) => {
     if (!onChange || isReadOnly) return;
 
-    if (isMany) {
-      onChange({
-        ...value,
-        value: items.filter(item => item.id !== itemId),
-      });
-    } else {
-      onChange({
-        ...value,
-        value: null,
-      });
-    }
+    const currentIds = new Set(value.currentIds);
+    currentIds.delete(itemId);
+    onChange({
+      ...value,
+      currentIds,
+    });
   };
 
-  // Handle selection changes from the combobox
-  const handleSelectionChange = (newItems: RelationshipValue[] | RelationshipValue | null) => {
+  // Handle edit mode toggle
+  const handleEditItem = (itemId: string) => {
     if (!onChange) return;
     
     onChange({
       ...value,
-      value: newItems,
+      itemsBeingEdited: new Set([...value.itemsBeingEdited, itemId]),
     });
   };
 
-  // Build external link for viewing related items
-  const getViewHref = () => {
-    if (isMany && items.length > 0) {
-      // Show filtered list of all related items
-      const ids = items.filter(item => !item.built).map(item => item.id);
-      if (ids.length > 0) {
-        return `/${foreignList.path}?!id_in=${JSON.stringify(ids)}`;
-      }
-    } else if (!isMany && currentValue && !(currentValue as RelationshipValue).built) {
-      // Direct link to single item
-      return `/${foreignList.path}/${(currentValue as RelationshipValue).id}`;
-    }
-    return null;
+  // Handle save after edit
+  const handleSaveEdit = (itemId: string, newItemData: any) => {
+    const newItems = { ...items, [itemId]: newItemData };
+    setItems(newItems);
+    
+    const itemsBeingEdited = new Set(value.itemsBeingEdited);
+    itemsBeingEdited.delete(itemId);
+    onChange?.({
+      ...value,
+      itemsBeingEdited,
+    });
   };
 
-  const viewHref = getViewHref();
-  const showCreateButton = !field.hideCreate && !isReadOnly;
-  
-  return (
-    <FieldContainer>
-      <FieldLabel htmlFor={field.path} className="flex items-center justify-between">
-        <span>
-          {field.label}
-          {field.isRequired && <span className="text-destructive ml-1">*</span>}
-        </span>
-        
-        <div className="flex gap-1">
-          {showCreateButton && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setIsCreateOpen(true)}
-              className="h-7 px-2"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add {foreignList.singular}
-            </Button>
-          )}
-          
-          {viewHref && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              asChild
-              className="h-7 px-2"
-            >
-              <a href={viewHref} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-          )}
-        </div>
-      </FieldLabel>
+  // Handle cancel edit
+  const handleCancelEdit = (itemId: string) => {
+    const itemsBeingEdited = new Set(value.itemsBeingEdited);
+    itemsBeingEdited.delete(itemId);
+    onChange?.({
+      ...value,
+      itemsBeingEdited,
+    });
+  };
 
-      <div className="space-y-3">
-        {/* Selection Interface */}
-        <RelationshipSelect
-          list={foreignList}
-          labelField={foreignList.labelField}
-          state={{
-            kind: value.kind,
-            value: value.value,
-            onChange: handleSelectionChange
-          }}
-          autoFocus={autoFocus}
-          isDisabled={isReadOnly}
+  // Handle inline create
+  const handleCreateItem = (newItemData: any) => {
+    const id = newItemData.id;
+    setItems({ ...items, [id]: newItemData });
+    onChange?.({
+      ...value,
+      itemBeingCreated: false,
+      currentIds: field.many ? new Set([...value.currentIds, id]) : new Set([id]),
+    });
+  };
+
+  // Render field value for a card field
+  const renderFieldValue = (item: any, fieldPath: string) => {
+    const fieldValue = item[fieldPath];
+    
+    if (fieldValue == null) {
+      return <span className="text-muted-foreground">—</span>;
+    }
+    
+    // Handle different field types
+    if (typeof fieldValue === "object" && fieldValue.url) {
+      // Image field
+      return (
+        <img 
+          src={fieldValue.url} 
+          alt={fieldValue.altText || fieldPath}
+          className="w-full h-32 object-cover rounded border"
         />
+      );
+    }
+    
+    if (typeof fieldValue === "boolean") {
+      return (
+        <Badge variant={fieldValue ? "default" : "secondary"}>
+          {fieldValue ? "Yes" : "No"}
+        </Badge>
+      );
+    }
+    
+    return <span>{String(fieldValue)}</span>;
+  };
 
-        {/* Display selected items as badges */}
-        {items.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {items.map((item) => (
-              <Badge 
-                key={item.id} 
-                variant="secondary" 
-                className="flex items-center gap-1 pr-1"
-              >
-                <span>{item.label || item.id}</span>
-                {!item.built && (
-                  <a 
-                    href={`/${foreignList.path}/${item.id}`}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="ml-1"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-                {!isReadOnly && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveItem(item.id)}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </Badge>
-            ))}
+  return (
+    <div className="space-y-4">
+      {/* Existing Cards */}
+      {currentIdsArrayWithFetchedItems.length > 0 && (
+        <ul className="space-y-4 list-none p-0 m-0">
+          {currentIdsArrayWithFetchedItems.map(({ id, item }, index) => {
+            const isEditMode = !isReadOnly && value.itemsBeingEdited.has(id);
+            
+            return (
+              <li key={id}>
+                <CardContainer mode={isEditMode ? "edit" : "view"}>
+                  <div className="sr-only">
+                    <h2>{`${field.label} ${index + 1} ${isEditMode ? "edit" : "view"} mode`}</h2>
+                  </div>
+                  
+                  {isEditMode ? (
+                    <InlineEdit
+                      list={foreignList}
+                      fields={displayOptions.inlineEdit!.fields}
+                      item={item}
+                      onSave={(newItemData) => handleSaveEdit(id, newItemData)}
+                      onCancel={() => handleCancelEdit(id)}
+                    />
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Card Fields */}
+                      {displayOptions.cardFields.map(fieldPath => {
+                        const fieldConfig = foreignList?.fields?.[fieldPath];
+                        const fieldLabel = fieldConfig?.label || fieldPath;
+                        
+                        return (
+                          <FieldContainer key={fieldPath}>
+                            <FieldLabel>{fieldLabel}</FieldLabel>
+                            <div className="mt-1">
+                              {renderFieldValue(item, fieldPath)}
+                            </div>
+                          </FieldContainer>
+                        );
+                      })}
+                      
+                      {/* Card Actions */}
+                      <div className="flex gap-2 flex-wrap">
+                        {displayOptions.inlineEdit && !isReadOnly && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditItem(id)}
+                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+                        
+                        {displayOptions.removeMode === "disconnect" && !isReadOnly && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleRemoveItem(id)}
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            title="This item will not be deleted. It will only be removed from this field."
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        )}
+                        
+                        {displayOptions.linkToItem && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            asChild
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Link href={`/${foreignList.path}/${id}`}>
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View {foreignList.singular} details
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContainer>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {/* Inline Connect Mode */}
+      {!isReadOnly && displayOptions.inlineConnect && showConnectItems ? (
+        <CardContainer mode="edit">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <RelationshipSelect
+                list={foreignList}
+                labelField={field.refLabelField}
+                searchFields={field.refSearchFields}
+                state={{
+                  kind: "many",
+                  value: Array.from(value.currentIds).map(id => ({ id, label: items[id]?.label || id })),
+                  onChange: (newItems) => {
+                    // TODO: Handle connecting existing items
+                    const newCurrentIds = field.many ? new Set(value.currentIds) : new Set<string>();
+                    newItems.forEach(item => newCurrentIds.add(item.id));
+                    onChange?.({
+                      ...value,
+                      currentIds: newCurrentIds,
+                    });
+                    setHideConnectItemsLabel("Done");
+                  },
+                }}
+                autoFocus
+                placeholder={`Select a ${foreignList.singular}`}
+              />
+            </div>
+            <Button 
+              size="sm"
+              onClick={() => setShowConnectItems(false)}
+            >
+              {hideConnectItemsLabel}
+            </Button>
           </div>
-        )}
+        </CardContainer>
+      ) : value.itemBeingCreated ? (
+        /* Inline Create Mode */
+        <CardContainer mode="create">
+          <InlineCreate
+            list={foreignList}
+            fields={displayOptions.inlineCreate!.fields}
+            onCancel={() => {
+              onChange?.({ ...value, itemBeingCreated: false });
+            }}
+            onCreate={handleCreateItem}
+          />
+        </CardContainer>
+      ) : (displayOptions.inlineCreate || displayOptions.inlineConnect) && !isReadOnly ? (
+        /* Create/Connect Actions */
+        <CardContainer mode="create">
+          <div className="flex gap-2">
+            {displayOptions.inlineCreate && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  onChange?.({
+                    ...value,
+                    itemBeingCreated: true,
+                  });
+                }}
+                className="text-green-600 border-green-600 hover:bg-green-50"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Create {foreignList.singular}
+              </Button>
+            )}
+            
+            {displayOptions.inlineConnect && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setShowConnectItems(true);
+                  setHideConnectItemsLabel("Cancel");
+                }}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Link existing {foreignList.singular}
+              </Button>
+            )}
+          </div>
+        </CardContainer>
+      ) : null}
 
-        {items.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No related {foreignList.plural.toLowerCase()}…
-          </p>
-        )}
-      </div>
-
-      {/* Create Item Drawer */}
-      <CreateItemDrawer
-        listKey={foreignList.key}
-
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreate={handleCreateItem}
-      />
-    </FieldContainer>
+      {/* Validation Error */}
+      {forceValidation && (
+        <p className="text-sm text-red-600">
+          You must finish creating and editing any related {foreignList.label?.toLowerCase() || "items"} before
+          saving the {foreignList.singular?.toLowerCase() || "item"}
+        </p>
+      )}
+    </div>
   );
 }
