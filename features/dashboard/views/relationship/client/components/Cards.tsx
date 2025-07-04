@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ExternalLink, Edit, Trash2 } from "lucide-react";
@@ -12,6 +12,8 @@ import { InlineEdit } from "./InlineEdit";
 import { getItemAction } from "@/features/dashboard/actions/getItemAction";
 import useSWR from "swr";
 import Link from "next/link";
+import { Fields } from "@/features/dashboard/components/Fields";
+import { enhanceFields } from "@/features/dashboard/utils/enhanceFields";
 
 
 interface CardsProps {
@@ -71,7 +73,7 @@ function CardContainer({ children, mode = "view", className = "" }: CardContaine
   const borderColor = mode === "edit" ? "border-l-blue-500" : mode === "create" ? "border-l-green-500" : "border-l-gray-300";
   
   return (
-    <div className={`relative pl-6 ${className}`}>
+    <div className={`relative border p-4 rounded-xl ${className}`}>
       <div className={`absolute left-0 top-0 bottom-0 w-1 rounded ${borderColor}`} />
       {children}
     </div>
@@ -241,36 +243,31 @@ export function Cards({
     });
   };
 
-  // Render field value for a card field
-  const renderFieldValue = (item: any, fieldPath: string) => {
-    const fieldValue = item[fieldPath];
+  // Create enhanced fields for card display
+  const cardFields = useMemo(() => {
+    if (!foreignList?.fields) return {};
     
-    if (fieldValue == null) {
-      return <span className="text-muted-foreground">—</span>;
-    }
+    // Filter to only card fields and enhance them
+    const filteredFields: Record<string, any> = {};
+    displayOptions.cardFields.forEach(fieldPath => {
+      if (foreignList.fields[fieldPath]) {
+        filteredFields[fieldPath] = foreignList.fields[fieldPath];
+      }
+    });
     
-    // Handle different field types
-    if (typeof fieldValue === "object" && fieldValue.url) {
-      // Image field
-      return (
-        <img 
-          src={fieldValue.url} 
-          alt={fieldValue.altText || fieldPath}
-          className="w-full h-32 object-cover rounded border"
-        />
-      );
-    }
+    return enhanceFields(filteredFields, foreignList.key);
+  }, [foreignList, displayOptions.cardFields]);
+
+  // Deserialize item data for each card field
+  const getFieldValue = useCallback((item: any, fieldPath: string) => {
+    const field = cardFields[fieldPath];
+    if (!field?.controller) return null;
     
-    if (typeof fieldValue === "boolean") {
-      return (
-        <Badge variant={fieldValue ? "default" : "secondary"}>
-          {fieldValue ? "Yes" : "No"}
-        </Badge>
-      );
-    }
+    const itemForField: Record<string, unknown> = {};
+    itemForField[fieldPath] = item[fieldPath] ?? null;
     
-    return <span>{String(fieldValue)}</span>;
-  };
+    return field.controller.deserialize(itemForField);
+  }, [cardFields]);
 
   return (
     <div className="space-y-4">
@@ -297,20 +294,21 @@ export function Cards({
                     />
                   ) : (
                     <div className="space-y-6">
-                      {/* Card Fields */}
-                      {displayOptions.cardFields.map(fieldPath => {
-                        const fieldConfig = foreignList?.fields?.[fieldPath];
-                        const fieldLabel = fieldConfig?.label || fieldPath;
-                        
-                        return (
-                          <FieldContainer key={fieldPath}>
-                            <FieldLabel>{fieldLabel}</FieldLabel>
-                            <div className="mt-1">
-                              {renderFieldValue(item, fieldPath)}
-                            </div>
-                          </FieldContainer>
-                        );
-                      })}
+                      {/* Card Fields using Fields component */}
+                      <Fields
+                        list={foreignList}
+                        fields={cardFields}
+                        value={Object.fromEntries(
+                          displayOptions.cardFields.map(fieldPath => [
+                            fieldPath,
+                            getFieldValue(item, fieldPath)
+                          ])
+                        )}
+                        onChange={undefined}
+                        forceValidation={false}
+                        invalidFields={new Set()}
+                        isRequireds={{}}
+                      />
                       
                       {/* Card Actions */}
                       <div className="flex gap-2 flex-wrap">
@@ -319,7 +317,6 @@ export function Cards({
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditItem(id)}
-                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
                           >
                             <Edit className="h-3 w-3 mr-1" />
                             Edit
@@ -331,7 +328,6 @@ export function Cards({
                             size="sm"
                             variant="outline"
                             onClick={() => handleRemoveItem(id)}
-                            className="text-red-600 border-red-600 hover:bg-red-50"
                             title="This item will not be deleted. It will only be removed from this field."
                           >
                             <Trash2 className="h-3 w-3 mr-1" />
@@ -344,7 +340,6 @@ export function Cards({
                             size="sm"
                             variant="ghost"
                             asChild
-                            className="text-blue-600 hover:text-blue-800"
                           >
                             <Link href={`/${foreignList.path}/${id}`}>
                               <ExternalLink className="h-3 w-3 mr-1" />
@@ -423,7 +418,6 @@ export function Cards({
                     itemBeingCreated: true,
                   });
                 }}
-                className="text-green-600 border-green-600 hover:bg-green-50"
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Create {foreignList.singular}

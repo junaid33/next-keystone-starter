@@ -124,15 +124,15 @@ export const Todo = list({
         todoImages: relationship({
           ref: "TodoImage.todos",
           many: true,
-          ui: {
-            displayMode: "cards",
-            cardFields: ["image", "altText", "imagePath"],
-            inlineCreate: { fields: ["image", "altText", "imagePath"] },
-            inlineEdit: { fields: ["image", "altText", "imagePath"] },
-            inlineConnect: true,
-            removeMode: "disconnect",
-            linkToItem: false,
-          },
+          // ui: {
+          //   displayMode: "cards",
+          //   cardFields: ["image", "altText", "imagePath"],
+          //   inlineCreate: { fields: ["image", "altText", "imagePath"] },
+          //   inlineEdit: { fields: ["image", "altText", "imagePath"] },
+          //   inlineConnect: true,
+          //   removeMode: "disconnect",
+          //   linkToItem: false,
+          // },
         }),
       }
     }),
