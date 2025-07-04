@@ -3,22 +3,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ExternalLink, X, Edit, Trash2 } from "lucide-react";
+import { Plus, ExternalLink, Edit, Trash2 } from "lucide-react";
 import { FieldContainer } from "@/components/ui/field-container";
 import { FieldLabel } from "@/components/ui/field-label";
-import { CreateItemDrawer } from "./CreateItemDrawer";
 import { RelationshipSelect } from "./RelationshipSelect";
 import { InlineCreate } from "./InlineCreate";
 import { InlineEdit } from "./InlineEdit";
-import { useItemState } from "../hooks/useItemState";
+import { getItemAction } from "@/features/dashboard/actions/getItemAction";
+import useSWR from "swr";
 import Link from "next/link";
 
-interface RelationshipValue {
-  id: string;
-  label: string;
-  built?: boolean;
-  data?: Record<string, unknown>;
-}
 
 interface CardsProps {
   field: {
@@ -87,7 +81,6 @@ function CardContainer({ children, mode = "view", className = "" }: CardContaine
 export function Cards({ 
   field, 
   value, 
-  list,
   foreignList,
   onChange,
   forceValidation = false,
@@ -95,17 +88,82 @@ export function Cards({
 }: CardsProps) {
   const [showConnectItems, setShowConnectItems] = useState(false);
   const [hideConnectItemsLabel, setHideConnectItemsLabel] = useState<"Cancel" | "Done">("Cancel");
+  const [items, setItems] = useState<Record<string, any>>({});
   const editRef = useRef<HTMLDivElement | null>(null);
   const isMountedRef = useRef(false);
+
+  // Build selectedFields like Keystone does
+  const { displayOptions } = value;
+  const selectedFields = [
+    ...new Set([...displayOptions.cardFields, ...(displayOptions.inlineEdit?.fields || [])]),
+  ]
+    .map(fieldPath => {
+      const fieldController = foreignList.fields[fieldPath]?.controller;
+      return fieldController?.graphqlSelection || fieldPath;
+    })
+    .join('\n');
+
+  // Also include id and label if not already included
+  const finalSelectedFields = `
+    id
+    label: ${field.refLabelField || 'id'}
+    ${selectedFields}
+  `;
+
+  // Handle Set serialization issue when passing from server to client
+  const currentIds = value.currentIds instanceof Set 
+    ? value.currentIds 
+    : new Set(Array.isArray(value.currentIds) ? value.currentIds : []);
+  const initialIds = value.initialIds instanceof Set 
+    ? value.initialIds 
+    : new Set(Array.isArray(value.initialIds) ? value.initialIds : []);
+  const itemsBeingEdited = value.itemsBeingEdited instanceof Set 
+    ? value.itemsBeingEdited 
+    : new Set(Array.isArray(value.itemsBeingEdited) ? value.itemsBeingEdited : []);
   
-  // Use the hook to manage items state
-  const { items, setItems, loading, error, state } = useItemState({
-    selectedFields: value.displayOptions.cardFields,
-    localList: list,
-    field: { ...field, foreignList },
-    id: value.id,
-    currentIds: value.currentIds,
-  });
+  const currentIdsArray = Array.from(currentIds);
+  const { data: itemsData, error: swrError } = useSWR(
+    currentIdsArray.length > 0 ? `cards-items-${field.refListKey}-${currentIdsArray.join(',')}` : null,
+    async () => {
+      console.log(`🔍 SWR FETCHING for ${field.refListKey}:`, {
+        currentIdsArray,
+        finalSelectedFields
+      });
+      
+      const itemPromises = currentIdsArray.map(async (itemId) => {
+        console.log(`🔍 Calling getItemAction for ${field.refListKey}/${itemId}`);
+        const result = await getItemAction(foreignList, itemId);
+        console.log(`🔍 getItemAction result for ${itemId}:`, result);
+        
+        if (result.success) {
+          return { id: itemId, data: result.data.item };
+        }
+        return null;
+      });
+      
+      const results = await Promise.all(itemPromises);
+      console.log(`🔍 Final SWR results:`, results);
+      return results.filter(Boolean);
+    }
+  );
+  
+  // Log SWR errors
+  if (swrError) {
+    console.error(`🔍 SWR ERROR for ${field.refListKey}:`, swrError);
+  }
+
+  // Update items state when data changes
+  useEffect(() => {
+    if (itemsData) {
+      const newItems: Record<string, any> = {};
+      itemsData.forEach((result: any) => {
+        if (result && result.data) {
+          newItems[result.id] = result.data;
+        }
+      });
+      setItems(newItems);
+    }
+  }, [itemsData]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -121,10 +179,9 @@ export function Cards({
   }, [value]);
 
   const isReadOnly = !onChange || isDisabled;
-  const { displayOptions } = value;
 
   // Convert currentIds to array with items
-  const currentIdsArrayWithFetchedItems = Array.from(value.currentIds)
+  const currentIdsArrayWithFetchedItems = Array.from(currentIds)
     .map(id => ({ id, item: items[id] }))
     .filter(x => x.item);
 
@@ -132,11 +189,11 @@ export function Cards({
   const handleRemoveItem = (itemId: string) => {
     if (!onChange || isReadOnly) return;
 
-    const currentIds = new Set(value.currentIds);
-    currentIds.delete(itemId);
+    const newCurrentIds = new Set(currentIds);
+    newCurrentIds.delete(itemId);
     onChange({
       ...value,
-      currentIds,
+      currentIds: newCurrentIds,
     });
   };
 
@@ -146,7 +203,7 @@ export function Cards({
     
     onChange({
       ...value,
-      itemsBeingEdited: new Set([...value.itemsBeingEdited, itemId]),
+      itemsBeingEdited: new Set([...itemsBeingEdited, itemId]),
     });
   };
 
@@ -155,21 +212,21 @@ export function Cards({
     const newItems = { ...items, [itemId]: newItemData };
     setItems(newItems);
     
-    const itemsBeingEdited = new Set(value.itemsBeingEdited);
-    itemsBeingEdited.delete(itemId);
+    const newItemsBeingEdited = new Set(itemsBeingEdited);
+    newItemsBeingEdited.delete(itemId);
     onChange?.({
       ...value,
-      itemsBeingEdited,
+      itemsBeingEdited: newItemsBeingEdited,
     });
   };
 
   // Handle cancel edit
   const handleCancelEdit = (itemId: string) => {
-    const itemsBeingEdited = new Set(value.itemsBeingEdited);
-    itemsBeingEdited.delete(itemId);
+    const newItemsBeingEdited = new Set(itemsBeingEdited);
+    newItemsBeingEdited.delete(itemId);
     onChange?.({
       ...value,
-      itemsBeingEdited,
+      itemsBeingEdited: newItemsBeingEdited,
     });
   };
 
@@ -180,7 +237,7 @@ export function Cards({
     onChange?.({
       ...value,
       itemBeingCreated: false,
-      currentIds: field.many ? new Set([...value.currentIds, id]) : new Set([id]),
+      currentIds: field.many ? new Set([...currentIds, id]) : new Set([id]),
     });
   };
 
@@ -221,7 +278,7 @@ export function Cards({
       {currentIdsArrayWithFetchedItems.length > 0 && (
         <ul className="space-y-4 list-none p-0 m-0">
           {currentIdsArrayWithFetchedItems.map(({ id, item }, index) => {
-            const isEditMode = !isReadOnly && value.itemsBeingEdited.has(id);
+            const isEditMode = !isReadOnly && itemsBeingEdited.has(id);
             
             return (
               <li key={id}>
@@ -316,11 +373,11 @@ export function Cards({
                 searchFields={field.refSearchFields}
                 state={{
                   kind: "many",
-                  value: Array.from(value.currentIds).map(id => ({ id, label: items[id]?.label || id })),
-                  onChange: (newItems) => {
+                  value: Array.from(currentIds).map(id => ({ id, label: items[id]?.label || id })),
+                  onChange: (newItems: { id: string; label: string }[]) => {
                     // TODO: Handle connecting existing items
-                    const newCurrentIds = field.many ? new Set(value.currentIds) : new Set<string>();
-                    newItems.forEach(item => newCurrentIds.add(item.id));
+                    const newCurrentIds = field.many ? new Set(currentIds) : new Set<string>();
+                    newItems.forEach((item: { id: string; label: string }) => newCurrentIds.add(item.id));
                     onChange?.({
                       ...value,
                       currentIds: newCurrentIds,

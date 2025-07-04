@@ -29,7 +29,8 @@
       "Bash(npx tsc:*)",
       "Bash(sed:*)",
       "Bash(npx tsx:*)",
-      "WebFetch(domain:www.anthropic.com)"
+      "WebFetch(domain:www.anthropic.com)",
+      "Bash(true)"
     ],
     "deny": []
   }
