@@ -75,7 +75,7 @@ export function InlineCreate({
 
       // Build selectedFields to include id and the fields we need
       const selectedFields = ["id", "label", ...fieldPaths].join("\n");
-      const result = await createItemAction(list.key, data, selectedFields);
+      const result = await createItemAction(list.key, data, selectedFields, { skipRevalidation: true });
 
       // Check if there are no errors (success)
       if (result.errors.length === 0) {
