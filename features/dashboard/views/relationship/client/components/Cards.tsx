@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ExternalLink, Edit, Trash2 } from "lucide-react";
@@ -14,7 +20,6 @@ import useSWR from "swr";
 import Link from "next/link";
 import { Fields } from "@/features/dashboard/components/Fields";
 import { enhanceFields } from "@/features/dashboard/utils/enhanceFields";
-
 
 interface CardsProps {
   field: {
@@ -69,27 +74,40 @@ interface CardContainerProps {
   className?: string;
 }
 
-function CardContainer({ children, mode = "view", className = "" }: CardContainerProps) {
-  const borderColor = mode === "edit" ? "border-l-blue-500" : mode === "create" ? "border-l-green-500" : "border-l-gray-300";
-  
+function CardContainer({
+  children,
+  mode = "view",
+  className = "",
+}: CardContainerProps) {
+  const borderColor =
+    mode === "edit"
+      ? "border-l-blue-500"
+      : mode === "create"
+      ? "border-l-green-500"
+      : "border-l-gray-300";
+
   return (
     <div className={`relative border p-4 rounded-xl ${className}`}>
-      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded ${borderColor}`} />
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-1 rounded ${borderColor}`}
+      />
       {children}
     </div>
   );
 }
 
-export function Cards({ 
-  field, 
-  value, 
+export function Cards({
+  field,
+  value,
   foreignList,
   onChange,
   forceValidation = false,
-  isDisabled = false
+  isDisabled = false,
 }: CardsProps) {
   const [showConnectItems, setShowConnectItems] = useState(false);
-  const [hideConnectItemsLabel, setHideConnectItemsLabel] = useState<"Cancel" | "Done">("Cancel");
+  const [hideConnectItemsLabel, setHideConnectItemsLabel] = useState<
+    "Cancel" | "Done"
+  >("Cancel");
   const [items, setItems] = useState<Record<string, any>>({});
   const editRef = useRef<HTMLDivElement | null>(null);
   const isMountedRef = useRef(false);
@@ -97,58 +115,70 @@ export function Cards({
   // Build selectedFields like Keystone does
   const { displayOptions } = value;
   const selectedFields = [
-    ...new Set([...displayOptions.cardFields, ...(displayOptions.inlineEdit?.fields || [])]),
+    ...new Set([
+      ...displayOptions.cardFields,
+      ...(displayOptions.inlineEdit?.fields || []),
+    ]),
   ]
-    .map(fieldPath => {
+    .map((fieldPath) => {
       const fieldController = foreignList.fields[fieldPath]?.controller;
       return fieldController?.graphqlSelection || fieldPath;
     })
-    .join('\n');
+    .join("\n");
 
   // Also include id and label if not already included
   const finalSelectedFields = `
     id
-    label: ${field.refLabelField || 'id'}
+    label: ${field.refLabelField || "id"}
     ${selectedFields}
   `;
 
   // Handle Set serialization issue when passing from server to client
-  const currentIds = value.currentIds instanceof Set 
-    ? value.currentIds 
-    : new Set(Array.isArray(value.currentIds) ? value.currentIds : []);
-  const initialIds = value.initialIds instanceof Set 
-    ? value.initialIds 
-    : new Set(Array.isArray(value.initialIds) ? value.initialIds : []);
-  const itemsBeingEdited = value.itemsBeingEdited instanceof Set 
-    ? value.itemsBeingEdited 
-    : new Set(Array.isArray(value.itemsBeingEdited) ? value.itemsBeingEdited : []);
-  
+  const currentIds =
+    value.currentIds instanceof Set
+      ? value.currentIds
+      : new Set(Array.isArray(value.currentIds) ? value.currentIds : []);
+  const initialIds =
+    value.initialIds instanceof Set
+      ? value.initialIds
+      : new Set(Array.isArray(value.initialIds) ? value.initialIds : []);
+  const itemsBeingEdited =
+    value.itemsBeingEdited instanceof Set
+      ? value.itemsBeingEdited
+      : new Set(
+          Array.isArray(value.itemsBeingEdited) ? value.itemsBeingEdited : []
+        );
+
   const currentIdsArray = Array.from(currentIds);
   const { data: itemsData, error: swrError } = useSWR(
-    currentIdsArray.length > 0 ? `cards-items-${field.refListKey}-${currentIdsArray.join(',')}` : null,
+    currentIdsArray.length > 0
+      ? `cards-items-${field.refListKey}-${currentIdsArray.join(",")}`
+      : null,
     async () => {
       console.log(`🔍 SWR FETCHING for ${field.refListKey}:`, {
         currentIdsArray,
-        finalSelectedFields
+        finalSelectedFields,
       });
-      
+
       const itemPromises = currentIdsArray.map(async (itemId) => {
-        console.log(`🔍 Calling getItemAction for ${field.refListKey}/${itemId}`);
+        console.log(
+          `🔍 Calling getItemAction for ${field.refListKey}/${itemId}`
+        );
         const result = await getItemAction(foreignList, itemId);
         console.log(`🔍 getItemAction result for ${itemId}:`, result);
-        
+
         if (result.success) {
           return { id: itemId, data: result.data.item };
         }
         return null;
       });
-      
+
       const results = await Promise.all(itemPromises);
       console.log(`🔍 Final SWR results:`, results);
       return results.filter(Boolean);
     }
   );
-  
+
   // Log SWR errors
   if (swrError) {
     console.error(`🔍 SWR ERROR for ${field.refListKey}:`, swrError);
@@ -184,8 +214,8 @@ export function Cards({
 
   // Convert currentIds to array with items
   const currentIdsArrayWithFetchedItems = Array.from(currentIds)
-    .map(id => ({ id, item: items[id] }))
-    .filter(x => x.item);
+    .map((id) => ({ id, item: items[id] }))
+    .filter((x) => x.item);
 
   // Handle removing items
   const handleRemoveItem = (itemId: string) => {
@@ -202,7 +232,7 @@ export function Cards({
   // Handle edit mode toggle
   const handleEditItem = (itemId: string) => {
     if (!onChange) return;
-    
+
     onChange({
       ...value,
       itemsBeingEdited: new Set([...itemsBeingEdited, itemId]),
@@ -213,7 +243,7 @@ export function Cards({
   const handleSaveEdit = (itemId: string, newItemData: any) => {
     const newItems = { ...items, [itemId]: newItemData };
     setItems(newItems);
-    
+
     const newItemsBeingEdited = new Set(itemsBeingEdited);
     newItemsBeingEdited.delete(itemId);
     onChange?.({
@@ -246,28 +276,31 @@ export function Cards({
   // Create enhanced fields for card display
   const cardFields = useMemo(() => {
     if (!foreignList?.fields) return {};
-    
+
     // Filter to only card fields and enhance them
     const filteredFields: Record<string, any> = {};
-    displayOptions.cardFields.forEach(fieldPath => {
+    displayOptions.cardFields.forEach((fieldPath) => {
       if (foreignList.fields[fieldPath]) {
         filteredFields[fieldPath] = foreignList.fields[fieldPath];
       }
     });
-    
+
     return enhanceFields(filteredFields, foreignList.key);
   }, [foreignList, displayOptions.cardFields]);
 
   // Deserialize item data for each card field
-  const getFieldValue = useCallback((item: any, fieldPath: string) => {
-    const field = cardFields[fieldPath];
-    if (!field?.controller) return null;
-    
-    const itemForField: Record<string, unknown> = {};
-    itemForField[fieldPath] = item[fieldPath] ?? null;
-    
-    return field.controller.deserialize(itemForField);
-  }, [cardFields]);
+  const getFieldValue = useCallback(
+    (item: any, fieldPath: string) => {
+      const field = cardFields[fieldPath];
+      if (!field?.controller) return null;
+
+      const itemForField: Record<string, unknown> = {};
+      itemForField[fieldPath] = item[fieldPath] ?? null;
+
+      return field.controller.deserialize(itemForField);
+    },
+    [cardFields]
+  );
 
   return (
     <div className="space-y-4">
@@ -276,14 +309,16 @@ export function Cards({
         <ul className="space-y-4 list-none p-0 m-0">
           {currentIdsArrayWithFetchedItems.map(({ id, item }, index) => {
             const isEditMode = !isReadOnly && itemsBeingEdited.has(id);
-            
+
             return (
               <li key={id}>
                 <CardContainer mode={isEditMode ? "edit" : "view"}>
                   <div className="sr-only">
-                    <h2>{`${field.label} ${index + 1} ${isEditMode ? "edit" : "view"} mode`}</h2>
+                    <h2>{`${field.label} ${index + 1} ${
+                      isEditMode ? "edit" : "view"
+                    } mode`}</h2>
                   </div>
-                  
+
                   {isEditMode ? (
                     <InlineEdit
                       list={foreignList}
@@ -299,9 +334,9 @@ export function Cards({
                         list={foreignList}
                         fields={cardFields}
                         value={Object.fromEntries(
-                          displayOptions.cardFields.map(fieldPath => [
+                          displayOptions.cardFields.map((fieldPath) => [
                             fieldPath,
-                            getFieldValue(item, fieldPath)
+                            getFieldValue(item, fieldPath),
                           ])
                         )}
                         onChange={undefined}
@@ -309,9 +344,31 @@ export function Cards({
                         invalidFields={new Set()}
                         isRequireds={{}}
                       />
-                      
+
                       {/* Card Actions */}
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 flex-wrap bg-muted/40 border rounded-lg p-2 justify-end">
+                        {displayOptions.linkToItem && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <Link href={`/${foreignList.path}/${id}`}>
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              View {foreignList.singular} details
+                            </Link>
+                          </Button>
+                        )}
+
+                        {displayOptions.removeMode === "disconnect" &&
+                          !isReadOnly && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRemoveItem(id)}
+                              title="This item will not be deleted. It will only be removed from this field."
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Remove
+                            </Button>
+                          )}
+
                         {displayOptions.inlineEdit && !isReadOnly && (
                           <Button
                             size="sm"
@@ -320,31 +377,6 @@ export function Cards({
                           >
                             <Edit className="h-3 w-3 mr-1" />
                             Edit
-                          </Button>
-                        )}
-                        
-                        {displayOptions.removeMode === "disconnect" && !isReadOnly && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRemoveItem(id)}
-                            title="This item will not be deleted. It will only be removed from this field."
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Remove
-                          </Button>
-                        )}
-                        
-                        {displayOptions.linkToItem && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            asChild
-                          >
-                            <Link href={`/${foreignList.path}/${id}`}>
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View {foreignList.singular} details
-                            </Link>
                           </Button>
                         )}
                       </div>
@@ -368,11 +400,18 @@ export function Cards({
                 searchFields={field.refSearchFields}
                 state={{
                   kind: "many",
-                  value: Array.from(currentIds).map(id => ({ id, label: items[id]?.label || id })),
+                  value: Array.from(currentIds).map((id) => ({
+                    id,
+                    label: items[id]?.label || id,
+                  })),
                   onChange: (newItems: { id: string; label: string }[]) => {
                     // TODO: Handle connecting existing items
-                    const newCurrentIds = field.many ? new Set(currentIds) : new Set<string>();
-                    newItems.forEach((item: { id: string; label: string }) => newCurrentIds.add(item.id));
+                    const newCurrentIds = field.many
+                      ? new Set(currentIds)
+                      : new Set<string>();
+                    newItems.forEach((item: { id: string; label: string }) =>
+                      newCurrentIds.add(item.id)
+                    );
                     onChange?.({
                       ...value,
                       currentIds: newCurrentIds,
@@ -384,10 +423,7 @@ export function Cards({
                 placeholder={`Select a ${foreignList.singular}`}
               />
             </div>
-            <Button 
-              size="sm"
-              onClick={() => setShowConnectItems(false)}
-            >
+            <Button size="sm" onClick={() => setShowConnectItems(false)}>
               {hideConnectItemsLabel}
             </Button>
           </div>
@@ -404,7 +440,8 @@ export function Cards({
             onCreate={handleCreateItem}
           />
         </CardContainer>
-      ) : (displayOptions.inlineCreate || displayOptions.inlineConnect) && !isReadOnly ? (
+      ) : (displayOptions.inlineCreate || displayOptions.inlineConnect) &&
+        !isReadOnly ? (
         /* Create/Connect Actions */
         <CardContainer mode="create">
           <div className="flex gap-2">
@@ -423,7 +460,7 @@ export function Cards({
                 Create {foreignList.singular}
               </Button>
             )}
-            
+
             {displayOptions.inlineConnect && (
               <Button
                 size="sm"
@@ -444,8 +481,9 @@ export function Cards({
       {/* Validation Error */}
       {forceValidation && (
         <p className="text-sm text-red-600">
-          You must finish creating and editing any related {foreignList.label?.toLowerCase() || "items"} before
-          saving the {foreignList.singular?.toLowerCase() || "item"}
+          You must finish creating and editing any related{" "}
+          {foreignList.label?.toLowerCase() || "items"} before saving the{" "}
+          {foreignList.singular?.toLowerCase() || "item"}
         </p>
       )}
     </div>

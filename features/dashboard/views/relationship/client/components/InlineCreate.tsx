@@ -75,7 +75,9 @@ export function InlineCreate({
 
       // Build selectedFields to include id and the fields we need
       const selectedFields = ["id", "label", ...fieldPaths].join("\n");
-      const result = await createItemAction(list.key, data, selectedFields, { skipRevalidation: true });
+      const result = await createItemAction(list.key, data, selectedFields, {
+        skipRevalidation: true,
+      });
 
       // Check if there are no errors (success)
       if (result.errors.length === 0) {
@@ -113,15 +115,13 @@ export function InlineCreate({
             view="createView"
           />
         </div>
-        <div>
-          <div className="flex gap-2 bg-muted/40 border rounded-lg p-2 justify-end">
-            <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button type="submit" size="sm" disabled={isLoading}>
-              {isLoading ? "Creating..." : `Create ${list.singular}`}
-            </Button>
-          </div>
+        <div className="flex gap-2 bg-muted/40 border rounded-lg p-2 justify-end">
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" size="sm" disabled={isLoading}>
+            {isLoading ? "Creating..." : `Create ${list.singular}`}
+          </Button>
         </div>
       </form>
     </section>
