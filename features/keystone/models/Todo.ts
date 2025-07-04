@@ -113,6 +113,30 @@ export const Todo = list({
       }
     }),
 
+    ...group({
+      label: "Attachments",
+      description: "File attachments for the task",
+      fields: {
+        coverImage: image({ 
+          storage: "my_images",
+          label: "Cover Image"
+        }),
+        todoImages: relationship({
+          ref: "TodoImage.todos",
+          many: true,
+          ui: {
+            displayMode: "cards",
+            cardFields: ["image", "altText", "imagePath"],
+            inlineCreate: { fields: ["image", "altText", "imagePath"] },
+            inlineEdit: { fields: ["image", "altText", "imagePath"] },
+            inlineConnect: true,
+            removeMode: "disconnect",
+            linkToItem: false,
+          },
+        }),
+      }
+    }),
+
     // Virtual field - requires graphql import for proper setup
     // Let's comment this out for now to avoid complexity
     // displayName: virtual({

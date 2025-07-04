@@ -246,6 +246,9 @@ type Todo {
   largeNumber: BigInt
   metadata: JSON
   secretNote: PasswordState
+  coverImage: ImageFieldOutput
+  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
+  todoImagesCount(where: TodoImageWhereInput! = {}): Int
   assignedTo: User
 }
 
@@ -258,6 +261,22 @@ scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339
 scalar Decimal
 
 scalar BigInt
+
+type ImageFieldOutput {
+  id: ID!
+  filesize: Int!
+  width: Int!
+  height: Int!
+  extension: ImageExtension!
+  url: String!
+}
+
+enum ImageExtension {
+  jpg
+  png
+  webp
+  gif
+}
 
 input TodoWhereUniqueInput {
   id: ID
@@ -278,6 +297,7 @@ input TodoWhereInput {
   isPrivate: BooleanFilter
   largeNumber: BigIntNullableFilter
   secretNote: PasswordFilter
+  todoImages: TodoImageManyRelationFilter
   assignedTo: UserWhereInput
 }
 
@@ -355,6 +375,12 @@ input PasswordFilter {
   isSet: Boolean!
 }
 
+input TodoImageManyRelationFilter {
+  every: TodoImageWhereInput
+  some: TodoImageWhereInput
+  none: TodoImageWhereInput
+}
+
 input TodoOrderByInput {
   id: OrderDirection
   label: OrderDirection
@@ -381,7 +407,23 @@ input TodoUpdateInput {
   largeNumber: BigInt
   metadata: JSON
   secretNote: String
+  coverImage: ImageFieldInput
+  todoImages: TodoImageRelateToManyForUpdateInput
   assignedTo: UserRelateToOneForUpdateInput
+}
+
+input ImageFieldInput {
+  upload: Upload!
+}
+
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
+input TodoImageRelateToManyForUpdateInput {
+  disconnect: [TodoImageWhereUniqueInput!]
+  set: [TodoImageWhereUniqueInput!]
+  create: [TodoImageCreateInput!]
+  connect: [TodoImageWhereUniqueInput!]
 }
 
 input UserRelateToOneForUpdateInput {
@@ -408,12 +450,70 @@ input TodoCreateInput {
   largeNumber: BigInt
   metadata: JSON
   secretNote: String
+  coverImage: ImageFieldInput
+  todoImages: TodoImageRelateToManyForCreateInput
   assignedTo: UserRelateToOneForCreateInput
+}
+
+input TodoImageRelateToManyForCreateInput {
+  create: [TodoImageCreateInput!]
+  connect: [TodoImageWhereUniqueInput!]
 }
 
 input UserRelateToOneForCreateInput {
   create: UserCreateInput
   connect: UserWhereUniqueInput
+}
+
+type TodoImage {
+  id: ID!
+  image: ImageFieldOutput
+  imagePath: String
+  altText: String
+  todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
+  todosCount(where: TodoWhereInput! = {}): Int
+  metadata: JSON
+}
+
+input TodoImageWhereUniqueInput {
+  id: ID
+}
+
+input TodoImageWhereInput {
+  AND: [TodoImageWhereInput!]
+  OR: [TodoImageWhereInput!]
+  NOT: [TodoImageWhereInput!]
+  id: IDFilter
+  imagePath: StringFilter
+  altText: StringFilter
+  todos: TodoManyRelationFilter
+}
+
+input TodoImageOrderByInput {
+  id: OrderDirection
+  imagePath: OrderDirection
+  altText: OrderDirection
+}
+
+input TodoImageUpdateInput {
+  image: ImageFieldInput
+  imagePath: String
+  altText: String
+  todos: TodoRelateToManyForUpdateInput
+  metadata: JSON
+}
+
+input TodoImageUpdateArgs {
+  where: TodoImageWhereUniqueInput!
+  data: TodoImageUpdateInput!
+}
+
+input TodoImageCreateInput {
+  image: ImageFieldInput
+  imagePath: String
+  altText: String
+  todos: TodoRelateToManyForCreateInput
+  metadata: JSON
 }
 
 """
@@ -440,6 +540,12 @@ type Mutation {
   updateTodos(data: [TodoUpdateArgs!]!): [Todo]
   deleteTodo(where: TodoWhereUniqueInput!): Todo
   deleteTodos(where: [TodoWhereUniqueInput!]!): [Todo]
+  createTodoImage(data: TodoImageCreateInput!): TodoImage
+  createTodoImages(data: [TodoImageCreateInput!]!): [TodoImage]
+  updateTodoImage(where: TodoImageWhereUniqueInput!, data: TodoImageUpdateInput!): TodoImage
+  updateTodoImages(data: [TodoImageUpdateArgs!]!): [TodoImage]
+  deleteTodoImage(where: TodoImageWhereUniqueInput!): TodoImage
+  deleteTodoImages(where: [TodoImageWhereUniqueInput!]!): [TodoImage]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -472,6 +578,9 @@ type Query {
   todo(where: TodoWhereUniqueInput!): Todo
   todos(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
   todosCount(where: TodoWhereInput! = {}): Int
+  todoImage(where: TodoImageWhereUniqueInput!): TodoImage
+  todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
+  todoImagesCount(where: TodoImageWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   redirectToInit: Boolean

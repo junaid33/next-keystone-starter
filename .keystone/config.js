@@ -26,7 +26,7 @@ module.exports = __toCommonJS(keystone_exports);
 
 // features/keystone/index.ts
 var import_auth = require("@keystone-6/auth");
-var import_core4 = require("@keystone-6/core");
+var import_core5 = require("@keystone-6/core");
 var import_config = require("dotenv/config");
 
 // features/keystone/models/User.ts
@@ -288,6 +288,29 @@ var Todo = (0, import_core3.list)({
         })
       }
     }),
+    ...(0, import_core3.group)({
+      label: "Attachments",
+      description: "File attachments for the task",
+      fields: {
+        coverImage: (0, import_fields3.image)({
+          storage: "my_images",
+          label: "Cover Image"
+        }),
+        todoImages: (0, import_fields3.relationship)({
+          ref: "TodoImage.todos",
+          many: true,
+          ui: {
+            displayMode: "cards",
+            cardFields: ["image", "altText", "imagePath"],
+            inlineCreate: { fields: ["image", "altText", "imagePath"] },
+            inlineEdit: { fields: ["image", "altText", "imagePath"] },
+            inlineConnect: true,
+            removeMode: "disconnect",
+            linkToItem: false
+          }
+        })
+      }
+    }),
     // Virtual field - requires graphql import for proper setup
     // Let's comment this out for now to avoid complexity
     // displayName: virtual({
@@ -319,11 +342,38 @@ var Todo = (0, import_core3.list)({
   }
 });
 
+// features/keystone/models/TodoImage.ts
+var import_core4 = require("@keystone-6/core");
+var import_fields4 = require("@keystone-6/core/fields");
+var TodoImage = (0, import_core4.list)({
+  access: {
+    operation: {
+      query: isSignedIn,
+      create: permissions.canCreateTodos,
+      update: permissions.canCreateTodos,
+      delete: permissions.canCreateTodos
+    }
+  },
+  fields: {
+    image: (0, import_fields4.image)({ storage: "my_images" }),
+    imagePath: (0, import_fields4.text)(),
+    altText: (0, import_fields4.text)(),
+    todos: (0, import_fields4.relationship)({ ref: "Todo.todoImages", many: true }),
+    metadata: (0, import_fields4.json)()
+  },
+  ui: {
+    listView: {
+      initialColumns: ["image", "imagePath", "altText", "todos"]
+    }
+  }
+});
+
 // features/keystone/models/index.ts
 var models = {
   User,
   Role,
-  Todo
+  Todo,
+  TodoImage
 };
 
 // features/keystone/index.ts
@@ -367,6 +417,13 @@ var sessionConfig = {
   // How long they stay signed in?
   secret: process.env.SESSION_SECRET || "this secret should only be used in testing"
 };
+var {
+  S3_BUCKET_NAME: bucketName = "keystone-test",
+  S3_REGION: region = "ap-southeast-2",
+  S3_ACCESS_KEY_ID: accessKeyId = "keystone",
+  S3_SECRET_ACCESS_KEY: secretAccessKey = "keystone",
+  S3_ENDPOINT: endpoint = "https://sfo3.digitaloceanspaces.com"
+} = process.env;
 var { withAuth } = (0, import_auth.createAuth)({
   listKey: "User",
   identityField: "email",
@@ -405,12 +462,25 @@ var { withAuth } = (0, import_auth.createAuth)({
   `
 });
 var keystone_default = withAuth(
-  (0, import_core4.config)({
+  (0, import_core5.config)({
     db: {
       provider: "postgresql",
       url: databaseURL
     },
     lists: models,
+    storage: {
+      my_images: {
+        kind: "s3",
+        type: "image",
+        bucketName,
+        region,
+        accessKeyId,
+        secretAccessKey,
+        endpoint,
+        signed: { expiry: 5e3 },
+        forcePathStyle: true
+      }
+    },
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false
     },

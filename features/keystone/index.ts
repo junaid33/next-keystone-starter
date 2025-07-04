@@ -13,6 +13,14 @@ const sessionConfig = {
     process.env.SESSION_SECRET || "this secret should only be used in testing",
 };
 
+const {
+  S3_BUCKET_NAME: bucketName = "keystone-test",
+  S3_REGION: region = "ap-southeast-2",
+  S3_ACCESS_KEY_ID: accessKeyId = "keystone",
+  S3_SECRET_ACCESS_KEY: secretAccessKey = "keystone",
+  S3_ENDPOINT: endpoint = "https://sfo3.digitaloceanspaces.com",
+} = process.env;
+
 const { withAuth } = createAuth({
   listKey: "User",
   identityField: "email",
@@ -58,6 +66,19 @@ export default withAuth(
       url: databaseURL,
     },
     lists: models,
+    storage: {
+      my_images: {
+        kind: "s3",
+        type: "image",
+        bucketName,
+        region,
+        accessKeyId,
+        secretAccessKey,
+        endpoint,
+        signed: { expiry: 5000 },
+        forcePathStyle: true,
+      },
+    },
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false,
     },

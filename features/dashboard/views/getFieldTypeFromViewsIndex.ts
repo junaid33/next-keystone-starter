@@ -23,7 +23,8 @@ export function getFieldTypeFromViewsIndex(viewsIndex: number): string {
     9: "float",
     10: "decimal",
     11: "bigInt",
-    12: "json"
+    12: "json",
+    13: "image"
   };
 
   const fieldType = viewsIndexToType[viewsIndex];

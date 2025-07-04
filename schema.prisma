@@ -37,21 +37,40 @@ model Role {
 }
 
 model Todo {
-  id           String    @id @default(cuid())
-  label        String    @default("")
-  description  Json      @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
-  isComplete   Boolean   @default(false)
-  status       String?   @default("todo")
-  priority     Int?      @default(1)
-  dueDate      DateTime?
-  weight       Float?    @default(1)
-  budget       Decimal?  @default("0.00") @postgresql.Decimal(10, 2)
-  isPrivate    Boolean   @default(false)
-  largeNumber  BigInt?
-  metadata     Json?
-  secretNote   String?
-  assignedTo   User?     @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
-  assignedToId String?   @map("assignedTo")
+  id                   String      @id @default(cuid())
+  label                String      @default("")
+  description          Json        @default("[{\"type\":\"paragraph\",\"children\":[{\"text\":\"\"}]}]")
+  isComplete           Boolean     @default(false)
+  status               String?     @default("todo")
+  priority             Int?        @default(1)
+  dueDate              DateTime?
+  weight               Float?      @default(1)
+  budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)
+  isPrivate            Boolean     @default(false)
+  largeNumber          BigInt?
+  metadata             Json?
+  secretNote           String?
+  coverImage_id        String?
+  coverImage_filesize  Int?
+  coverImage_width     Int?
+  coverImage_height    Int?
+  coverImage_extension String?
+  todoImages           TodoImage[] @relation("Todo_todoImages")
+  assignedTo           User?       @relation("Todo_assignedTo", fields: [assignedToId], references: [id])
+  assignedToId         String?     @map("assignedTo")
 
   @@index([assignedToId])
+}
+
+model TodoImage {
+  id              String  @id @default(cuid())
+  image_id        String?
+  image_filesize  Int?
+  image_width     Int?
+  image_height    Int?
+  image_extension String?
+  imagePath       String  @default("")
+  altText         String  @default("")
+  todos           Todo[]  @relation("Todo_todoImages")
+  metadata        Json?
 }
