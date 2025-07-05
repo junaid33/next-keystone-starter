@@ -12,6 +12,7 @@ import { serializeValueToOperationItem } from "@/features/dashboard/utils/useHas
 interface InlineCreateProps {
   list: any;
   fields: string[];
+  selectedFields: string;
   onCancel: () => void;
   onCreate: (itemData: any) => void;
 }
@@ -19,6 +20,7 @@ interface InlineCreateProps {
 export function InlineCreate({
   list,
   fields: fieldPaths,
+  selectedFields,
   onCancel,
   onCreate,
 }: InlineCreateProps) {
@@ -73,8 +75,7 @@ export function InlineCreate({
       // Serialize field values for create operation
       const data = serializeValueToOperationItem("create", fields, value);
 
-      // Build selectedFields to include id and the fields we need
-      const selectedFields = ["id", "label", ...fieldPaths].join("\n");
+      // Use the selectedFields passed from Cards component
       const result = await createItemAction(list.key, data, selectedFields, {
         skipRevalidation: true,
       });

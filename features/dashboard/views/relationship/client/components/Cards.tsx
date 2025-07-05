@@ -20,6 +20,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { Fields } from "@/features/dashboard/components/Fields";
 import { enhanceFields } from "@/features/dashboard/utils/enhanceFields";
+import { getFieldViews } from "@/features/dashboard/views/registry";
 
 interface CardsProps {
   field: {
@@ -114,6 +115,7 @@ export function Cards({
 
   // Build selectedFields like Keystone does
   const { displayOptions } = value;
+  
   const selectedFields = [
     ...new Set([
       ...displayOptions.cardFields,
@@ -121,15 +123,28 @@ export function Cards({
     ]),
   ]
     .map((fieldPath) => {
-      const fieldController = foreignList.fields[fieldPath]?.controller;
-      return fieldController?.graphqlSelection || fieldPath;
+      const field = foreignList.fields[fieldPath];
+      if (!field) return fieldPath;
+      
+      // Get the field controller with graphqlSelection
+      const fieldViews = getFieldViews(field.viewsIndex);
+      const controller = fieldViews.controller(field);
+      
+      console.log(`🔍 Field ${fieldPath}:`, {
+        field,
+        controller,
+        graphqlSelection: controller?.graphqlSelection,
+      });
+      
+      return controller?.graphqlSelection || fieldPath;
     })
     .join("\n");
 
-  // Also include id and label if not already included
+  // Also include id and the proper label field if not already included
+  const labelField = field.refLabelField || foreignList.labelField || "id";
   const finalSelectedFields = `
     id
-    label: ${field.refLabelField || "id"}
+    ${labelField !== "id" ? `label: ${labelField}` : ""}
     ${selectedFields}
   `;
 
@@ -138,10 +153,6 @@ export function Cards({
     value.currentIds instanceof Set
       ? value.currentIds
       : new Set(Array.isArray(value.currentIds) ? value.currentIds : []);
-  const initialIds =
-    value.initialIds instanceof Set
-      ? value.initialIds
-      : new Set(Array.isArray(value.initialIds) ? value.initialIds : []);
   const itemsBeingEdited =
     value.itemsBeingEdited instanceof Set
       ? value.itemsBeingEdited
@@ -434,6 +445,7 @@ export function Cards({
           <InlineCreate
             list={foreignList}
             fields={displayOptions.inlineCreate!.fields}
+            selectedFields={finalSelectedFields}
             onCancel={() => {
               onChange?.({ ...value, itemBeingCreated: false });
             }}
