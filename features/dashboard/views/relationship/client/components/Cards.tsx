@@ -160,18 +160,8 @@ export function Cards({
       ? `cards-items-${field.refListKey}-${currentIdsArray.join(",")}`
       : null,
     async () => {
-      console.log(`🔍 SWR FETCHING for ${field.refListKey}:`, {
-        currentIdsArray,
-        finalSelectedFields,
-      });
-
       const itemPromises = currentIdsArray.map(async (itemId) => {
-        console.log(
-          `🔍 Calling getItemAction for ${field.refListKey}/${itemId}`
-        );
         const result = await getItemAction(foreignList, itemId);
-        console.log(`🔍 getItemAction result for ${itemId}:`, result);
-
         if (result.success) {
           return { id: itemId, data: result.data.item };
         }
@@ -179,15 +169,9 @@ export function Cards({
       });
 
       const results = await Promise.all(itemPromises);
-      console.log(`🔍 Final SWR results:`, results);
       return results.filter(Boolean);
     }
   );
-
-  // Log SWR errors
-  if (swrError) {
-    console.error(`🔍 SWR ERROR for ${field.refListKey}:`, swrError);
-  }
 
   // Update items state when data changes
   useEffect(() => {
