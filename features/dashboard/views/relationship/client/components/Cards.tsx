@@ -130,12 +130,6 @@ export function Cards({
       const fieldViews = getFieldViews(field.viewsIndex);
       const controller = fieldViews.controller(field);
       
-      console.log(`🔍 Field ${fieldPath}:`, {
-        field,
-        controller,
-        graphqlSelection: controller?.graphqlSelection,
-      });
-      
       return controller?.graphqlSelection || fieldPath;
     })
     .join("\n");

@@ -70,25 +70,10 @@ export function InlineEdit({
 
   // Initialize value state with deserialized item data
   const initialValue = useMemo(() => {
-    const result = deserializeItemToValue(fields, item);
-    console.log('🔍 INLINE EDIT - InitialValue:', result);
-    console.log('🔍 INLINE EDIT - Fields:', fields);
-    console.log('🔍 INLINE EDIT - Raw item:', item);
-    return result;
+    return deserializeItemToValue(fields, item);
   }, [fields, item]);
 
   const [value, setValue] = useState(() => initialValue);
-
-  // Custom onChange with logging
-  const handleChange = (newValue: Record<string, unknown>) => {
-    console.log('🔍 INLINE EDIT - onChange called:', newValue);
-    setValue(newValue);
-  };
-
-  // Update value when item changes
-  if (value !== initialValue) {
-    setValue(initialValue);
-  }
 
   // Check if we have changes using our useHasChanges hook
   const hasChanges = useHasChanges("update", fields, value, initialValue);
@@ -157,7 +142,7 @@ export function InlineEdit({
             list={list}
             fields={fields}
             value={value}
-            onChange={handleChange}
+            onChange={setValue}
             forceValidation={forceValidation}
             invalidFields={invalidFields}
             isRequireds={isRequireds}
