@@ -10,8 +10,7 @@ This project features a **dual dashboard architecture** with:
 
 - **Backend**: KeystoneJS 6 providing GraphQL API, authentication, and database operations
 - **Frontend**: Two parallel admin interfaces sharing the same backend
-  - `dashboard/` - Original KeystoneJS implementation (feature-complete)
-  - `dashboard2/` - Refactored implementation (work in progress)
+  - `dashboard/` - Original KeystoneJS implementation 
 
 ## Tech Stack
 
@@ -75,8 +74,7 @@ This project features a **dual dashboard architecture** with:
 
 4. **Access the application:**
    - Frontend: [http://localhost:3000](http://localhost:3000)
-   - Dashboard 1: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
-   - Dashboard 2: [http://localhost:3000/dashboard2](http://localhost:3000/dashboard2)
+   - Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
    - GraphQL API: [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql)
 
 ## Development Commands
@@ -114,7 +112,6 @@ Sophisticated role-based permissions including:
 │   │   ├── components/    # Reusable UI components
 │   │   ├── screens/       # Page-level components
 │   │   └── views/         # Field type implementations
-│   └── dashboard2/        # Refactored admin interface
 ├── keystone.ts            # KeystoneJS configuration
 └── schema.prisma          # Database schema
 ```
@@ -143,7 +140,3 @@ The application can be deployed to any platform supporting Node.js and PostgreSQ
 3. Make your changes
 4. Run tests and linting
 5. Submit a pull request
-
-## License
-
-This project is private and proprietary.
