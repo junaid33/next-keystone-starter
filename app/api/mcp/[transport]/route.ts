@@ -1,6 +1,7 @@
 import createMcpRouteHandler from '@vercel/mcp-adapter/next';
 import { getIntrospectionQuery, buildClientSchema, printSchema } from 'graphql';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:3003/api/graphql';
 
@@ -58,6 +59,12 @@ function toGraphQLName(modelName: string, operation: 'list' | 'single' | 'create
 const handler = createMcpRouteHandler(
   async server => {
     console.log('🚀 Initializing Model-Based GraphQL MCP Server...');
+    
+    // Log cookies
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    console.log('🍪 Cookies available:', allCookies);
+    console.log('🍪 Cookie count:', allCookies.length);
     
     // Basic utility tools
     server.tool('list_models', 'List all available models in the GraphQL API', {}, async () => {

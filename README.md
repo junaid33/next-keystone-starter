@@ -1,6 +1,6 @@
 # Next.js + KeystoneJS Starter
 
-A modern full-stack application combining Next.js 15 with KeystoneJS 6, featuring admin dashboard implementation, sophisticated role-based permissions, and Model Context Protocol (MCP) API integration for AI-powered interactions.
+A modern full-stack application combining Next.js 15 with KeystoneJS 6, featuring admin dashboard implementation and sophisticated role-based permissions.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjunaid33%2Fnext-keystone-starter%2F&stores=[{"type"%3A"postgres"}])
 
@@ -12,7 +12,6 @@ This project features a **modern admin architecture** with:
 
 - **Backend**: KeystoneJS 6 providing GraphQL API, authentication, and database operations
 - **Frontend**: Custom Next.js admin dashboard with enhanced UI components
-- **MCP API**: Model Context Protocol integration for AI tool interactions
 - **Image Support**: S3-compatible image storage and management 
 
 ## Tech Stack
@@ -33,7 +32,6 @@ This project features a **modern admin architecture** with:
 - **Prisma ORM** for database operations
 - **GraphQL Yoga** for GraphQL server
 - **PostgreSQL** database
-- **Model Context Protocol (MCP)** for AI tool integration
 - **S3-compatible storage** for image management
 
 ### Key Features
@@ -42,7 +40,6 @@ This project features a **modern admin architecture** with:
 - **Rich text editing** with document fields
 - **Relationship management** with inline editing capabilities
 - **Image upload and management** with S3 storage
-- **MCP API integration** for AI tool interactions
 - **Inline create/edit components** for seamless UX
 - **Advanced filtering system** for all field types
 - **Responsive design** with mobile support
@@ -87,7 +84,6 @@ This project features a **modern admin architecture** with:
    - Frontend: [http://localhost:3000](http://localhost:3000)
    - Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
    - GraphQL API: [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql)
-   - MCP API: [http://localhost:3000/api/mcp](http://localhost:3000/api/mcp)
 
 ## Development Commands
 
@@ -103,32 +99,6 @@ This project features a **modern admin architecture** with:
 - **Endpoint**: `/api/graphql`
 - **Features**: Full CRUD operations, relationships, authentication
 - **Playground**: Available in development mode
-
-### MCP API
-- **Endpoint**: `/api/mcp/[transport]`
-- **Features**: Model Context Protocol for AI tool integration
-- **Security**: ENV-based operation whitelist for controlled GraphQL access
-- **Supported Operations**:
-  - `list_<model>s` - List records with filtering and pagination
-  - `create_<model>` - Create new records
-  - `update_<model>` - Update existing records
-  - `delete_<model>` - Delete records
-  - `search_records` - Advanced search across models
-  - `execute_graphql` - Custom GraphQL queries (with operation whitelist)
-  - `list_allowed_operations` - View current operation permissions
-  - `introspect_schema` - Schema introspection
-  - `list_models` - Available models
-
-**MCP Security Configuration**:
-```env
-# Allow all operations (disable whitelist)
-MCP_ALLOW_ALL=true
-
-# Or specify allowed operations
-MCP_ALLOW_ALL=false
-MCP_ALLOWED_QUERIES=user,users,todo,todos
-MCP_ALLOWED_MUTATIONS=createTodo,updateTodo,deleteTodo
-```
 
 ## Data Models
 
@@ -149,8 +119,7 @@ Sophisticated role-based permissions including:
 ```
 ├── app/                    # Next.js App Router
 │   ├── api/
-│   │   ├── graphql.ts     # GraphQL API endpoint
-│   │   └── mcp/           # MCP API endpoints
+│   │   └── graphql.ts     # GraphQL API endpoint
 │   └── dashboard/         # Admin dashboard pages
 ├── features/
 │   ├── keystone/          # Backend configuration
@@ -169,7 +138,6 @@ Sophisticated role-based permissions including:
 ## Development Notes
 
 - **GraphQL endpoint** available at `/api/graphql`
-- **MCP API endpoint** available at `/api/mcp/[transport]` for AI tool integration
 - **Field implementations** follow KeystoneJS controller patterns
 - **Permission checks** are integrated throughout the UI layer
 - **Server actions** used for data mutations in dashboard components
