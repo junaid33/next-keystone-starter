@@ -2,7 +2,9 @@
 
 A modern full-stack application combining Next.js 15 with KeystoneJS 6, featuring admin dashboard implementation, sophisticated role-based permissions, and Model Context Protocol (MCP) API integration for AI-powered interactions.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjunaid33%2Fnext-keystone-starter&env=DATABASE_URL,SESSION_SECRET&envDescription=DATABASE%20URL%20should%20be%20a%20postgres%20string%20and%20SESSION_SECRET%20is%20a%2064%20long%20random%20string)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjunaid33%2Fnext-keystone-starter%2F&stores=[{"type"%3A"postgres"}])
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/TK5wC1?referralCode=I_tWSs)
 
 ## Architecture Overview
 
@@ -55,7 +57,7 @@ This project features a **modern admin architecture** with:
 
 1. **Clone and install dependencies:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/junaid33/next-keystone-starter
    cd next-keystone-starter
    npm install
    ```
