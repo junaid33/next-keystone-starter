@@ -1,389 +1,535 @@
-import createMcpRouteHandler from '@vercel/mcp-adapter/next';
-import { getIntrospectionQuery, buildClientSchema, printSchema } from 'graphql';
-import { z } from 'zod';
-import { cookies } from 'next/headers';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { 
+  Tool,
+  TextContent,
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+import { 
+  getIntrospectionQuery, 
+  buildClientSchema, 
+  GraphQLSchema,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLNonNull,
+  GraphQLList,
+  GraphQLInputType,
+  GraphQLOutputType,
+  GraphQLField,
+  GraphQLArgument,
+  isScalarType,
+  isObjectType,
+  isNonNullType,
+  isListType,
+  isInputObjectType,
+} from 'graphql';
 
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:3003/api/graphql';
+const HARDCODED_COOKIE = 'keystonejs-session=Fe26.2**15fbde5361b29b276d497363fd5a18836ceca233d3e9aae38f45c9ff74ac98b8*U_v2JeeQuZaHHS8-AwNZrQ*XoCSTlnqqwMniXTiUHSOH2EgIppNawLcb9sGrOJpGGPoQdDu-JVxxdzUW4C-Dj5FpiDRMkArgi5jHEA30e1wsQ*1783272753750*458d272569dfd0c57171dce038f181e7c3571be6e6e54cd88c23af20fa163109*_H0niIBgLFsXywY12JgLdPqmMOZd8MB06Tc7A-IL5uA';
 
-// Model names from your Keystone config
-const MODEL_NAMES = ['User', 'Role', 'Todo', 'TodoImage'];
-
-// Common field selections for each model type
-const MODEL_FIELD_SELECTIONS: Record<string, string> = {
-  User: 'id name email role { id name } tasks { id label }',
-  Role: 'id name canCreateTodos canManageAllTodos canSeeOtherPeople canEditOtherPeople canManagePeople canManageRoles canAccessDashboard',
-  Todo: 'id label isComplete status priority dueDate assignedTo { id name }',
-  TodoImage: 'id image { url } caption altText',
-};
-
-// Execute GraphQL query
-async function executeGraphQL(query: string, variables?: any) {
-  try {
-    const response = await fetch(GRAPHQL_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables,
-      }),
-    });
-
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    throw new Error(`GraphQL execution failed: ${error}`);
-  }
+// Types
+interface JsonSchema {
+  type: string;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  description?: string;
 }
 
-// Helper to convert model name to GraphQL conventions
-function toGraphQLName(modelName: string, operation: 'list' | 'single' | 'create' | 'update' | 'delete') {
-  const lowerFirst = (str: string) => str.charAt(0).toLowerCase() + str.slice(1);
-  const lowerName = lowerFirst(modelName);
+type NestedSelection = Array<[string, NestedSelection | null]>;
+
+// Execute GraphQL query with authentication
+async function executeGraphQL(query: string, variables?: any): Promise<any> {
+  const response = await fetch(GRAPHQL_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Cookie': HARDCODED_COOKIE,
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  const result = await response.json();
+  if (result.errors) {
+    throw new Error(`GraphQL execution failed: ${JSON.stringify(result.errors)}`);
+  }
+  return result;
+}
+
+// Get GraphQL schema from introspection
+async function getGraphQLSchema(): Promise<GraphQLSchema> {
+  const response = await fetch(GRAPHQL_ENDPOINT, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Cookie': HARDCODED_COOKIE,
+    },
+    body: JSON.stringify({ query: getIntrospectionQuery() }),
+  });
   
-  switch (operation) {
-    case 'list':
-      return `${lowerName}s`; // users, roles, todos
-    case 'single':
-      return lowerName; // user, role, todo
-    case 'create':
-      return `create${modelName}`; // createUser, createRole
-    case 'update':
-      return `update${modelName}`; // updateUser, updateRole
-    case 'delete':
-      return `delete${modelName}`; // deleteUser, deleteRole
+  const result = await response.json();
+  if (result.errors) {
+    throw new Error(`GraphQL introspection failed: ${JSON.stringify(result.errors)}`);
   }
+  
+  return buildClientSchema(result.data);
 }
 
-const handler = createMcpRouteHandler(
-  async server => {
-    console.log('🚀 Initializing Model-Based GraphQL MCP Server...');
-    
-    // Log cookies
-    const cookieStore = await cookies();
-    const allCookies = cookieStore.getAll();
-    console.log('🍪 Cookies available:', allCookies);
-    console.log('🍪 Cookie count:', allCookies.length);
-    
-    // Basic utility tools
-    server.tool('list_models', 'List all available models in the GraphQL API', {}, async () => {
-      return {
-        content: [{
-          type: 'text',
-          text: `Available models:\n${MODEL_NAMES.map(m => `- ${m}`).join('\n')}\n\nYou can use list_<model>, create_<model>, update_<model>, delete_<model> operations for each model.`
-        }],
-      };
-    });
+// Convert GraphQL type to JSON Schema
+function convertTypeToJsonSchema(
+  gqlType: GraphQLInputType,
+  maxDepth: number = 3,
+  currentDepth: number = 1
+): JsonSchema {
+  if (currentDepth > maxDepth) {
+    return { type: 'object', description: 'Max depth reached' };
+  }
 
-    // Introspection tool for advanced users
-    server.tool(
-      'introspect_schema',
-      'Get the complete GraphQL schema in SDL format (for advanced users)',
-      {},
-      async () => {
-        try {
-          const response = await fetch(GRAPHQL_ENDPOINT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: getIntrospectionQuery() }),
-          });
-          
-          const result = await response.json();
-          if (result.errors) {
-            throw new Error(`GraphQL introspection failed: ${JSON.stringify(result.errors)}`);
-          }
-          
-          const schema = buildClientSchema(result.data);
-          const schemaSDL = printSchema(schema);
-          
-          return {
-            content: [{ type: 'text', text: `GraphQL Schema:\n\n${schemaSDL}` }],
-          };
-        } catch (error) {
-          return {
-            content: [{ type: 'text', text: `Failed to introspect schema: ${error}` }],
-          };
-        }
+  if (isNonNullType(gqlType)) {
+    const innerSchema = convertTypeToJsonSchema(gqlType.ofType, maxDepth, currentDepth);
+    (innerSchema as any).required = true;
+    return innerSchema;
+  }
+
+  if (isListType(gqlType)) {
+    const innerSchema = convertTypeToJsonSchema(gqlType.ofType, maxDepth, currentDepth);
+    return { type: 'array', items: innerSchema };
+  }
+
+  if (isScalarType(gqlType)) {
+    const typeName = gqlType.name.toLowerCase();
+    if (typeName === 'string') return { type: 'string' };
+    if (typeName === 'int') return { type: 'integer' };
+    if (typeName === 'float') return { type: 'number' };
+    if (typeName === 'boolean') return { type: 'boolean' };
+    if (typeName === 'id') return { type: 'string' };
+    return { type: 'string', description: `GraphQL scalar: ${gqlType.name}` };
+  }
+
+  if (isInputObjectType(gqlType)) {
+    const properties: Record<string, JsonSchema> = {};
+    const required: string[] = [];
+
+    const fields = gqlType.getFields();
+    for (const [fieldName, fieldValue] of Object.entries(fields)) {
+      if (fieldName.startsWith('__')) continue;
+
+      const fieldSchema = convertTypeToJsonSchema(fieldValue.type, maxDepth, currentDepth + 1);
+      const isRequired = (fieldSchema as any).required;
+      if (isRequired) {
+        delete (fieldSchema as any).required;
+        required.push(fieldName);
       }
-    );
 
-    // Apollo Studio tool
-    server.tool(
-      'open_apollo_studio',
-      'Get the URL to open Apollo Studio Explorer for this GraphQL API',
-      {},
-      async () => {
-        const studioUrl = GRAPHQL_ENDPOINT.replace('/api/graphql', '/api/graphql');
-        return {
-          content: [{
-            type: 'text',
-            text: `Open Apollo Studio Explorer at: ${studioUrl}\n\nThis provides a full GraphQL IDE with:\n- Schema documentation\n- Query builder\n- Variable editor\n- Response viewer`
-          }],
-        };
-      }
-    );
-
-    // Generate CRUD tools for each model
-    for (const modelName of MODEL_NAMES) {
-      const lowerModel = modelName.toLowerCase();
-      const fields = MODEL_FIELD_SELECTIONS[modelName] || 'id';
-      
-      // List operation
-      server.tool(
-        `list_${lowerModel}s`,
-        `List all ${modelName} records`,
-        {
-          where: z.record(z.any()).optional().describe('Filter conditions'),
-          take: z.number().optional().describe('Number of records to return'),
-          skip: z.number().optional().describe('Number of records to skip'),
-        },
-        async ({ where = {}, take, skip = 0 }) => {
-          const queryName = toGraphQLName(modelName, 'list');
-          const query = `
-            query List${modelName}s($where: ${modelName}WhereInput!, $take: Int, $skip: Int!) {
-              ${queryName}(where: $where, take: $take, skip: $skip) {
-                ${fields}
-              }
-              ${queryName}Count(where: $where)
-            }
-          `;
-          
-          try {
-            const result = await executeGraphQL(query, { where, take, skip });
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              }],
-            };
-          } catch (error) {
-            return {
-              content: [{
-                type: 'text',
-                text: `Error listing ${modelName}s: ${error}`,
-              }],
-            };
-          }
-        }
-      );
-
-      // Create operation
-      server.tool(
-        `create_${lowerModel}`,
-        `Create a new ${modelName} record`,
-        {
-          data: z.record(z.any()).describe(`${modelName} data to create`),
-        },
-        async ({ data }) => {
-          const mutationName = toGraphQLName(modelName, 'create');
-          const mutation = `
-            mutation Create${modelName}($data: ${modelName}CreateInput!) {
-              ${mutationName}(data: $data) {
-                ${fields}
-              }
-            }
-          `;
-          
-          try {
-            const result = await executeGraphQL(mutation, { data });
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              }],
-            };
-          } catch (error) {
-            return {
-              content: [{
-                type: 'text',
-                text: `Error creating ${modelName}: ${error}`,
-              }],
-            };
-          }
-        }
-      );
-
-      // Update operation
-      server.tool(
-        `update_${lowerModel}`,
-        `Update an existing ${modelName} record`,
-        {
-          where: z.object({ id: z.string() }).describe('ID of the record to update'),
-          data: z.record(z.any()).describe('Fields to update'),
-        },
-        async ({ where, data }) => {
-          const mutationName = toGraphQLName(modelName, 'update');
-          const mutation = `
-            mutation Update${modelName}($where: ${modelName}WhereUniqueInput!, $data: ${modelName}UpdateInput!) {
-              ${mutationName}(where: $where, data: $data) {
-                ${fields}
-              }
-            }
-          `;
-          
-          try {
-            const result = await executeGraphQL(mutation, { where, data });
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              }],
-            };
-          } catch (error) {
-            return {
-              content: [{
-                type: 'text',
-                text: `Error updating ${modelName}: ${error}`,
-              }],
-            };
-          }
-        }
-      );
-
-      // Delete operation
-      server.tool(
-        `delete_${lowerModel}`,
-        `Delete a ${modelName} record`,
-        {
-          where: z.object({ id: z.string() }).describe('ID of the record to delete'),
-        },
-        async ({ where }) => {
-          const mutationName = toGraphQLName(modelName, 'delete');
-          const mutation = `
-            mutation Delete${modelName}($where: ${modelName}WhereUniqueInput!) {
-              ${mutationName}(where: $where) {
-                id
-              }
-            }
-          `;
-          
-          try {
-            const result = await executeGraphQL(mutation, { where });
-            return {
-              content: [{
-                type: 'text',
-                text: JSON.stringify(result, null, 2),
-              }],
-            };
-          } catch (error) {
-            return {
-              content: [{
-                type: 'text',
-                text: `Error deleting ${modelName}: ${error}`,
-              }],
-            };
-          }
-        }
-      );
+      properties[fieldName] = fieldSchema;
+      properties[fieldName].description = `Field ${fieldName}`;
     }
 
-    // Advanced search tool
-    server.tool(
-      'search_records',
-      'Search across models with advanced filtering',
-      {
-        model: z.enum(['User', 'Role', 'Todo', 'TodoImage']).describe('Model to search'),
-        query: z.string().describe('Search query (searches text fields)'),
-        filters: z.record(z.any()).optional().describe('Additional filters'),
-      },
-      async ({ model, query, filters = {} }) => {
-        const queryName = toGraphQLName(model, 'list');
-        const fields = MODEL_FIELD_SELECTIONS[model] || 'id';
-        
-        // Build search conditions based on model
-        let searchConditions = { ...filters };
-        if (query) {
-          switch (model) {
-            case 'User':
-              searchConditions.OR = [
-                { name: { contains: query, mode: 'insensitive' } },
-                { email: { contains: query, mode: 'insensitive' } },
-              ];
-              break;
-            case 'Role':
-              searchConditions.name = { contains: query, mode: 'insensitive' };
-              break;
-            case 'Todo':
-              searchConditions.label = { contains: query, mode: 'insensitive' };
-              break;
-            case 'TodoImage':
-              searchConditions.OR = [
-                { caption: { contains: query, mode: 'insensitive' } },
-                { altText: { contains: query, mode: 'insensitive' } },
-              ];
-              break;
-          }
-        }
-        
-        const graphqlQuery = `
-          query Search${model}($where: ${model}WhereInput!) {
-            ${queryName}(where: $where) {
-              ${fields}
-            }
-            ${queryName}Count(where: $where)
-          }
-        `;
-        
-        try {
-          const result = await executeGraphQL(graphqlQuery, { where: searchConditions });
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: 'text',
-              text: `Error searching ${model}: ${error}`,
-            }],
-          };
-        }
-      }
-    );
+    const objectSchema: JsonSchema = { type: 'object', properties };
+    if (required.length > 0) {
+      objectSchema.required = required;
+    }
 
-    // Custom query execution for power users
-    server.tool(
-      'execute_graphql',
-      'Execute a custom GraphQL query or mutation (for advanced users)',
-      {
-        query: z.string().describe('The GraphQL query or mutation to execute'),
-        variables: z.record(z.any()).optional().describe('Variables for the query'),
-      },
-      async ({ query, variables }) => {
-        try {
-          const result = await executeGraphQL(query, variables);
-          return {
-            content: [{
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            }],
-          };
-        } catch (error) {
-          return {
-            content: [{
-              type: 'text',
-              text: `Error executing GraphQL: ${error}`,
-            }],
-          };
-        }
-      }
-    );
-
-    console.log(`🎉 Model-Based MCP Server initialized with ${MODEL_NAMES.length} models and ${MODEL_NAMES.length * 4 + 4} total tools`);
-  },
-  {
-    capabilities: {},
-  },
-  {
-    streamableHttpEndpoint: '/mcp',
-    sseEndpoint: '/sse',
-    sseMessageEndpoint: '/message',
-    basePath: '/api/mcp',
-    redisUrl: process.env.REDIS_URL,
+    return objectSchema;
   }
-);
 
-export { handler as GET, handler as POST };
+  return { type: 'string', description: `Unknown GraphQL type: ${gqlType.toString()}` };
+}
+
+// Build nested field selections
+function buildNestedSelection(
+  fieldType: GraphQLObjectType,
+  maxDepth: number,
+  currentDepth: number = 1
+): NestedSelection {
+  if (currentDepth > maxDepth) return [];
+  if (!fieldType.getFields) return [];
+
+  const selections: NestedSelection = [];
+  const fields = fieldType.getFields();
+  
+  for (const [fieldName, fieldValue] of Object.entries(fields)) {
+    if (fieldName.startsWith('__')) continue;
+
+    let type = fieldValue.type;
+    
+    if (isScalarType(type)) {
+      selections.push([fieldName, null]);
+    } else if (isNonNullType(type)) {
+      const ofType = type.ofType;
+      if (isScalarType(ofType)) {
+        selections.push([fieldName, null]);
+      } else if (isObjectType(ofType)) {
+        const nestedSelections = buildNestedSelection(ofType, maxDepth, currentDepth + 1);
+        if (nestedSelections.length > 0) {
+          selections.push([fieldName, nestedSelections]);
+        }
+      }
+    } else if (isListType(type)) {
+      let innerType = type.ofType;
+      while (isNonNullType(innerType) || isListType(innerType)) {
+        innerType = innerType.ofType;
+      }
+      if (isObjectType(innerType)) {
+        const nestedSelections = buildNestedSelection(innerType, maxDepth, currentDepth + 1);
+        if (nestedSelections.length > 0) {
+          selections.push([fieldName, nestedSelections]);
+        }
+      }
+    } else if (isObjectType(type)) {
+      const nestedSelections = buildNestedSelection(type, maxDepth, currentDepth + 1);
+      if (nestedSelections.length > 0) {
+        selections.push([fieldName, nestedSelections]);
+      }
+    }
+  }
+
+  return selections;
+}
+
+// Build GraphQL selection string from nested selections
+function buildSelectionString(selections: NestedSelection, depth: number = 0): string {
+  const indent = '  '.repeat(depth);
+  const parts: string[] = [];
+  
+  for (const [fieldName, nestedSelections] of selections) {
+    if (nestedSelections === null) {
+      parts.push(`${indent}${fieldName}`);
+    } else if (nestedSelections.length > 0) {
+      const nestedString = buildSelectionString(nestedSelections, depth + 1);
+      parts.push(`${indent}${fieldName} {\n${nestedString}\n${indent}}`);
+    }
+  }
+  
+  return parts.join('\n');
+}
+
+// Create and configure the MCP server
+async function createMCPServer() {
+  const server = new Server(
+    {
+      name: 'graphql-mcp-server',
+      version: '1.0.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+      },
+    }
+  );
+
+  // Get the GraphQL schema
+  let schema: GraphQLSchema;
+  try {
+    schema = await getGraphQLSchema();
+    console.log('✅ Successfully introspected GraphQL schema');
+  } catch (error) {
+    console.error('❌ Failed to introspect GraphQL schema:', error);
+    throw error;
+  }
+
+  // List tools handler
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const tools: Tool[] = [];
+
+    if (!schema.getQueryType()) {
+      return { tools };
+    }
+
+    const queryFields = schema.getQueryType()!.getFields();
+    
+    for (const [queryName, field] of Object.entries(queryFields)) {
+      if (queryName.startsWith('__')) continue;
+
+      // Build argument schema
+      const argsSchema: JsonSchema = { 
+        type: 'object', 
+        properties: {}, 
+        required: [] 
+      };
+      
+      for (const [argName, arg] of Object.entries(field.args || {})) {
+        const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+        
+        const isRequired = (typeSchema as any).required;
+        if (isRequired) {
+          delete (typeSchema as any).required;
+          if (Array.isArray(argsSchema.required)) {
+            argsSchema.required.push(argName);
+          }
+        }
+        
+        if (!argsSchema.properties) {
+          argsSchema.properties = {};
+        }
+        argsSchema.properties[argName] = typeSchema;
+        argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
+      }
+
+      tools.push({
+        name: queryName,
+        description: field.description || `GraphQL query: ${queryName}`,
+        inputSchema: argsSchema as any,
+      });
+    }
+
+    console.log(`🎉 Generated ${tools.length} tools from GraphQL schema`);
+    return { tools };
+  });
+
+  // Call tool handler
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    try {
+      if (!schema.getQueryType()) {
+        throw new Error('No query type found in schema');
+      }
+
+      const queryFields = schema.getQueryType()!.getFields();
+      const field = queryFields[name];
+      
+      if (!field) {
+        throw new Error(`Tool ${name} not found`);
+      }
+
+      // Get the return type and build selections
+      let returnType = field.type;
+      while (isNonNullType(returnType) || isListType(returnType)) {
+        returnType = returnType.ofType;
+      }
+      
+      let selectionString = '';
+      
+      if (isObjectType(returnType)) {
+        const selections = buildNestedSelection(returnType, 3);
+        selectionString = buildSelectionString(selections);
+      }
+      
+      // Build the query
+      const argDefs = Object.keys(field.args || {}).map(argName => {
+        const arg = field.args![argName];
+        return `$${argName}: ${arg.type.toString()}`;
+      }).join(', ');
+      
+      const argUses = Object.keys(field.args || {}).map(argName => 
+        `${argName}: $${argName}`
+      ).join(', ');
+      
+      const queryString = `
+        query ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
+          ${name}${argUses ? `(${argUses})` : ''}${selectionString ? ` {\n${selectionString}\n  }` : ''}
+        }
+      `.trim();
+      
+      console.log('Executing query:', queryString);
+      
+      // Execute the query
+      const result = await executeGraphQL(queryString, args);
+      
+      return {
+        content: [{
+          type: 'text' as const,
+          text: JSON.stringify(result, null, 2),
+        }],
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Error executing ${name}: ${error}`,
+        }],
+      };
+    }
+  });
+
+  return server;
+}
+
+// Export the handler
+export async function GET() {
+  try {
+    const server = await createMCPServer();
+    
+    // For HTTP transport, we'll return a simple response
+    return new Response(JSON.stringify({ 
+      message: 'GraphQL MCP Server is running',
+      transport: 'http'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ 
+      error: 'Failed to start MCP server',
+      details: error instanceof Error ? error.message : String(error)
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    // Get the GraphQL schema first
+    const schema = await getGraphQLSchema();
+    
+    // Parse the JSON-RPC request
+    const body = await request.json();
+    
+    // Handle the request based on method
+    if (body.method === 'tools/list') {
+      // Get tools directly without server.request
+      const tools: Tool[] = [];
+
+      if (schema.getQueryType()) {
+        const queryFields = schema.getQueryType()!.getFields();
+        
+        for (const [queryName, field] of Object.entries(queryFields)) {
+          if (queryName.startsWith('__')) continue;
+
+          // Build argument schema
+          const argsSchema: JsonSchema = { 
+            type: 'object', 
+            properties: {}, 
+            required: [] 
+          };
+          
+          for (const [argName, arg] of Object.entries(field.args || {})) {
+            const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+            
+            const isRequired = (typeSchema as any).required;
+            if (isRequired) {
+              delete (typeSchema as any).required;
+              if (Array.isArray(argsSchema.required)) {
+                argsSchema.required.push(argName);
+              }
+            }
+            
+            if (!argsSchema.properties) {
+              argsSchema.properties = {};
+            }
+            argsSchema.properties[argName] = typeSchema;
+            argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
+          }
+
+          tools.push({
+            name: queryName,
+            description: field.description || `GraphQL query: ${queryName}`,
+            inputSchema: argsSchema as any,
+          });
+        }
+      }
+      
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: { tools }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (body.method === 'tools/call') {
+      // Handle tool call directly
+      const { name, arguments: args } = body.params;
+
+      try {
+        if (!schema.getQueryType()) {
+          throw new Error('No query type found in schema');
+        }
+
+        const queryFields = schema.getQueryType()!.getFields();
+        const field = queryFields[name];
+        
+        if (!field) {
+          throw new Error(`Tool ${name} not found`);
+        }
+
+        // Get the return type and build selections
+        let returnType = field.type;
+        while (isNonNullType(returnType) || isListType(returnType)) {
+          returnType = returnType.ofType;
+        }
+        
+        let selectionString = '';
+        
+        if (isObjectType(returnType)) {
+          const selections = buildNestedSelection(returnType, 3);
+          selectionString = buildSelectionString(selections);
+        }
+        
+        // Build the query
+        const argDefs = Object.keys(field.args || {}).map(argName => {
+          const arg = field.args![argName];
+          return `$${argName}: ${arg.type.toString()}`;
+        }).join(', ');
+        
+        const argUses = Object.keys(field.args || {}).map(argName => 
+          `${argName}: $${argName}`
+        ).join(', ');
+        
+        const queryString = `
+          query ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
+            ${name}${argUses ? `(${argUses})` : ''}${selectionString ? ` {\n${selectionString}\n  }` : ''}
+          }
+        `.trim();
+        
+        console.log('Executing query:', queryString);
+        
+        // Execute the query
+        const result = await executeGraphQL(queryString, args);
+        
+        return new Response(JSON.stringify({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: {
+            content: [{
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            }],
+          }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          jsonrpc: '2.0',
+          id: body.id,
+          result: {
+            content: [{
+              type: 'text',
+              text: `Error executing ${name}: ${error}`,
+            }],
+          }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        error: { code: -32601, message: 'Method not found' }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  } catch (error) {
+    return new Response(JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      error: { 
+        code: -32603, 
+        message: 'Internal error',
+        data: error instanceof Error ? error.message : String(error)
+      }
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}

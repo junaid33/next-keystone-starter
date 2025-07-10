@@ -30,7 +30,8 @@
       "Bash(sed:*)",
       "Bash(npx tsx:*)",
       "WebFetch(domain:www.anthropic.com)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(npx @modelcontextprotocol/inspector:*)"
     ],
     "deny": []
   }
