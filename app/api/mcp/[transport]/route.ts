@@ -23,9 +23,7 @@ import {
   isListType,
   isInputObjectType,
 } from 'graphql';
-
-const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:3003/api/graphql';
-const HARDCODED_COOKIE = 'keystonejs-session=Fe26.2**15fbde5361b29b276d497363fd5a18836ceca233d3e9aae38f45c9ff74ac98b8*U_v2JeeQuZaHHS8-AwNZrQ*XoCSTlnqqwMniXTiUHSOH2EgIppNawLcb9sGrOJpGGPoQdDu-JVxxdzUW4C-Dj5FpiDRMkArgi5jHEA30e1wsQ*1783272753750*458d272569dfd0c57171dce038f181e7c3571be6e6e54cd88c23af20fa163109*_H0niIBgLFsXywY12JgLdPqmMOZd8MB06Tc7A-IL5uA';
+import { getBaseUrl } from '@/features/dashboard/lib/getBaseUrl';
 
 // Types
 interface JsonSchema {
@@ -39,12 +37,12 @@ interface JsonSchema {
 type NestedSelection = Array<[string, NestedSelection | null]>;
 
 // Execute GraphQL query with authentication
-async function executeGraphQL(query: string, variables?: any): Promise<any> {
-  const response = await fetch(GRAPHQL_ENDPOINT, {
+async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: string, variables?: any): Promise<any> {
+  const response = await fetch(graphqlEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': HARDCODED_COOKIE,
+      'Cookie': cookie,
     },
     body: JSON.stringify({ query, variables }),
   });
@@ -57,12 +55,12 @@ async function executeGraphQL(query: string, variables?: any): Promise<any> {
 }
 
 // Get GraphQL schema from introspection
-async function getGraphQLSchema(): Promise<GraphQLSchema> {
-  const response = await fetch(GRAPHQL_ENDPOINT, {
+async function getGraphQLSchema(graphqlEndpoint: string, cookie: string): Promise<GraphQLSchema> {
+  const response = await fetch(graphqlEndpoint, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      'Cookie': HARDCODED_COOKIE,
+      'Cookie': cookie,
     },
     body: JSON.stringify({ query: getIntrospectionQuery() }),
   });
@@ -205,7 +203,7 @@ function buildSelectionString(selections: NestedSelection, depth: number = 0): s
 }
 
 // Create and configure the MCP server
-async function createMCPServer() {
+async function createMCPServer(graphqlEndpoint: string, cookie: string) {
   const server = new Server(
     {
       name: 'graphql-mcp-server',
@@ -221,7 +219,7 @@ async function createMCPServer() {
   // Get the GraphQL schema
   let schema: GraphQLSchema;
   try {
-    schema = await getGraphQLSchema();
+    schema = await getGraphQLSchema(graphqlEndpoint, cookie);
     console.log('✅ Successfully introspected GraphQL schema');
   } catch (error) {
     console.error('❌ Failed to introspect GraphQL schema:', error);
@@ -248,22 +246,26 @@ async function createMCPServer() {
         required: [] 
       };
       
-      for (const [argName, arg] of Object.entries(field.args || {})) {
-        const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
-        
-        const isRequired = (typeSchema as any).required;
-        if (isRequired) {
-          delete (typeSchema as any).required;
-          if (Array.isArray(argsSchema.required)) {
-            argsSchema.required.push(argName);
+      // field.args is an array, we need to access the args differently
+      if (field.args && field.args.length > 0) {
+        for (const arg of field.args) {
+          const argName = arg.name;
+          const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+          
+          const isRequired = (typeSchema as any).required;
+          if (isRequired) {
+            delete (typeSchema as any).required;
+            if (Array.isArray(argsSchema.required)) {
+              argsSchema.required.push(argName);
+            }
           }
+          
+          if (!argsSchema.properties) {
+            argsSchema.properties = {};
+          }
+          argsSchema.properties[argName] = typeSchema;
+          argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
         }
-        
-        if (!argsSchema.properties) {
-          argsSchema.properties = {};
-        }
-        argsSchema.properties[argName] = typeSchema;
-        argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
       }
 
       tools.push({
@@ -325,7 +327,7 @@ async function createMCPServer() {
       console.log('Executing query:', queryString);
       
       // Execute the query
-      const result = await executeGraphQL(queryString, args);
+      const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, args);
       
       return {
         content: [{
@@ -347,14 +349,20 @@ async function createMCPServer() {
 }
 
 // Export the handler
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const server = await createMCPServer();
+    // Construct GraphQL endpoint
+    const baseUrl = await getBaseUrl();
+    const graphqlEndpoint = `${baseUrl}/api/graphql`;
+    
+    // Extract cookie from request
+    const cookie = request.headers.get('cookie') || '';
     
     // For HTTP transport, we'll return a simple response
     return new Response(JSON.stringify({ 
       message: 'GraphQL MCP Server is running',
-      transport: 'http'
+      transport: 'http',
+      graphqlEndpoint
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -372,8 +380,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // Construct GraphQL endpoint
+    const baseUrl = await getBaseUrl();
+    const graphqlEndpoint = `${baseUrl}/api/graphql`;
+    
+    // Extract cookie from request
+    const cookie = request.headers.get('cookie') || '';
+    
     // Get the GraphQL schema first
-    const schema = await getGraphQLSchema();
+    const schema = await getGraphQLSchema(graphqlEndpoint, cookie);
     
     // Parse the JSON-RPC request
     const body = await request.json();
@@ -396,22 +411,26 @@ export async function POST(request: Request) {
             required: [] 
           };
           
-          for (const [argName, arg] of Object.entries(field.args || {})) {
-            const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
-            
-            const isRequired = (typeSchema as any).required;
-            if (isRequired) {
-              delete (typeSchema as any).required;
-              if (Array.isArray(argsSchema.required)) {
-                argsSchema.required.push(argName);
+          // field.args is an array, we need to access the args differently
+          if (field.args && field.args.length > 0) {
+            for (const arg of field.args) {
+              const argName = arg.name;
+              const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+              
+              const isRequired = (typeSchema as any).required;
+              if (isRequired) {
+                delete (typeSchema as any).required;
+                if (Array.isArray(argsSchema.required)) {
+                  argsSchema.required.push(argName);
+                }
               }
+              
+              if (!argsSchema.properties) {
+                argsSchema.properties = {};
+              }
+              argsSchema.properties[argName] = typeSchema;
+              argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
             }
-            
-            if (!argsSchema.properties) {
-              argsSchema.properties = {};
-            }
-            argsSchema.properties[argName] = typeSchema;
-            argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
           }
 
           tools.push({
@@ -460,13 +479,12 @@ export async function POST(request: Request) {
         }
         
         // Build the query
-        const argDefs = Object.keys(field.args || {}).map(argName => {
-          const arg = field.args![argName];
-          return `$${argName}: ${arg.type.toString()}`;
+        const argDefs = (field.args || []).map(arg => {
+          return `$${arg.name}: ${arg.type.toString()}`;
         }).join(', ');
         
-        const argUses = Object.keys(field.args || {}).map(argName => 
-          `${argName}: $${argName}`
+        const argUses = (field.args || []).map(arg => 
+          `${arg.name}: $${arg.name}`
         ).join(', ');
         
         const queryString = `
@@ -478,7 +496,7 @@ export async function POST(request: Request) {
         console.log('Executing query:', queryString);
         
         // Execute the query
-        const result = await executeGraphQL(queryString, args);
+        const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, args);
         
         return new Response(JSON.stringify({
           jsonrpc: '2.0',
