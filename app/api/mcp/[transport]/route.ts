@@ -25,6 +25,12 @@ import {
 } from 'graphql';
 import { getBaseUrl } from '@/features/dashboard/lib/getBaseUrl';
 
+// Schema caching
+let cachedSchema: GraphQLSchema | null = null;
+let lastIntrospectionTime = 0;
+let cachedEndpoint: string | null = null;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
 // Types
 interface JsonSchema {
   type: string;
@@ -54,23 +60,114 @@ async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: st
   return result;
 }
 
-// Get GraphQL schema from introspection
+// Get GraphQL schema from introspection with caching
 async function getGraphQLSchema(graphqlEndpoint: string, cookie: string): Promise<GraphQLSchema> {
-  const response = await fetch(graphqlEndpoint, {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Cookie': cookie,
-    },
-    body: JSON.stringify({ query: getIntrospectionQuery() }),
-  });
+  const now = Date.now();
   
-  const result = await response.json();
-  if (result.errors) {
-    throw new Error(`GraphQL introspection failed: ${JSON.stringify(result.errors)}`);
+  // Check if we have a valid cached schema
+  const isCacheValid = cachedSchema && 
+    (now - lastIntrospectionTime) < CACHE_DURATION && 
+    cachedEndpoint === graphqlEndpoint;
+  
+  if (isCacheValid) {
+    console.log('✅ Using cached GraphQL schema');
+    return cachedSchema;
   }
   
-  return buildClientSchema(result.data);
+  // Log reason for cache miss
+  if (!cachedSchema) {
+    console.log('🔄 Fetching GraphQL schema (first time)...');
+  } else if (cachedEndpoint !== graphqlEndpoint) {
+    console.log('🔄 Fetching GraphQL schema (endpoint changed)...');
+  } else {
+    console.log('🔄 Fetching GraphQL schema (cache expired)...');
+  }
+  
+  try {
+    const response = await fetch(graphqlEndpoint, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Cookie': cookie,
+      },
+      body: JSON.stringify({ query: getIntrospectionQuery() }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    if (result.errors) {
+      throw new Error(`GraphQL introspection failed: ${JSON.stringify(result.errors)}`);
+    }
+    
+    // Cache the schema
+    cachedSchema = buildClientSchema(result.data);
+    lastIntrospectionTime = now;
+    cachedEndpoint = graphqlEndpoint;
+    
+    console.log('✅ GraphQL schema cached for 24 hours');
+    
+    return cachedSchema;
+    
+  } catch (error) {
+    // If we have a cached schema and introspection fails, use the cached version
+    if (cachedSchema) {
+      console.warn('⚠️ Schema introspection failed, using cached schema:', error);
+      return cachedSchema;
+    }
+    
+    // No cached schema available, re-throw the error
+    throw error;
+  }
+}
+
+// Generate detailed tool description from GraphQL field
+function generateToolDescription(fieldName: string, field: GraphQLField<any, any>, operationType: 'query' | 'mutation'): string {
+  const baseDescription = field.description || `${operationType === 'query' ? 'Query' : 'Mutation'}: ${fieldName}`;
+  
+  // Extract argument information
+  const args = field.args || [];
+  if (args.length === 0) {
+    return baseDescription;
+  }
+  
+  const requiredArgs = args.filter(arg => isNonNullType(arg.type));
+  const optionalArgs = args.filter(arg => !isNonNullType(arg.type));
+  
+  let description = baseDescription + '\n\n';
+  
+  if (requiredArgs.length > 0) {
+    description += 'Required fields:\n';
+    requiredArgs.forEach(arg => {
+      const typeName = getSimpleTypeName(arg.type);
+      const argDesc = arg.description ? ` - ${arg.description}` : '';
+      description += `• ${arg.name} (${typeName})${argDesc}\n`;
+    });
+  }
+  
+  if (optionalArgs.length > 0) {
+    description += requiredArgs.length > 0 ? '\nOptional fields:\n' : 'Optional fields:\n';
+    optionalArgs.forEach(arg => {
+      const typeName = getSimpleTypeName(arg.type);
+      const argDesc = arg.description ? ` - ${arg.description}` : '';
+      description += `• ${arg.name} (${typeName})${argDesc}\n`;
+    });
+  }
+  
+  return description.trim();
+}
+
+// Get simple type name for display
+function getSimpleTypeName(type: any): string {
+  if (isNonNullType(type)) {
+    return getSimpleTypeName(type.ofType);
+  }
+  if (isListType(type)) {
+    return `[${getSimpleTypeName(type.ofType)}]`;
+  }
+  return type.name || type.toString();
 }
 
 // Convert GraphQL type to JSON Schema
@@ -230,49 +327,98 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     const tools: Tool[] = [];
 
-    if (!schema.getQueryType()) {
-      return { tools };
+    // Process Query fields
+    if (schema.getQueryType()) {
+      const queryFields = schema.getQueryType()!.getFields();
+      
+      for (const [queryName, field] of Object.entries(queryFields)) {
+        if (queryName.startsWith('__')) continue;
+
+        // Build argument schema
+        const argsSchema: JsonSchema = { 
+          type: 'object', 
+          properties: {}, 
+          required: [] 
+        };
+        
+        // field.args is an array, we need to access the args differently
+        if (field.args && field.args.length > 0) {
+          for (const arg of field.args) {
+            const argName = arg.name;
+            const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+            
+            const isRequired = (typeSchema as any).required;
+            if (isRequired) {
+              delete (typeSchema as any).required;
+              if (Array.isArray(argsSchema.required)) {
+                argsSchema.required.push(argName);
+              }
+            }
+            
+            if (!argsSchema.properties) {
+              argsSchema.properties = {};
+            }
+            argsSchema.properties[argName] = typeSchema;
+            const baseDesc = arg.description || `${argName} field`;
+            const typeInfo = getSimpleTypeName(arg.type);
+            const requiredInfo = isNonNullType(arg.type) ? ' (required)' : ' (optional)';
+            argsSchema.properties[argName].description = `${baseDesc} - Type: ${typeInfo}${requiredInfo}`;
+          }
+        }
+
+        tools.push({
+          name: queryName,
+          description: generateToolDescription(queryName, field, 'query'),
+          inputSchema: argsSchema as any,
+        });
+      }
     }
 
-    const queryFields = schema.getQueryType()!.getFields();
-    
-    for (const [queryName, field] of Object.entries(queryFields)) {
-      if (queryName.startsWith('__')) continue;
-
-      // Build argument schema
-      const argsSchema: JsonSchema = { 
-        type: 'object', 
-        properties: {}, 
-        required: [] 
-      };
+    // Process Mutation fields
+    if (schema.getMutationType()) {
+      const mutationFields = schema.getMutationType()!.getFields();
       
-      // field.args is an array, we need to access the args differently
-      if (field.args && field.args.length > 0) {
-        for (const arg of field.args) {
-          const argName = arg.name;
-          const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
-          
-          const isRequired = (typeSchema as any).required;
-          if (isRequired) {
-            delete (typeSchema as any).required;
-            if (Array.isArray(argsSchema.required)) {
-              argsSchema.required.push(argName);
-            }
-          }
-          
-          if (!argsSchema.properties) {
-            argsSchema.properties = {};
-          }
-          argsSchema.properties[argName] = typeSchema;
-          argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
-        }
-      }
+      for (const [mutationName, field] of Object.entries(mutationFields)) {
+        if (mutationName.startsWith('__')) continue;
 
-      tools.push({
-        name: queryName,
-        description: field.description || `GraphQL query: ${queryName}`,
-        inputSchema: argsSchema as any,
-      });
+        // Build argument schema
+        const argsSchema: JsonSchema = { 
+          type: 'object', 
+          properties: {}, 
+          required: [] 
+        };
+        
+        // field.args is an array, we need to access the args differently
+        if (field.args && field.args.length > 0) {
+          for (const arg of field.args) {
+            const argName = arg.name;
+            const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+            
+            const isRequired = (typeSchema as any).required;
+            if (isRequired) {
+              delete (typeSchema as any).required;
+              if (Array.isArray(argsSchema.required)) {
+                argsSchema.required.push(argName);
+              }
+            }
+            
+            if (!argsSchema.properties) {
+              argsSchema.properties = {};
+            }
+            argsSchema.properties[argName] = typeSchema;
+            const baseDesc = arg.description || `${argName} field`;
+            const typeInfo = getSimpleTypeName(arg.type);
+            const requiredInfo = isNonNullType(arg.type) ? ' (required)' : ' (optional)';
+            argsSchema.properties[argName].description = `${baseDesc} - Type: ${typeInfo}${requiredInfo}`;
+          }
+        }
+
+        tools.push({
+          name: mutationName,
+          description: generateToolDescription(mutationName, field, 'mutation'),
+          inputSchema: argsSchema as any,
+        });
+      }
     }
 
     console.log(`🎉 Generated ${tools.length} tools from GraphQL schema`);
@@ -284,15 +430,32 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
     const { name, arguments: args } = request.params;
 
     try {
-      if (!schema.getQueryType()) {
-        throw new Error('No query type found in schema');
+      let field: any = null;
+      let operationType = '';
+      let operationName = '';
+
+      // Check if it's a query
+      if (schema.getQueryType()) {
+        const queryFields = schema.getQueryType()!.getFields();
+        if (queryFields[name]) {
+          field = queryFields[name];
+          operationType = 'query';
+          operationName = 'Query';
+        }
       }
 
-      const queryFields = schema.getQueryType()!.getFields();
-      const field = queryFields[name];
+      // Check if it's a mutation
+      if (!field && schema.getMutationType()) {
+        const mutationFields = schema.getMutationType()!.getFields();
+        if (mutationFields[name]) {
+          field = mutationFields[name];
+          operationType = 'mutation';
+          operationName = 'Mutation';
+        }
+      }
       
       if (!field) {
-        throw new Error(`Tool ${name} not found`);
+        throw new Error(`Tool ${name} not found in queries or mutations`);
       }
 
       // Get the return type and build selections
@@ -308,23 +471,22 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
         selectionString = buildSelectionString(selections);
       }
       
-      // Build the query
-      const argDefs = Object.keys(field.args || {}).map(argName => {
-        const arg = field.args![argName];
-        return `$${argName}: ${arg.type.toString()}`;
+      // Build the query/mutation
+      const argDefs = (field.args || []).map(arg => {
+        return `$${arg.name}: ${arg.type.toString()}`;
       }).join(', ');
       
-      const argUses = Object.keys(field.args || {}).map(argName => 
-        `${argName}: $${argName}`
+      const argUses = (field.args || []).map(arg => 
+        `${arg.name}: $${arg.name}`
       ).join(', ');
       
       const queryString = `
-        query ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
+        ${operationType} ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
           ${name}${argUses ? `(${argUses})` : ''}${selectionString ? ` {\n${selectionString}\n  }` : ''}
         }
       `.trim();
       
-      console.log('Executing query:', queryString);
+      console.log(`Executing ${operationType}:`, queryString);
       
       // Execute the query
       const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, args);
@@ -398,6 +560,7 @@ export async function POST(request: Request) {
       // Get tools directly without server.request
       const tools: Tool[] = [];
 
+      // Process Query fields
       if (schema.getQueryType()) {
         const queryFields = schema.getQueryType()!.getFields();
         
@@ -435,7 +598,51 @@ export async function POST(request: Request) {
 
           tools.push({
             name: queryName,
-            description: field.description || `GraphQL query: ${queryName}`,
+            description: generateToolDescription(queryName, field, 'query'),
+            inputSchema: argsSchema as any,
+          });
+        }
+      }
+
+      // Process Mutation fields
+      if (schema.getMutationType()) {
+        const mutationFields = schema.getMutationType()!.getFields();
+        
+        for (const [mutationName, field] of Object.entries(mutationFields)) {
+          if (mutationName.startsWith('__')) continue;
+
+          // Build argument schema
+          const argsSchema: JsonSchema = { 
+            type: 'object', 
+            properties: {}, 
+            required: [] 
+          };
+          
+          // field.args is an array, we need to access the args differently
+          if (field.args && field.args.length > 0) {
+            for (const arg of field.args) {
+              const argName = arg.name;
+              const typeSchema = convertTypeToJsonSchema(arg.type, 3, 1);
+              
+              const isRequired = (typeSchema as any).required;
+              if (isRequired) {
+                delete (typeSchema as any).required;
+                if (Array.isArray(argsSchema.required)) {
+                  argsSchema.required.push(argName);
+                }
+              }
+              
+              if (!argsSchema.properties) {
+                argsSchema.properties = {};
+              }
+              argsSchema.properties[argName] = typeSchema;
+              argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
+            }
+          }
+
+          tools.push({
+            name: mutationName,
+            description: generateToolDescription(mutationName, field, 'mutation'),
             inputSchema: argsSchema as any,
           });
         }
@@ -454,15 +661,32 @@ export async function POST(request: Request) {
       const { name, arguments: args } = body.params;
 
       try {
-        if (!schema.getQueryType()) {
-          throw new Error('No query type found in schema');
+        let field: any = null;
+        let operationType = '';
+        let operationName = '';
+
+        // Check if it's a query
+        if (schema.getQueryType()) {
+          const queryFields = schema.getQueryType()!.getFields();
+          if (queryFields[name]) {
+            field = queryFields[name];
+            operationType = 'query';
+            operationName = 'Query';
+          }
         }
 
-        const queryFields = schema.getQueryType()!.getFields();
-        const field = queryFields[name];
+        // Check if it's a mutation
+        if (!field && schema.getMutationType()) {
+          const mutationFields = schema.getMutationType()!.getFields();
+          if (mutationFields[name]) {
+            field = mutationFields[name];
+            operationType = 'mutation';
+            operationName = 'Mutation';
+          }
+        }
         
         if (!field) {
-          throw new Error(`Tool ${name} not found`);
+          throw new Error(`Tool ${name} not found in queries or mutations`);
         }
 
         // Get the return type and build selections
@@ -478,7 +702,7 @@ export async function POST(request: Request) {
           selectionString = buildSelectionString(selections);
         }
         
-        // Build the query
+        // Build the query/mutation
         const argDefs = (field.args || []).map(arg => {
           return `$${arg.name}: ${arg.type.toString()}`;
         }).join(', ');
@@ -488,12 +712,12 @@ export async function POST(request: Request) {
         ).join(', ');
         
         const queryString = `
-          query ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
+          ${operationType} ${name.charAt(0).toUpperCase() + name.slice(1)}${argDefs ? `(${argDefs})` : ''} {
             ${name}${argUses ? `(${argUses})` : ''}${selectionString ? ` {\n${selectionString}\n  }` : ''}
           }
         `.trim();
         
-        console.log('Executing query:', queryString);
+        console.log(`Executing ${operationType}:`, queryString);
         
         // Execute the query
         const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, args);
