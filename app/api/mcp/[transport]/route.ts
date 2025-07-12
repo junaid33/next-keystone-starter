@@ -1,3 +1,64 @@
+/*
+ * GraphQL MCP Server - AI Client Usage Instructions
+ * 
+ * This MCP server provides AI clients with access to a GraphQL API through auto-generated tools.
+ * Here's how AI clients should interact with this server:
+ * 
+ * ## Basic Workflow:
+ * 
+ * 1. **Discover Available Operations**: Use the tools list to see available queries and mutations
+ * 2. **Understand Input Requirements**: When you see a tool that requires complex inputs, use lookup tools
+ * 3. **Build Requests Incrementally**: Look up each input type to understand the required structure
+ * 
+ * ## Key Discovery Tools:
+ * 
+ * - `lookupInputType(typeName)` - Get the structure of any GraphQL input type (e.g., "OrderCreateInput")
+ * - `lookupWhereInput(typeName)` - Get the structure of where/filter inputs (e.g., "OrderWhereInput") 
+ * - `lookupEnumValues(enumName)` - Get available values for enums (e.g., "OrderStatusType")
+ * 
+ * ## Example Workflow - Creating an Order:
+ * 
+ * 1. **User**: "I want to create an order"
+ * 2. **MCP Client**: Queries MCP server tools → finds `createOrder` tool → sees it requires `data: OrderCreateInput`
+ * 3. **MCP Client**: Calls `lookupInputType("OrderCreateInput")` on MCP server → gets all available fields and their types
+ * 4. **MCP Client**: Sees `lineItems` field requires `OrderLineItemRelateToManyForCreateInput` 
+ * 5. **MCP Client**: Calls `lookupInputType("OrderLineItemRelateToManyForCreateInput")` on MCP server → gets line item structure
+ * 6. **MCP Client**: Sees nested fields require additional input types (e.g. `ProductVariantWhereUniqueInput`)
+ * 7. **MCP Client**: Calls `lookupWhereInput("ProductVariantWhereUniqueInput")` on MCP server → gets unique identifier options
+ * 8. **MCP Client**: Now has enough information to construct the proper nested JSON and calls `createOrder` on MCP server
+ * 
+ * ## Example Workflow - Querying Orders:
+ * 
+ * 1. **User**: "Find orders for a specific customer"
+ * 2. **MCP Client**: Queries MCP server tools → finds `orders` tool → sees it requires `where: OrderWhereInput`
+ * 3. **MCP Client**: Calls `lookupWhereInput("OrderWhereInput")` on MCP server → gets all available filter options
+ * 4. **MCP Client**: Sees `user` filter option requires `UserWhereInput`
+ * 5. **MCP Client**: Calls `lookupWhereInput("UserWhereInput")` on MCP server → gets user filter structure
+ * 6. **MCP Client**: Constructs proper where clause with nested user filters and calls `orders` on MCP server
+ * 
+ * ## Important Notes:
+ * 
+ * - **Always look up input types**: Never guess the structure of complex inputs
+ * - **Follow the type chain**: If an input type references other types, look those up too
+ * - **Use proper nesting**: GraphQL requires exact nested structure - use lookup tools to get it right
+ * - **Check enum values**: Use `lookupEnumValues` for any enum fields to see valid options
+ * - **Relationships**: Fields ending in "Input" usually require create/connect patterns
+ * 
+ * ## Type Discovery Pattern:
+ * 
+ * ```
+ * createOrder(data: OrderCreateInput) 
+ *   ↓ lookupInputType("OrderCreateInput")
+ *   ↓ lineItems: LineItemCreateInput[]
+ *   ↓ lookupInputType("LineItemCreateInput") 
+ *   ↓ productVariant: ProductVariantWhereUniqueInput
+ *   ↓ lookupWhereInput("ProductVariantWhereUniqueInput")
+ *   ↓ id: ID | sku: String
+ * ```
+ * 
+ * This allows you to build: `{ data: { lineItems: { create: [{ productVariant: { connect: { id: "..." } } }] } } }`
+ */
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { 
   Tool,
@@ -123,7 +184,7 @@ async function getGraphQLSchema(graphqlEndpoint: string, cookie: string): Promis
   }
 }
 
-// Generate detailed tool description from GraphQL field
+// Generate detailed tool description from GraphQL field  
 function generateToolDescription(fieldName: string, field: GraphQLField<any, any>, operationType: 'query' | 'mutation'): string {
   const baseDescription = field.description || `${operationType === 'query' ? 'Query' : 'Mutation'}: ${fieldName}`;
   
@@ -139,7 +200,7 @@ function generateToolDescription(fieldName: string, field: GraphQLField<any, any
   let description = baseDescription + '\n\n';
   
   if (requiredArgs.length > 0) {
-    description += 'Required fields:\n';
+    description += 'Required arguments:\n';
     requiredArgs.forEach(arg => {
       const typeName = getSimpleTypeName(arg.type);
       const argDesc = arg.description ? ` - ${arg.description}` : '';
@@ -148,7 +209,7 @@ function generateToolDescription(fieldName: string, field: GraphQLField<any, any
   }
   
   if (optionalArgs.length > 0) {
-    description += requiredArgs.length > 0 ? '\nOptional fields:\n' : 'Optional fields:\n';
+    description += requiredArgs.length > 0 ? '\nOptional arguments:\n' : 'Optional arguments:\n';
     optionalArgs.forEach(arg => {
       const typeName = getSimpleTypeName(arg.type);
       const argDesc = arg.description ? ` - ${arg.description}` : '';
@@ -169,6 +230,7 @@ function getSimpleTypeName(type: any): string {
   }
   return type.name || type.toString();
 }
+
 
 // Convert GraphQL type to JSON Schema
 function convertTypeToJsonSchema(
@@ -202,30 +264,12 @@ function convertTypeToJsonSchema(
   }
 
   if (isInputObjectType(gqlType)) {
-    const properties: Record<string, JsonSchema> = {};
-    const required: string[] = [];
-
-    const fields = gqlType.getFields();
-    for (const [fieldName, fieldValue] of Object.entries(fields)) {
-      if (fieldName.startsWith('__')) continue;
-
-      const fieldSchema = convertTypeToJsonSchema(fieldValue.type, maxDepth, currentDepth + 1);
-      const isRequired = (fieldSchema as any).required;
-      if (isRequired) {
-        delete (fieldSchema as any).required;
-        required.push(fieldName);
-      }
-
-      properties[fieldName] = fieldSchema;
-      properties[fieldName].description = `Field ${fieldName}`;
-    }
-
-    const objectSchema: JsonSchema = { type: 'object', properties };
-    if (required.length > 0) {
-      objectSchema.required = required;
-    }
-
-    return objectSchema;
+    // For input object types, return proper object schema
+    return { 
+      type: 'object', 
+      description: `${gqlType.name} - Use lookupInputType('${gqlType.name}') to see structure`,
+      additionalProperties: true
+    };
   }
 
   return { type: 'string', description: `Unknown GraphQL type: ${gqlType.toString()}` };
@@ -406,10 +450,13 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
               argsSchema.properties = {};
             }
             argsSchema.properties[argName] = typeSchema;
-            const baseDesc = arg.description || `${argName} field`;
-            const typeInfo = getSimpleTypeName(arg.type);
-            const requiredInfo = isNonNullType(arg.type) ? ' (required)' : ' (optional)';
-            argsSchema.properties[argName].description = `${baseDesc} - Type: ${typeInfo}${requiredInfo}`;
+            // If typeSchema already has a description with lookup instructions, use that
+            if (!typeSchema.description) {
+              const baseDesc = arg.description || `${argName} argument`;
+              const typeInfo = getSimpleTypeName(arg.type);
+              const requiredInfo = isNonNullType(arg.type) ? ' (required)' : ' (optional)';
+              argsSchema.properties[argName].description = `${baseDesc} - Type: ${typeInfo}${requiredInfo}`;
+            }
           }
         }
 
@@ -421,7 +468,53 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
       }
     }
 
-    console.log(`🎉 Generated ${tools.length} tools from GraphQL schema`);
+    // Add type discovery tools
+    tools.push({
+      name: 'lookupInputType',
+      description: 'Look up the structure of a GraphQL input type\n\nRequired arguments:\n• typeName (String) - The name of the input type to look up (e.g., "OrderCreateInput")',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          typeName: {
+            type: 'string',
+            description: 'The name of the GraphQL input type to inspect'
+          }
+        },
+        required: ['typeName']
+      }
+    });
+
+    tools.push({
+      name: 'lookupWhereInput',
+      description: 'Look up the structure of a GraphQL where/filter input type\n\nRequired arguments:\n• typeName (String) - The name of the where input type to look up (e.g., "OrderWhereInput")',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          typeName: {
+            type: 'string',
+            description: 'The name of the GraphQL where input type to inspect'
+          }
+        },
+        required: ['typeName']
+      }
+    });
+
+    tools.push({
+      name: 'lookupEnumValues',
+      description: 'Look up the available values for a GraphQL enum type\n\nRequired arguments:\n• enumName (String) - The name of the enum type to look up (e.g., "OrderStatusType")',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          enumName: {
+            type: 'string',
+            description: 'The name of the GraphQL enum type to inspect'
+          }
+        },
+        required: ['enumName']
+      }
+    });
+
+    console.log(`🎉 Generated ${tools.length} tools from GraphQL schema (including ${tools.length - (tools.length - 3)} type discovery tools)`);
     return { tools };
   });
 
@@ -430,6 +523,91 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
     const { name, arguments: args } = request.params;
 
     try {
+      // Handle type discovery tools
+      if (name === 'lookupInputType') {
+        const typeName = args.typeName;
+        const type = schema.getType(typeName);
+        
+        if (!type || !isInputObjectType(type)) {
+          throw new Error(`Input type "${typeName}" not found`);
+        }
+        
+        const fields = type.getFields();
+        const result = {
+          name: typeName,
+          description: type.description || `Input type: ${typeName}`,
+          fields: Object.entries(fields).map(([fieldName, fieldValue]) => ({
+            name: fieldName,
+            type: getSimpleTypeName(fieldValue.type),
+            required: isNonNullType(fieldValue.type),
+            description: fieldValue.description || `Field: ${fieldName}`
+          }))
+        };
+        
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+      
+      if (name === 'lookupWhereInput') {
+        const typeName = args.typeName;
+        const type = schema.getType(typeName);
+        
+        if (!type || !isInputObjectType(type)) {
+          throw new Error(`Where input type "${typeName}" not found`);
+        }
+        
+        const fields = type.getFields();
+        const result = {
+          name: typeName,
+          description: type.description || `Where input type: ${typeName}`,
+          fields: Object.entries(fields).map(([fieldName, fieldValue]) => ({
+            name: fieldName,
+            type: getSimpleTypeName(fieldValue.type),
+            required: isNonNullType(fieldValue.type),
+            description: fieldValue.description || `Filter field: ${fieldName}`
+          }))
+        };
+        
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+      
+      if (name === 'lookupEnumValues') {
+        const enumName = args.enumName;
+        const type = schema.getType(enumName);
+        
+        if (!type || !(type as any).getValues) {
+          throw new Error(`Enum type "${enumName}" not found`);
+        }
+        
+        const values = (type as any).getValues ? (type as any).getValues() : [];
+        const result = {
+          name: enumName,
+          description: type.description || `Enum type: ${enumName}`,
+          values: values.map((value: any) => ({
+            name: value.name,
+            value: value.value,
+            description: value.description || `Enum value: ${value.name}`
+          }))
+        };
+        
+        return {
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          }],
+        };
+      }
+
+      // Handle regular GraphQL operations
       let field: any = null;
       let operationType = '';
       let operationName = '';
@@ -455,7 +633,7 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
       }
       
       if (!field) {
-        throw new Error(`Tool ${name} not found in queries or mutations`);
+        throw new Error(`Tool ${name} not found in queries, mutations, or discovery tools`);
       }
 
       // Get the return type and build selections
@@ -511,8 +689,11 @@ async function createMCPServer(graphqlEndpoint: string, cookie: string) {
 }
 
 // Export the handler
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: { transport: string } }) {
   try {
+    // Await params as required by Next.js
+    const { transport } = await params;
+    
     // Construct GraphQL endpoint
     const baseUrl = await getBaseUrl();
     const graphqlEndpoint = `${baseUrl}/api/graphql`;
@@ -520,10 +701,60 @@ export async function GET(request: Request) {
     // Extract cookie from request
     const cookie = request.headers.get('cookie') || '';
     
-    // For HTTP transport, we'll return a simple response
+    // Handle SSE transport
+    if (transport === 'sse') {
+      console.log('🔥 SSE REQUEST - Cookie received:', cookie ? 'YES' : 'NO');
+      console.log('🔥 SSE REQUEST - Cookie value:', cookie);
+      
+      // Set SSE headers
+      const headers = new Headers({
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control',
+      });
+
+      // Create a readable stream for SSE
+      const stream = new ReadableStream({
+        start(controller) {
+          // Send initial connection event with cookie info
+          const connectionData = {
+            status: "connected",
+            cookieReceived: !!cookie,
+            cookieLength: cookie.length
+          };
+          controller.enqueue(new TextEncoder().encode(`event: connect\ndata: ${JSON.stringify(connectionData)}\n\n`));
+          
+          // Keep connection alive with periodic pings
+          const pingInterval = setInterval(() => {
+            try {
+              controller.enqueue(new TextEncoder().encode('event: ping\ndata: {"timestamp":' + Date.now() + '}\n\n'));
+            } catch (e) {
+              clearInterval(pingInterval);
+            }
+          }, 30000);
+
+          // Store cleanup function
+          (controller as any).cleanup = () => {
+            clearInterval(pingInterval);
+          };
+        },
+        cancel() {
+          // Cleanup when client disconnects
+          if ((this as any).cleanup) {
+            (this as any).cleanup();
+          }
+        }
+      });
+
+      return new Response(stream, { headers });
+    }
+    
+    // For HTTP transport, return a simple response
     return new Response(JSON.stringify({ 
       message: 'GraphQL MCP Server is running',
-      transport: 'http',
+      transport: transport,
       graphqlEndpoint
     }), {
       status: 200,
@@ -540,15 +771,18 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request, { params }: { params: { transport: string } }) {
   try {
+    // Await params as required by Next.js
+    const { transport } = await params;
+    
     // Construct GraphQL endpoint
     const baseUrl = await getBaseUrl();
     const graphqlEndpoint = `${baseUrl}/api/graphql`;
     
     // Extract cookie from request
     const cookie = request.headers.get('cookie') || '';
-    
+  
     // Get the GraphQL schema first
     const schema = await getGraphQLSchema(graphqlEndpoint, cookie);
     
@@ -556,7 +790,35 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     // Handle the request based on method
-    if (body.method === 'tools/list') {
+    if (body.method === 'initialize') {
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: { listChanged: true },
+            logging: {}
+          },
+          serverInfo: {
+            name: 'graphql-mcp-server',
+            version: '1.0.0'
+          }
+        }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (body.method === 'notifications/initialized') {
+      return new Response(JSON.stringify({
+        jsonrpc: '2.0',
+        id: body.id,
+        result: {}
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } else if (body.method === 'tools/list') {
       // Get tools directly without server.request
       const tools: Tool[] = [];
 
@@ -636,7 +898,13 @@ export async function POST(request: Request) {
                 argsSchema.properties = {};
               }
               argsSchema.properties[argName] = typeSchema;
-              argsSchema.properties[argName].description = arg.description || `Argument ${argName}`;
+              // If typeSchema already has a description with lookup instructions, use that
+              if (!typeSchema.description) {
+                const baseDesc = arg.description || `${argName} argument`;
+                const typeInfo = getSimpleTypeName(arg.type);
+                const requiredInfo = isNonNullType(arg.type) ? ' (required)' : ' (optional)';
+                argsSchema.properties[argName].description = `${baseDesc} - Type: ${typeInfo}${requiredInfo}`;
+              }
             }
           }
 
@@ -647,6 +915,52 @@ export async function POST(request: Request) {
           });
         }
       }
+
+      // Add type discovery tools
+      tools.push({
+        name: 'lookupInputType',
+        description: 'Look up the structure of a GraphQL input type\n\nRequired arguments:\n• typeName (String) - The name of the input type to look up (e.g., "OrderCreateInput")',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            typeName: {
+              type: 'string',
+              description: 'The name of the GraphQL input type to inspect'
+            }
+          },
+          required: ['typeName']
+        }
+      });
+
+      tools.push({
+        name: 'lookupWhereInput',
+        description: 'Look up the structure of a GraphQL where/filter input type\n\nRequired arguments:\n• typeName (String) - The name of the where input type to look up (e.g., "OrderWhereInput")',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            typeName: {
+              type: 'string',
+              description: 'The name of the GraphQL where input type to inspect'
+            }
+          },
+          required: ['typeName']
+        }
+      });
+
+      tools.push({
+        name: 'lookupEnumValues',
+        description: 'Look up the available values for a GraphQL enum type\n\nRequired arguments:\n• enumName (String) - The name of the enum type to look up (e.g., "OrderStatusType")',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            enumName: {
+              type: 'string',
+              description: 'The name of the GraphQL enum type to inspect'
+            }
+          },
+          required: ['enumName']
+        }
+      });
       
       return new Response(JSON.stringify({
         jsonrpc: '2.0',
@@ -661,6 +975,112 @@ export async function POST(request: Request) {
       const { name, arguments: args } = body.params;
 
       try {
+        // Handle type discovery tools
+        if (name === 'lookupInputType') {
+          const typeName = args.typeName;
+          const type = schema.getType(typeName);
+          
+          if (!type || !isInputObjectType(type)) {
+            throw new Error(`Input type "${typeName}" not found`);
+          }
+          
+          const fields = type.getFields();
+          const result = {
+            name: typeName,
+            description: type.description || `Input type: ${typeName}`,
+            fields: Object.entries(fields).map(([fieldName, fieldValue]) => ({
+              name: fieldName,
+              type: getSimpleTypeName(fieldValue.type),
+              required: isNonNullType(fieldValue.type),
+              description: fieldValue.description || `Field: ${fieldName}`
+            }))
+          };
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (name === 'lookupWhereInput') {
+          const typeName = args.typeName;
+          const type = schema.getType(typeName);
+          
+          if (!type || !isInputObjectType(type)) {
+            throw new Error(`Where input type "${typeName}" not found`);
+          }
+          
+          const fields = type.getFields();
+          const result = {
+            name: typeName,
+            description: type.description || `Where input type: ${typeName}`,
+            fields: Object.entries(fields).map(([fieldName, fieldValue]) => ({
+              name: fieldName,
+              type: getSimpleTypeName(fieldValue.type),
+              required: isNonNullType(fieldValue.type),
+              description: fieldValue.description || `Filter field: ${fieldName}`
+            }))
+          };
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (name === 'lookupEnumValues') {
+          const enumName = args.enumName;
+          const type = schema.getType(enumName);
+          
+          if (!type || !(type as any).getValues) {
+            throw new Error(`Enum type "${enumName}" not found`);
+          }
+          
+          const values = (type as any).getValues ? (type as any).getValues() : [];
+          const result = {
+            name: enumName,
+            description: type.description || `Enum type: ${enumName}`,
+            values: values.map((value: any) => ({
+              name: value.name,
+              value: value.value,
+              description: value.description || `Enum value: ${value.name}`
+            }))
+          };
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Handle regular GraphQL operations
         let field: any = null;
         let operationType = '';
         let operationName = '';
@@ -702,6 +1122,9 @@ export async function POST(request: Request) {
           selectionString = buildSelectionString(selections);
         }
         
+        // Use args directly - no flattening to revert
+        const variables = args;
+        
         // Build the query/mutation
         const argDefs = (field.args || []).map(arg => {
           return `$${arg.name}: ${arg.type.toString()}`;
@@ -718,9 +1141,10 @@ export async function POST(request: Request) {
         `.trim();
         
         console.log(`Executing ${operationType}:`, queryString);
+        console.log(`Variables:`, JSON.stringify(variables, null, 2));
         
         // Execute the query
-        const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, args);
+        const result = await executeGraphQL(queryString, graphqlEndpoint, cookie, variables);
         
         return new Response(JSON.stringify({
           jsonrpc: '2.0',
