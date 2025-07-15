@@ -75,7 +75,7 @@ export async function POST(request: Request, { params }: { params: { transport: 
     const graphqlEndpoint = `${baseUrl}/api/graphql`;
     
     // Extract cookie from request
-    const cookie = request.headers.get('cookie')
+    const cookie = request.headers.get('cookie') || ''
   
     // Get the GraphQL schema
     const schema = await getGraphQLSchema(graphqlEndpoint, cookie);
@@ -178,6 +178,27 @@ export async function POST(request: Request, { params }: { params: { transport: 
           },
           required: ['inputTypeName']
         }
+      }, {
+        name: 'createData',
+        description: 'Execute a GraphQL mutation to create new data',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            operation: {
+              type: 'string',
+              description: 'The GraphQL create mutation name (e.g., "createUser", "createTodo")'
+            },
+            data: {
+              type: 'string',
+              description: 'JSON string of the data object to create'
+            },
+            fields: {
+              type: 'string',
+              description: 'The fields to return from the created item'
+            }
+          },
+          required: ['operation', 'data', 'fields']
+        }
       }];
       
       return new Response(JSON.stringify({
@@ -274,7 +295,7 @@ export async function POST(request: Request, { params }: { params: { transport: 
           `.trim();
           
           // Execute the query
-          const result = await executeGraphQL(queryString, graphqlEndpoint, cookie);
+          const result = await executeGraphQL(queryString, graphqlEndpoint, cookie || '');
           
           return new Response(JSON.stringify({
             jsonrpc: '2.0',
@@ -496,6 +517,38 @@ export async function POST(request: Request, { params }: { params: { transport: 
             fields: inputFields,
             isInputType: isInputObjectType(inputType)
           };
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (name === 'createData') {
+          const { operation, data, fields } = args;
+          
+          // Parse the data JSON string
+          const dataObject = JSON.parse(data);
+          
+          const mutationString = `
+            mutation Create${operation.charAt(0).toUpperCase() + operation.slice(1)} {
+              ${operation}(data: ${JSON.stringify(dataObject).replace(/\"([^\"]+)\":/g, '$1:')}) {
+                ${fields}
+              }
+            }
+          `.trim();
+          
+          // Execute the mutation
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
           
           return new Response(JSON.stringify({
             jsonrpc: '2.0',
