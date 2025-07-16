@@ -199,6 +199,52 @@ export async function POST(request: Request, { params }: { params: { transport: 
           },
           required: ['operation', 'data', 'fields']
         }
+      }, {
+        name: 'updateData',
+        description: 'Execute a GraphQL mutation to update existing data',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            operation: {
+              type: 'string',
+              description: 'The GraphQL update mutation name (e.g., "updateUser", "updateTodo")'
+            },
+            where: {
+              type: 'string',
+              description: 'JSON string of the where clause to identify the item to update'
+            },
+            data: {
+              type: 'string',
+              description: 'JSON string of the data object with fields to update'
+            },
+            fields: {
+              type: 'string',
+              description: 'The fields to return from the updated item'
+            }
+          },
+          required: ['operation', 'where', 'data', 'fields']
+        }
+      }, {
+        name: 'deleteData',
+        description: 'Execute a GraphQL mutation to delete data',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            operation: {
+              type: 'string',
+              description: 'The GraphQL delete mutation name (e.g., "deleteUser", "deleteTodo")'
+            },
+            where: {
+              type: 'string',
+              description: 'JSON string of the where clause to identify the item to delete'
+            },
+            fields: {
+              type: 'string',
+              description: 'The fields to return from the deleted item'
+            }
+          },
+          required: ['operation', 'where', 'fields']
+        }
       }];
       
       return new Response(JSON.stringify({
@@ -542,6 +588,71 @@ export async function POST(request: Request, { params }: { params: { transport: 
           const mutationString = `
             mutation Create${operation.charAt(0).toUpperCase() + operation.slice(1)} {
               ${operation}(data: ${JSON.stringify(dataObject).replace(/\"([^\"]+)\":/g, '$1:')}) {
+                ${fields}
+              }
+            }
+          `.trim();
+          
+          // Execute the mutation
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (name === 'updateData') {
+          const { operation, where, data, fields } = args;
+          
+          // Parse the JSON strings
+          const whereObject = JSON.parse(where);
+          const dataObject = JSON.parse(data);
+          
+          const mutationString = `
+            mutation Update${operation.charAt(0).toUpperCase() + operation.slice(1)} {
+              ${operation}(where: ${JSON.stringify(whereObject).replace(/\"([^\"]+)\":/g, '$1:')}, data: ${JSON.stringify(dataObject).replace(/\"([^\"]+)\":/g, '$1:')}) {
+                ${fields}
+              }
+            }
+          `.trim();
+          
+          // Execute the mutation
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
+          
+          return new Response(JSON.stringify({
+            jsonrpc: '2.0',
+            id: body.id,
+            result: {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              }],
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        
+        if (name === 'deleteData') {
+          const { operation, where, fields } = args;
+          
+          // Parse the where JSON string
+          const whereObject = JSON.parse(where);
+          
+          const mutationString = `
+            mutation Delete${operation.charAt(0).toUpperCase() + operation.slice(1)} {
+              ${operation}(where: ${JSON.stringify(whereObject).replace(/\"([^\"]+)\":/g, '$1:')}) {
                 ${fields}
               }
             }

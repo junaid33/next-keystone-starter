@@ -31,7 +31,10 @@
       "Bash(npx tsx:*)",
       "WebFetch(domain:www.anthropic.com)",
       "Bash(true)",
-      "Bash(npx @modelcontextprotocol/inspector:*)"
+      "Bash(npx @modelcontextprotocol/inspector:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(diff:*)",
+      "Bash(tsx test-list-todos.ts:*)"
     ],
     "deny": []
   }
