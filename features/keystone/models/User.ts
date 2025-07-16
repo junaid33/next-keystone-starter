@@ -9,7 +9,14 @@ export const User = list({
   access: {
     operation: {
       ...allOperations(isSignedIn),
-      create: permissions.canManagePeople,
+      create: (args) => {
+        // Allow public sign-ups if environment variable is set to true
+        if (process.env.PUBLIC_SIGNUPS_ALLOWED === 'true') {
+          return true;
+        }
+        // Otherwise, require canManagePeople permission
+        return permissions.canManagePeople(args);
+      },
       delete: permissions.canManagePeople,
     },
     filter: {
