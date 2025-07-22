@@ -80,7 +80,12 @@ var User = (0, import_core.list)({
   access: {
     operation: {
       ...(0, import_access.allOperations)(isSignedIn),
-      create: permissions.canManagePeople,
+      create: (args) => {
+        if (process.env.PUBLIC_SIGNUPS_ALLOWED === "true") {
+          return true;
+        }
+        return permissions.canManagePeople(args);
+      },
       delete: permissions.canManagePeople
     },
     filter: {

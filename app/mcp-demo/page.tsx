@@ -4,8 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { StickToBottom } from 'use-stick-to-bottom';
 
+// UI Components that would typically be in separate files
+import { cn } from '@/lib/utils';
+
+// Types
 interface Message {
   id: string;
   content: string;
@@ -13,67 +16,51 @@ interface Message {
   timestamp: Date;
 }
 
-function ChatMessage({ message }: { message: Message }) {
+// Components
+
+function ChatMessage({ isUser, children }: { isUser?: boolean; children: React.ReactNode }) {
   return (
-    <article className={`flex items-start gap-4 text-[15px] leading-relaxed ${message.isUser ? 'justify-end' : ''}`}>
-      <div className={`rounded-full w-10 h-10 flex items-center justify-center text-white font-medium text-sm ${
-        message.isUser 
-          ? 'bg-gradient-to-t from-green-700 to-green-600 order-1' 
-          : 'bg-gradient-to-t from-indigo-700 to-indigo-600 border border-gray-200 shadow-sm'
-      }`}>
-        {message.isUser ? (
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        ) : (
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-          </svg>
+    <article className={`flex items-start gap-4 text-[15px] leading-relaxed ${isUser ? 'justify-end' : ''}`}>
+      <img
+        className={cn(
+          'rounded-full',
+          isUser ? 'order-1' : 'border border-black/[0.08] shadow-sm'
         )}
-      </div>
-      <div className="bg-gray-100 px-4 py-3 rounded-xl space-y-4">
+        src={
+          isUser
+            ? 'https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-02_mlqqqt.png'
+            : 'https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-01_i5l7tp.png'
+        }
+        alt={isUser ? 'User profile' : 'Bart logo'}
+        width={40}
+        height={40}
+      />
+      <div className={cn(isUser ? 'bg-gray-100 px-4 py-3 rounded-xl' : 'space-y-4')}>
         <div className="flex flex-col gap-3">
-          <p className="sr-only">{message.isUser ? 'You' : 'AI'} said:</p>
-          {message.isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
-          ) : (
-            <div className="w-full">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                  ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-4">{children}</ul>,
-                  ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-4">{children}</ol>,
-                  li: ({ children }) => <li className="mb-1">{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                  em: ({ children }) => <em className="italic">{children}</em>,
-                  code: ({ children, ...props }) => {
-                    if ((props as any).inline) {
-                      return <code className="bg-white px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
-                    }
-                    return <pre className="bg-white border border-gray-200 rounded p-3 overflow-x-auto"><code className="text-sm font-mono">{children}</code></pre>;
-                  },
-                  pre: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
-                }}
-              >
-                {message.content}
-              </ReactMarkdown>
-            </div>
-          )}
+          <p className="sr-only">{isUser ? 'You' : 'Bart'} said:</p>
+          {children}
         </div>
-        {!message.isUser && (
-          <div className="relative inline-flex bg-white rounded-md border border-gray-200 shadow-sm">
-            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center first:rounded-l-lg last:rounded-r-lg focus-visible:z-10 outline-offset-2 focus-visible:outline-2 focus-visible:outline-blue-500">
+        {!isUser && (
+          <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
+            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center rounded-l-md">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
               </svg>
-              <span className="sr-only">Copy</span>
             </button>
-            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center border-l border-gray-200 focus-visible:z-10 outline-offset-2 focus-visible:outline-2 focus-visible:outline-blue-500">
+            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center border-l border-gray-200">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
               </svg>
-              <span className="sr-only">Like</span>
+            </button>
+            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center border-l border-gray-200">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center border-l border-gray-200 rounded-r-md">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
             </button>
           </div>
         )}
@@ -82,10 +69,15 @@ function ChatMessage({ message }: { message: Message }) {
   );
 }
 
-export default function MCPDemoPage() {
+function Chat() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView();
+  }, [messages]);
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -191,9 +183,9 @@ export default function MCPDemoPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="h-full bg-white rounded-3xl shadow-sm flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 md:px-6 lg:px-8 py-5">
+      <div className="py-5 px-4 md:px-6 lg:px-8 bg-white sticky top-0 z-10 border-b border-gray-200">
         <div className="flex items-center justify-between gap-2">
           <nav className="flex items-center text-sm">
             <span className="text-gray-500">Playground</span>
@@ -217,100 +209,154 @@ export default function MCPDemoPage() {
         </div>
       </div>
 
-      {/* Chat Area */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full flex flex-col bg-white rounded-tl-3xl shadow-sm">
-          <StickToBottom 
-            className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8"
-            resize="smooth"
-            initial="instant"
-            role="log"
-          >
-            <StickToBottom.Content className="flex w-full flex-col">
-              <div className="py-6">
-                {messages.length === 0 ? (
-                  <div className="text-center my-12">
-                    <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-2 px-4 text-gray-600 mb-6">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      AI Assistant
-                    </div>
-                    <p className="text-gray-500 text-lg">Start a conversation with your AI assistant</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-center my-8">
-                      <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-1 px-3 text-gray-600">
-                        <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Today
-                      </div>
-                    </div>
-                    <div className="space-y-6">
-                      {messages.map((message) => (
-                        <ChatMessage key={message.id} message={message} />
-                      ))}
-                    </div>
-                  </>
-                )}
-                <div className="h-px w-full shrink-0 scroll-mt-4" aria-hidden="true" />
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto mt-6 space-y-6">
+          {messages.length === 0 ? (
+            <div className="text-center my-12">
+              <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-2 px-4 text-gray-600 mb-6">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                AI Assistant
               </div>
-            </StickToBottom.Content>
-          </StickToBottom>
-
-          {/* Input Area */}
-          <div className="px-4 md:px-6 lg:px-8 py-4 md:py-8">
-            <div>
-              <div className="relative rounded-[20px] border border-gray-200 bg-gray-50 transition-colors focus-within:bg-gray-100 focus-within:border-gray-300">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask me anything..."
-                  className="flex min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-500 focus-visible:outline-none resize-none"
-                  disabled={loading}
-                  rows={3}
-                />
-                <div className="flex items-center justify-between gap-2 p-3">
-                  <div className="flex items-center gap-2">
-                    <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                      <span className="sr-only">Attach</span>
-                    </button>
-                    <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
-                      <span className="sr-only">Audio</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleSubmit}
-                      disabled={loading || !input.trim()}
-                      className="bg-gradient-to-t from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1"
-                    >
-                      {loading ? 'Sending...' : 'Send'}
-                      <svg 
-                        className="w-3 h-3"
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
+              <p className="text-gray-500 text-lg">Start a conversation with your AI assistant</p>
+            </div>
+          ) : (
+            <>
+              <div className="text-center my-8">
+                <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-1 px-3 text-gray-600">
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Today
                 </div>
+              </div>
+              {messages.map((message) => (
+                <ChatMessage key={message.id} isUser={message.isUser}>
+                  {message.isUser ? (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <>
+                      {message.content ? (
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-4">{children}</ul>,
+                            ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-4">{children}</ol>,
+                            li: ({ children }) => <li className="mb-1">{children}</li>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            code: ({ children, ...props }) => {
+                              if ((props as any).inline) {
+                                return <code className="bg-white px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+                              }
+                              return <pre className="bg-white border border-gray-200 rounded p-3 overflow-x-auto"><code className="text-sm font-mono">{children}</code></pre>;
+                            },
+                            pre: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-500 text-sm">
+                          <div className="flex gap-1">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                          </div>
+                          <span>Thinking...</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </ChatMessage>
+              ))}
+            </>
+          )}
+          <div ref={messagesEndRef} aria-hidden="true" />
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="sticky bottom-0 px-4 md:px-6 lg:px-8 py-4 md:py-8 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <div className="relative rounded-[20px] border border-gray-200 bg-gray-50 transition-colors focus-within:bg-gray-100 focus-within:border-gray-300">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask me anything..."
+              className="flex min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-500 focus-visible:outline-none resize-none"
+              disabled={loading}
+              rows={3}
+            />
+            <div className="flex items-center justify-between gap-2 p-3">
+              <div className="flex items-center gap-2">
+                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </button>
+                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </button>
+                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                  </svg>
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none">
+                    <g clipPath="url(#icon-a)">
+                      <path
+                        fill="url(#icon-b)"
+                        d="m8 .333 2.667 5 5 2.667-5 2.667-2.667 5-2.667-5L.333 8l5-2.667L8 .333Z"
+                      />
+                    </g>
+                    <defs>
+                      <linearGradient
+                        id="icon-b"
+                        x1="8"
+                        x2="8"
+                        y1=".333"
+                        y2="15.667"
+                        gradientUnits="userSpaceOnUse"
+                      >
+                        <stop stopColor="#FDE68A" />
+                        <stop offset="1" stopColor="#F59E0B" />
+                      </linearGradient>
+                      <clipPath id="icon-a">
+                        <path fill="#fff" d="M0 0h16v16H0z" />
+                      </clipPath>
+                    </defs>
+                  </svg>
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !input.trim()}
+                  className="bg-gradient-to-t from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full text-sm font-medium transition-all"
+                >
+                  {loading ? 'Sending...' : 'Ask Bart'}
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function MCPDemoPage() {
+  return (
+    <div className="h-screen bg-gray-50">
+      <Chat />
     </div>
   );
 }
