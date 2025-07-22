@@ -40,6 +40,7 @@ function ChatMessage({ isUser, children }: { isUser?: boolean; children: React.R
           <p className="sr-only">{isUser ? 'You' : 'Bart'} said:</p>
           {children}
         </div>
+        {/* Action buttons - commented out for now
         {!isUser && (
           <div className="relative inline-flex bg-white rounded-md border border-black/[0.08] shadow-sm -space-x-px">
             <button className="relative text-gray-500 hover:text-gray-700 transition-colors size-8 flex items-center justify-center rounded-l-md">
@@ -64,6 +65,7 @@ function ChatMessage({ isUser, children }: { isUser?: boolean; children: React.R
             </button>
           </div>
         )}
+        */}
       </div>
     </article>
   );
@@ -76,7 +78,7 @@ function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSubmit = async () => {
@@ -95,12 +97,21 @@ function Chat() {
     setLoading(true);
     
     try {
+      // Build conversation history including the new user message
+      const conversationHistory = [...messages, userMessage].map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.content
+      }));
+
       const res = await fetch('/api/completion-simple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: currentInput }),
+        body: JSON.stringify({ 
+          prompt: currentInput,
+          messages: conversationHistory 
+        }),
         credentials: 'include',
       });
 
@@ -212,72 +223,72 @@ function Chat() {
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto px-4 md:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto mt-6 space-y-6">
-          {messages.length === 0 ? (
-            <div className="text-center my-12">
-              <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-2 px-4 text-gray-600 mb-6">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                AI Assistant
-              </div>
-              <p className="text-gray-500 text-lg">Start a conversation with your AI assistant</p>
-            </div>
-          ) : (
-            <>
-              <div className="text-center my-8">
-                <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-1 px-3 text-gray-600">
-                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {messages.length === 0 ? (
+              <div className="text-center my-12">
+                <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-2 px-4 text-gray-600 mb-6">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Today
+                  AI Assistant
                 </div>
+                <p className="text-gray-500 text-lg">Start a conversation with your AI assistant</p>
               </div>
-              {messages.map((message) => (
-                <ChatMessage key={message.id} isUser={message.isUser}>
-                  {message.isUser ? (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  ) : (
-                    <>
-                      {message.content ? (
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm, remarkBreaks]}
-                          components={{
-                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                            ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-4">{children}</ul>,
-                            ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-4">{children}</ol>,
-                            li: ({ children }) => <li className="mb-1">{children}</li>,
-                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                            em: ({ children }) => <em className="italic">{children}</em>,
-                            code: ({ children, ...props }) => {
-                              if ((props as any).inline) {
-                                return <code className="bg-white px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
-                              }
-                              return <pre className="bg-white border border-gray-200 rounded p-3 overflow-x-auto"><code className="text-sm font-mono">{children}</code></pre>;
-                            },
-                            pre: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
-                          }}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      ) : (
-                        <div className="flex items-center gap-2 text-gray-500 text-sm">
-                          <div className="flex gap-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                            <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            ) : (
+              <>
+                <div className="text-center my-8">
+                  <div className="inline-flex items-center bg-white rounded-full border border-gray-200 shadow-sm text-xs font-medium py-1 px-3 text-gray-600">
+                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Today
+                  </div>
+                </div>
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} isUser={message.isUser}>
+                    {message.isUser ? (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    ) : (
+                      <>
+                        {message.content ? (
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            components={{
+                              p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                              ul: ({ children }) => <ul className="mb-2 last:mb-0 pl-4">{children}</ul>,
+                              ol: ({ children }) => <ol className="mb-2 last:mb-0 pl-4">{children}</ol>,
+                              li: ({ children }) => <li className="mb-1">{children}</li>,
+                              strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                              em: ({ children }) => <em className="italic">{children}</em>,
+                              code: ({ children, ...props }) => {
+                                if ((props as any).inline) {
+                                  return <code className="bg-white px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+                                }
+                                return <pre className="bg-white border border-gray-200 rounded p-3 overflow-x-auto"><code className="text-sm font-mono">{children}</code></pre>;
+                              },
+                              pre: ({ children }) => <div className="mb-2 last:mb-0">{children}</div>,
+                            }}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        ) : (
+                          <div className="flex items-center gap-2 text-gray-500 text-sm">
+                            <div className="flex gap-1">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                            </div>
+                            <span>Thinking...</span>
                           </div>
-                          <span>Thinking...</span>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </ChatMessage>
-              ))}
-            </>
-          )}
-          <div ref={messagesEndRef} aria-hidden="true" />
+                        )}
+                      </>
+                    )}
+                  </ChatMessage>
+                ))}
+              </>
+            )}
+            <div ref={messagesEndRef} aria-hidden="true" />
+          </div>
         </div>
-      </div>
 
       {/* Input Area */}
       <div className="sticky bottom-0 px-4 md:px-6 lg:px-8 py-4 md:py-8 bg-white">
@@ -294,23 +305,24 @@ function Chat() {
             />
             <div className="flex items-center justify-between gap-2 p-3">
               <div className="flex items-center gap-2">
-                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button disabled className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 cursor-not-allowed opacity-50">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                 </button>
-                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button disabled className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 cursor-not-allowed opacity-50">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                 </button>
-                <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button disabled className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 cursor-not-allowed opacity-50">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
                 </button>
               </div>
               <div className="flex items-center gap-2">
+                {/* Extra button - commented out for now
                 <button className="rounded-full w-8 h-8 flex items-center justify-center bg-white border border-gray-200 hover:bg-gray-50 hover:shadow-sm transition-all">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none">
                     <g clipPath="url(#icon-a)">
@@ -337,12 +349,13 @@ function Chat() {
                     </defs>
                   </svg>
                 </button>
+                */}
                 <button
                   onClick={handleSubmit}
                   disabled={loading || !input.trim()}
                   className="bg-gradient-to-t from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full text-sm font-medium transition-all"
                 >
-                  {loading ? 'Sending...' : 'Ask Bart'}
+                  {loading ? 'Sending...' : 'Send'}
                 </button>
               </div>
             </div>
