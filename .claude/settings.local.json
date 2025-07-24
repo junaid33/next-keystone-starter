@@ -34,7 +34,8 @@
       "Bash(npx @modelcontextprotocol/inspector:*)",
       "WebFetch(domain:github.com)",
       "Bash(diff:*)",
-      "Bash(tsx test-list-todos.ts:*)"
+      "Bash(tsx test-list-todos.ts:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

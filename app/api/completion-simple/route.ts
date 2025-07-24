@@ -50,10 +50,11 @@ class CookieAwareTransport extends StreamableHTTPClientTransport {
   }
 }
 
-const openrouter = createOpenAI({
+// Default OpenRouter configuration - will be overridden if local keys are provided
+let openrouterConfig = {
   apiKey: process.env.OPENROUTER_API_KEY,
   baseURL: 'https://openrouter.ai/api/v1',
-});
+};
 
 export async function POST(req: Request) {
   let mcpClient: any = null;
@@ -61,6 +62,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const prompt = body.prompt || body.messages?.[body.messages.length - 1]?.content || '';
+    
+    // Handle local API key configuration
+    if (body.useLocalKeys && body.apiKey) {
+      openrouterConfig = {
+        apiKey: body.apiKey,
+        baseURL: 'https://openrouter.ai/api/v1',
+      };
+    }
 
     // Get dynamic base URL
     const baseUrl = await getBaseUrl();
@@ -80,6 +89,16 @@ export async function POST(req: Request) {
     });
     
     const aiTools = await mcpClient.tools();
+    
+    // Create OpenRouter client with current configuration
+    const openrouter = createOpenAI(openrouterConfig);
+    
+    // Determine model and maxTokens from request or fallback to ENV
+    const model = body.useLocalKeys && body.model ? body.model : (process.env.OPENROUTER_MODEL ?? (() => {
+      throw new Error('OPENROUTER_MODEL is not provided. Please go to openrouter.ai, find a model, copy its key and put it in the env file as OPENROUTER_MODEL variable.');
+    })());
+    
+    const maxTokens = body.useLocalKeys && body.maxTokens ? parseInt(body.maxTokens) : undefined;
     
     const systemInstructions = `You're an expert at converting natural language to GraphQL queries for our KeystoneJS API.
 
@@ -145,10 +164,8 @@ EXAMPLES:
 
 Always complete the full workflow and return actual data, not just schema discovery. The system works with any model type dynamically.`;
 
-    const response = streamText({
-      model: openrouter(process.env.OPENROUTER_MODEL ?? (() => {
-        throw new Error('OPENROUTER_MODEL is not provided. Please go to openrouter.ai, find a model, copy its key and put it in the env file as OPENROUTER_MODEL variable.');
-      })()),
+    const streamTextConfig: any = {
+      model: openrouter(model),
       tools: aiTools,
       prompt,
       system: systemInstructions,
@@ -159,7 +176,14 @@ Always complete the full workflow and return actual data, not just schema discov
       onError: async (error) => {
         await mcpClient.close();
       },
-    });
+    };
+    
+    // Add maxTokens only if specified
+    if (maxTokens) {
+      streamTextConfig.maxTokens = maxTokens;
+    }
+    
+    const response = streamText(streamTextConfig);
 
     return response.toDataStreamResponse();
   } catch (error) {
