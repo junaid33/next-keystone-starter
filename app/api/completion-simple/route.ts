@@ -61,7 +61,15 @@ export async function POST(req: Request) {
   
   try {
     const body = await req.json();
+    let messages = body.messages || [];
     const prompt = body.prompt || body.messages?.[body.messages.length - 1]?.content || '';
+    
+    // Trim messages if conversation is too long (keep system context by preserving recent messages)
+    const MAX_MESSAGES = 20; // Keep last 20 messages for context
+    if (messages.length > MAX_MESSAGES) {
+      messages = messages.slice(-MAX_MESSAGES);
+    }
+    
     
     // Handle local API key configuration
     if (body.useLocalKeys && body.apiKey) {
@@ -167,7 +175,7 @@ Always complete the full workflow and return actual data, not just schema discov
     const streamTextConfig: any = {
       model: openrouter(model),
       tools: aiTools,
-      prompt,
+      messages: messages.length > 0 ? messages : [{ role: 'user', content: prompt }],
       system: systemInstructions,
       maxSteps: 10,
       onFinish: async (result) => {

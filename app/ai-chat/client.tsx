@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useId } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { RefreshCcwIcon, AlertTriangleIcon } from 'lucide-react';
+import { RefreshCcwIcon } from 'lucide-react';
 
 // UI Components that would typically be in separate files
 import { cn } from '@/lib/utils';
@@ -186,68 +186,67 @@ function AiChatOnboarding({
           </div>
 
           <div className="space-y-5">
-            <div className="gap-2 space-y-2">
-              {/* Shared Keys Radio Card */}
-              <div className={`border-input has-data-[state=checked]:border-primary/50 has-data-[state=checked]:bg-accent relative flex w-full items-center gap-2 rounded-md border px-4 py-3 shadow-xs outline-none ${
-                !envKeysAvailable ? 'opacity-50' : ''
-              }`}>
-                <input
-                  type="radio"
-                  name="keyMode"
-                  value="env"
-                  checked={keyMode === 'env'}
-                  onChange={() => envKeysAvailable && setKeyMode('env')}
-                  disabled={!envKeysAvailable}
-                  id={`${id}-env`}
-                  aria-describedby={`${id}-env-description`}
-                  className="order-1 after:absolute after:inset-0"
-                />
-                <div className="grid grow gap-1">
-                  <div className="flex items-center gap-2">
+            {envKeysAvailable ? (
+              <div className="gap-2 space-y-2">
+                {/* Shared Keys Radio Card */}
+                <div className="border-input has-data-[state=checked]:border-primary/50 has-data-[state=checked]:bg-accent relative flex w-full items-center gap-2 rounded-md border px-4 py-3 shadow-xs outline-none">
+                  <input
+                    type="radio"
+                    name="keyMode"
+                    value="env"
+                    checked={keyMode === 'env'}
+                    onChange={() => setKeyMode('env')}
+                    id={`${id}-env`}
+                    aria-describedby={`${id}-env-description`}
+                    className="order-1 after:absolute after:inset-0"
+                  />
+                  <div className="grid grow gap-1">
                     <Label htmlFor={`${id}-env`}>Shared Keys</Label>
-                    {!envKeysAvailable && (
-                      <AlertTriangleIcon className="w-4 h-4 text-amber-500" />
-                    )}
+                    <p
+                      id={`${id}-env-description`}
+                      className="text-muted-foreground text-xs"
+                    >
+                      Use organization-managed API keys
+                    </p>
                   </div>
-                  <p
-                    id={`${id}-env-description`}
-                    className="text-muted-foreground text-xs"
-                  >
-                    {envKeysAvailable 
-                      ? 'Use organization-managed API keys' 
-                      : 'Admin user needs to add ENV values to use shared keys'
-                    }
-                  </p>
                 </div>
-              </div>
 
-              {/* Personal Keys Radio Card */}
-              <div className="border-input has-data-[state=checked]:border-primary/50 has-data-[state=checked]:bg-accent relative flex w-full items-center gap-2 rounded-md border px-4 py-3 shadow-xs outline-none">
-                <input
-                  type="radio"
-                  name="keyMode"
-                  value="local"
-                  checked={keyMode === 'local'}
-                  onChange={() => setKeyMode('local')}
-                  id={`${id}-local`}
-                  aria-describedby={`${id}-local-description`}
-                  className="order-1 after:absolute after:inset-0"
-                />
-                <div className="grid grow gap-1">
-                  <Label htmlFor={`${id}-local`}>Personal Keys</Label>
-                  <p
-                    id={`${id}-local-description`}
-                    className="text-muted-foreground text-xs"
-                  >
-                    Configure your own OpenRouter API keys
-                  </p>
+                {/* Personal Keys Radio Card */}
+                <div className="border-input has-data-[state=checked]:border-primary/50 has-data-[state=checked]:bg-accent relative flex w-full items-center gap-2 rounded-md border px-4 py-3 shadow-xs outline-none">
+                  <input
+                    type="radio"
+                    name="keyMode"
+                    value="local"
+                    checked={keyMode === 'local'}
+                    onChange={() => setKeyMode('local')}
+                    id={`${id}-local`}
+                    aria-describedby={`${id}-local-description`}
+                    className="order-1 after:absolute after:inset-0"
+                  />
+                  <div className="grid grow gap-1">
+                    <Label htmlFor={`${id}-local`}>Personal Keys</Label>
+                    <p
+                      id={`${id}-local-description`}
+                      className="text-muted-foreground text-xs"
+                    >
+                      Configure your own OpenRouter API keys
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Personal Keys Configuration - Separate Card */}
-            {keyMode === 'local' && (
+            {(keyMode === 'local' || !envKeysAvailable) && (
               <div className="border rounded-md p-4 space-y-4">
+                {!envKeysAvailable && (
+                  <div className="mb-4 pb-4 border-b border-gray-200">
+                    <h3 className="font-medium text-sm text-gray-900 mb-2">AI Assistant powered by OpenRouter</h3>
+                    <p className="text-xs text-gray-600">
+                      Please head to <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline font-medium">openrouter.ai/keys</a> to get your API key and select your preferred model below.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="apiKey" className="text-sm font-medium">OpenRouter API Key</Label>
                   <Input
@@ -406,20 +405,17 @@ const LocalKeysModal = ({
 function ChatMessage({ isUser, children }: { isUser?: boolean; children: React.ReactNode }) {
   return (
     <article className={`flex items-start gap-4 text-[15px] leading-relaxed ${isUser ? 'justify-end' : ''}`}>
-      <img
-        className={cn(
-          'rounded-full',
-          isUser ? 'order-1' : 'border border-black/[0.08] shadow-sm'
-        )}
-        src={
-          isUser
-            ? 'https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-02_mlqqqt.png'
-            : 'https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-01_i5l7tp.png'
-        }
-        alt={isUser ? 'User profile' : 'Bart logo'}
-        width={40}
-        height={40}
-      />
+      {isUser ? (
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 shadow-sm order-1" />
+      ) : (
+        <img
+          className="rounded-full border border-black/[0.08] shadow-sm"
+          src="https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp2/user-01_i5l7tp.png"
+          alt="Bart logo"
+          width={40}
+          height={40}
+        />
+      )}
       <div className={cn(isUser ? 'bg-gray-100 px-4 py-3 rounded-xl' : 'space-y-4')}>
         <div className="flex flex-col gap-3">
           <p className="sr-only">{isUser ? 'You' : 'Bart'} said:</p>
@@ -434,6 +430,7 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [aiConfig, setAiConfig] = useState<AiChatConfig | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
@@ -486,15 +483,12 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
     
     switch (action) {
       case 'reconfigure':
-        if (aiConfig?.keyMode === 'local') {
+        setShowOnboarding(true);
+        break;
+      case 'update-keys':
+        if (aiConfig?.keyMode === 'local' && aiConfig?.localKeys) {
           setShowLocalKeysModal(true);
         }
-        break;
-      case 'restart':
-        const clearedConfig = { ...AiChatStorage.getConfig(), onboarded: false };
-        AiChatStorage.saveConfig(clearedConfig);
-        setAiConfig(clearedConfig);
-        setShowOnboarding(true);
         break;
       case 'disable':
         AiChatStorage.clearConfig();
@@ -516,7 +510,7 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
     setMessages(prev => [...prev, userMessage]);
     const currentInput = input;
     setInput('');
-    setLoading(true);
+    setSending(true);
     
     try {
       // Build conversation history including the new user message
@@ -548,6 +542,10 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
         }),
         credentials: 'include',
       });
+
+      // Message sent successfully, now waiting for AI response
+      setSending(false);
+      setLoading(true);
 
       if (!res.ok) {
         const error = await res.json();
@@ -616,6 +614,7 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
+      setSending(false);
       setLoading(false);
     }
   };
@@ -653,41 +652,56 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
                 </svg>
                 Share
               </button>
-              {isAiChatReady && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
-                    className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    ⚙️
-                  </button>
-                  
-                  {showSettingsDropdown && (
-                    <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                      <div className="py-1">
+              <div className="relative">
+                <button 
+                  onClick={() => setShowSettingsDropdown(!showSettingsDropdown)}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Settings
+                </button>
+                
+                {showSettingsDropdown && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                    <div className="py-1">
+                      {!aiConfig?.enabled ? (
                         <button
                           onClick={() => handleSettingsAction('reconfigure')}
                           className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          {aiConfig?.keyMode === 'local' ? 'Update API Keys' : 'Settings'}
+                          Configure AI Assistant
                         </button>
-                        <button
-                          onClick={() => handleSettingsAction('restart')}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Restart Setup
-                        </button>
-                        <button
-                          onClick={() => handleSettingsAction('disable')}
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                        >
-                          Disable AI Chat
-                        </button>
-                      </div>
+                      ) : (
+                        <>
+                          {aiConfig?.keyMode === 'local' && (
+                            <button
+                              onClick={() => handleSettingsAction('update-keys')}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Update API Keys
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleSettingsAction('reconfigure')}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Reconfigure Assistant
+                          </button>
+                          <button
+                            onClick={() => handleSettingsAction('disable')}
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          >
+                            Disable AI Chat
+                          </button>
+                        </>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -773,7 +787,7 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
                   onKeyDown={handleKeyDown}
                   placeholder="Ask me anything..."
                   className="flex min-h-[84px] w-full bg-transparent px-4 py-3 text-[15px] leading-relaxed text-gray-900 placeholder:text-gray-500 focus-visible:outline-none resize-none"
-                  disabled={loading}
+                  disabled={sending || loading}
                   rows={3}
                 />
                 <div className="flex items-center justify-between gap-2 p-3">
@@ -797,10 +811,10 @@ function Chat({ envKeysAvailable }: { envKeysAvailable: boolean }) {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleSubmit}
-                      disabled={loading || !input.trim()}
+                      disabled={sending || loading || !input.trim()}
                       className="bg-gradient-to-t from-blue-700 to-blue-600 hover:from-blue-800 hover:to-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-full text-sm font-medium transition-all"
                     >
-                      {loading ? 'Sending...' : 'Send'}
+                      {sending ? 'Sending...' : loading ? 'Send' : 'Send'}
                     </button>
                   </div>
                 </div>
