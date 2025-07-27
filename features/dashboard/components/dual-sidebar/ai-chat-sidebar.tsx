@@ -7,7 +7,6 @@ import remarkBreaks from "remark-breaks";
 import {
   RefreshCcwIcon,
   ArrowUp,
-  Settings,
   Key,
   Info,
 } from "lucide-react";
@@ -18,13 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSharedKeys, checkSharedKeysAvailable } from "@/features/dashboard/actions/ai-chat";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ModeSplitButton } from "./mode-split-button";
 import {
   Tooltip,
   TooltipContent,
@@ -91,52 +84,6 @@ class AiChatStorage {
 }
 
 
-const ModeSelect = ({
-  value,
-  onValueChange,
-  className = "",
-  disabled = false,
-}: {
-  value: "env" | "local" | "disabled";
-  onValueChange: (value: "env" | "local" | "disabled") => void;
-  className?: string;
-  disabled?: boolean;
-}) => {
-  const getDisplayLabel = (val: string) => {
-    switch (val) {
-      case "env":
-        return "Shared Keys";
-      case "local":
-        return "Local Keys";
-      case "disabled":
-        return "Disable Chat";
-      default:
-        return "Select Mode";
-    }
-  };
-
-  return (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger
-        className={cn(
-          "h-7 text-xs rounded-full border border-transparent ring-1 ring-foreground/10 shadow bg-muted/40 gap-1 pr-2",
-          className
-        )}
-      >
-        <div className="flex items-center gap-1">
-          <SelectValue placeholder="Select Mode">
-            {getDisplayLabel(value)}
-          </SelectValue>
-        </div>
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="env">Shared Keys</SelectItem>
-        <SelectItem value="local">Local Keys</SelectItem>
-        <SelectItem value="disabled">Disable Chat</SelectItem>
-      </SelectContent>
-    </Select>
-  );
-};
 
 // Shared Keys Modal
 const SharedKeysModal = ({
@@ -366,7 +313,7 @@ function ChatMessage({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`flex items-center gap-2 ${isUser ? "justify-end" : ""}`}>
+    <div className={`text-sm flex items-center gap-2 ${isUser ? "justify-end" : ""}`}>
       {/* {isUser ? (
         <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-500 to-indigo-600 shadow-sm order-1 flex-shrink-0" />
       ) : (
@@ -819,7 +766,7 @@ export function AiChatSidebar() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-5">
-        <h3 className="font-medium">AI Assistant</h3>
+        <h3 className="font-medium text-muted-foreground">AI Assistant</h3>
       </div>
 
       {/* Messages */}
@@ -910,7 +857,7 @@ export function AiChatSidebar() {
 
       {/* Input Area or Onboarding */}
       {isAiChatReady ? (
-        <div className="shadow bg-background border border-transparent ring-1 ring-foreground/10 m-3 space-y-3 rounded-lg p-3">
+        <div className="shadow bg-background border border-transparent ring-1 ring-foreground/10 mx-3 mb-3 space-y-3 rounded-lg p-3">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -923,31 +870,19 @@ export function AiChatSidebar() {
 
           <div className="flex justify-between">
             <div className="flex gap-2">
-              <ModeSelect
+              <ModeSplitButton
                 value={selectedMode}
                 onValueChange={handleModeChange}
                 disabled={sending || loading}
+                onSettingsClick={() => {
+                  if (selectedMode === "local") {
+                    setShowLocalKeysModal(true);
+                  } else if (selectedMode === "env") {
+                    setShowSharedKeysModal(true);
+                  }
+                }}
+                settingsButtonStatus={getSettingsButtonStatus()}
               />
-              {selectedMode !== "disabled" && (
-                <button
-                  className={cn(
-                    "w-7 h-7 text-xs rounded-full shadow flex items-center justify-center transition-colors flex-shrink-0",
-                    getSettingsButtonStatus() === "red" 
-                      ? "bg-rose-400/15 text-rose-700 dark:bg-rose-400/10 dark:text-rose-400 border-rose-200 dark:border-rose-900/50 border" 
-                      : "bg-indigo-500/15 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400 border-indigo-200 dark:border-indigo-900/50 border"
-                  )}
-                  onClick={() => {
-                    if (selectedMode === "local") {
-                      setShowLocalKeysModal(true);
-                    } else if (selectedMode === "env") {
-                      setShowSharedKeysModal(true);
-                    }
-                  }}
-                  disabled={sending || loading}
-                >
-                  <Settings className="size-3" />
-                </button>
-              )}
             </div>
 
             <Button
