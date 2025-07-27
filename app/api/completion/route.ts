@@ -54,6 +54,7 @@ class CookieAwareTransport extends StreamableHTTPClientTransport {
 
 export async function POST(req: Request) {
   let mcpClient: any = null;
+  let dataHasChanged = false;
   
   try {
     const body = await req.json();
@@ -237,8 +238,25 @@ Always complete the full workflow and return actual data, not just schema discov
       messages: messages.length > 0 ? messages : [{ role: 'user', content: prompt }],
       system: systemInstructions,
       maxSteps: 10,
+      onStepFinish: async (step) => {
+        // Track if any CRUD operations were called
+        if (step.toolCalls && step.toolCalls.length > 0) {
+          for (const toolCall of step.toolCalls) {
+            if (['createData', 'updateData', 'deleteData'].includes(toolCall.toolName)) {
+              dataHasChanged = true;
+              console.log(`CRUD operation detected: ${toolCall.toolName}`);
+              break;
+            }
+          }
+        }
+      },
       onFinish: async (result) => {
         console.log('Completion finished successfully');
+        // Send data change notification through the stream
+        if (dataHasChanged) {
+          console.log('Sending data change notification');
+          // We'll append this as a special message at the end
+        }
         await mcpClient.close();
       },
       onError: async (error) => {
@@ -253,21 +271,42 @@ Always complete the full workflow and return actual data, not just schema discov
     }
     
     const response = streamText(streamTextConfig);
-    return response.toDataStreamResponse({
-      getErrorMessage: (error: unknown) => {
-        console.error('Error forwarded to client:', error);
-        if (error == null) {
-          return 'Unknown error occurred';
+    
+    // Create a custom stream that includes our data change notification
+    const stream = response.toDataStream();
+    const reader = stream.getReader();
+    
+    return new Response(
+      new ReadableStream({
+        async start(controller) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              
+              if (done) {
+                // Before ending the stream, send data change notification if needed
+                if (dataHasChanged) {
+                  console.log('Sending data change notification through stream');
+                  const dataChangeMessage = `9:{"dataHasChanged":true}\n`;
+                  controller.enqueue(new TextEncoder().encode(dataChangeMessage));
+                }
+                controller.close();
+                break;
+              }
+              
+              controller.enqueue(value);
+            }
+          } catch (error) {
+            controller.error(error);
+          }
         }
-        if (typeof error === 'string') {
-          return error;
+      }),
+      {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
         }
-        if (error instanceof Error) {
-          return error.message;
-        }
-        return JSON.stringify(error);
-      },
-    });
+      }
+    );
   } catch (error) {
     // Clean up MCP client if it was created
     if (mcpClient) {

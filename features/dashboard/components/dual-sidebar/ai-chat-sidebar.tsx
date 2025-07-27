@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import { useStickToBottom } from "use-stick-to-bottom";
 import {
   RefreshCcwIcon,
   ArrowUp,
@@ -407,6 +409,7 @@ function SidebarOnboarding({ onComplete }: { onComplete: () => void }) {
 
 // Main Sidebar Chat Component
 export function AiChatSidebar() {
+  const router = useRouter();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -419,7 +422,9 @@ export function AiChatSidebar() {
   const [showSharedKeysModal, setShowSharedKeysModal] = useState(false);
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{available: boolean; missing: {apiKey: boolean; model: boolean; maxTokens: boolean}} | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Smart scrolling that only auto-scrolls when user is already at bottom
+  const { scrollableRef, isAtBottom } = useStickToBottom();
 
   // Load AI config on component mount
   useEffect(() => {
@@ -433,9 +438,6 @@ export function AiChatSidebar() {
     setIsInitializing(false);
   }, []);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
 
   // Check shared keys status
   useEffect(() => {
@@ -536,6 +538,7 @@ export function AiChatSidebar() {
     }
   };
 
+
   const handleSubmit = async () => {
     if (!input.trim() || !aiConfig?.enabled) return;
 
@@ -612,9 +615,9 @@ export function AiChatSidebar() {
               prompt: currentInput,
               messages: conversationHistory,
               useLocalKeys: true,
-              apiKey: keysResult.keys.apiKey,
-              model: keysResult.keys.model,
-              maxTokens: keysResult.keys.maxTokens,
+              apiKey: keysResult.keys!.apiKey,
+              model: keysResult.keys!.model,
+              maxTokens: keysResult.keys!.maxTokens,
             }),
             credentials: "include",
           });
@@ -669,7 +672,9 @@ export function AiChatSidebar() {
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        if (done) {
+          break;
+        }
 
         const chunk = decoder.decode(value);
         const lines = chunk.split("\n");
@@ -688,6 +693,17 @@ export function AiChatSidebar() {
                   : msg
               )
             );
+          } else if (line.startsWith("9:")) {
+            // Handle data change notification
+            try {
+              const dataInfo = JSON.parse(line.slice(2));
+              if (dataInfo.dataHasChanged) {
+                console.log('Data has changed, refreshing page');
+                router.refresh();
+              }
+            } catch (error) {
+              console.error('Failed to parse data change notification:', error);
+            }
           } else if (line.startsWith("3:")) {
             // Error in stream - replace the thinking message with error
             console.log('ERROR STREAM LINE DETECTED:', line);
@@ -770,7 +786,7 @@ export function AiChatSidebar() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div ref={scrollableRef} className="flex-1 overflow-y-auto p-3 space-y-3 relative">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50 border flex items-center justify-center mx-auto mb-2">
@@ -852,7 +868,19 @@ export function AiChatSidebar() {
             </ChatMessage>
           ))
         )}
-        <div ref={messagesEndRef} />
+        
+        {/* Scroll to bottom indicator */}
+        {!isAtBottom && messages.length > 0 && (
+          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
+            <button
+              onClick={() => scrollableRef.current?.scrollTo({ top: scrollableRef.current.scrollHeight, behavior: 'smooth' })}
+              className="bg-background border border-border shadow-lg rounded-full p-2 hover:bg-muted transition-colors"
+              aria-label="Scroll to bottom"
+            >
+              <ArrowUp className="w-4 h-4 rotate-180" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Input Area or Onboarding */}
