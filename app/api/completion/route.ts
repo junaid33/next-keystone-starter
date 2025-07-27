@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
     // Get dynamic base URL
     const baseUrl = await getBaseUrl();
-    const mcpEndpoint = `${baseUrl}/api/mcp-transport-simple/http`;
+    const mcpEndpoint = `${baseUrl}/api/mcp-transport/http`;
     
     const cookie = req.headers.get('cookie') || '';
 

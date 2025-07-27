@@ -124,7 +124,6 @@ const ModeSelect = ({
         )}
       >
         <div className="flex items-center gap-1">
-          <Key className="size-3 text-muted-foreground" strokeWidth={2} />
           <SelectValue placeholder="Select Mode">
             {getDisplayLabel(value)}
           </SelectValue>
@@ -472,6 +471,7 @@ export function AiChatSidebar() {
   const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
   const [showSharedKeysModal, setShowSharedKeysModal] = useState(false);
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{available: boolean; missing: {apiKey: boolean; model: boolean; maxTokens: boolean}} | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load AI config on component mount
@@ -483,6 +483,7 @@ export function AiChatSidebar() {
     } else {
       setSelectedMode("disabled");
     }
+    setIsInitializing(false);
   }, []);
 
   useEffect(() => {
@@ -625,7 +626,7 @@ export function AiChatSidebar() {
         }
 
         // Call completion route directly with local keys
-        res = await fetch("/api/completion-simple", {
+        res = await fetch("/api/completion", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -655,7 +656,7 @@ export function AiChatSidebar() {
             return;
           }
 
-          res = await fetch("/api/completion-simple", {
+          res = await fetch("/api/completion", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -808,6 +809,11 @@ export function AiChatSidebar() {
 
   const isAiChatReady =
     aiConfig?.enabled && aiConfig?.onboarded && selectedMode !== "disabled";
+
+  // Don't render anything while initializing to prevent flash
+  if (isInitializing) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-full">
