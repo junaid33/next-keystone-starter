@@ -32,7 +32,7 @@ export function PageContainer({ children, title, header, breadcrumbs }: PageCont
   return (
     <div className="flex flex-col space-y-4">
       {/* Header with breadcrumbs */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b">
+      <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b">
         <div className="flex items-center gap-2 px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
@@ -57,6 +57,10 @@ export function PageContainer({ children, title, header, breadcrumbs }: PageCont
               </BreadcrumbList>
             </Breadcrumb>
           )}
+        </div>
+        
+        <div className="flex items-center gap-2 px-4">
+          <SidebarTrigger side="right" />
         </div>
       </header>
 

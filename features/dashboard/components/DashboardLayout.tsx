@@ -11,6 +11,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { Sidebar } from './Sidebar'
 import { ErrorBoundary } from './ErrorBoundary'
 import { DashboardProvider } from '../context/DashboardProvider'
+import { RightSidebar } from './dual-sidebar/right-sidebar'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -28,6 +29,7 @@ export function DashboardLayout({ children, adminMeta, authenticatedItem }: Dash
             <SidebarInset className="min-w-0">
               {children}
             </SidebarInset>
+            <RightSidebar side="right" />
           </SidebarProvider>
         </AdminMetaProvider>
       </DashboardProvider>

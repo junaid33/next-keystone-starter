@@ -50,11 +50,7 @@ class CookieAwareTransport extends StreamableHTTPClientTransport {
   }
 }
 
-// Default OpenRouter configuration - will be overridden if local keys are provided
-let openrouterConfig = {
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: 'https://openrouter.ai/api/v1',
-};
+// OpenRouter configuration - will be set from request body
 
 export async function POST(req: Request) {
   let mcpClient: any = null;
@@ -71,13 +67,21 @@ export async function POST(req: Request) {
     }
     
     
-    // Handle local API key configuration
-    if (body.useLocalKeys && body.apiKey) {
-      openrouterConfig = {
-        apiKey: body.apiKey,
-        baseURL: 'https://openrouter.ai/api/v1',
-      };
+    // Require API key to be provided in request
+    if (!body.useLocalKeys || !body.apiKey) {
+      return new Response(JSON.stringify({ 
+        error: 'API key is required',
+        details: 'API key must be provided in request body'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
+
+    const openrouterConfig = {
+      apiKey: body.apiKey,
+      baseURL: 'https://openrouter.ai/api/v1',
+    };
 
     // Get dynamic base URL
     const baseUrl = await getBaseUrl();
@@ -101,12 +105,67 @@ export async function POST(req: Request) {
     // Create OpenRouter client with current configuration
     const openrouter = createOpenAI(openrouterConfig);
     
-    // Determine model and maxTokens from request or fallback to ENV
-    const model = body.useLocalKeys && body.model ? body.model : (process.env.OPENROUTER_MODEL ?? (() => {
-      throw new Error('OPENROUTER_MODEL is not provided. Please go to openrouter.ai, find a model, copy its key and put it in the env file as OPENROUTER_MODEL variable.');
-    })());
+    // Require model to be provided in request
+    if (!body.model) {
+      return new Response(JSON.stringify({ 
+        error: 'Model is required',
+        details: 'Model must be provided in request body'
+      }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
-    const maxTokens = body.useLocalKeys && body.maxTokens ? parseInt(body.maxTokens) : undefined;
+    const model = body.model;
+    const maxTokens = body.maxTokens ? parseInt(body.maxTokens) : undefined;
+    
+    // Debug logging
+    console.log('Starting completion request:', {
+      model,
+      maxTokens,
+      hasApiKey: !!openrouterConfig.apiKey,
+      apiKeyPrefix: openrouterConfig.apiKey?.substring(0, 10) + '...'
+    });
+
+    // Test the API key with a simple request first to catch auth errors early
+    try {
+      const testResponse = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${openrouterConfig.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text();
+        console.log('API key validation failed:', errorText);
+        
+        let errorMessage = 'Invalid API key';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson?.error?.message || errorMessage;
+        } catch {
+          // Failed to parse error, use default message
+        }
+        
+        return new Response(JSON.stringify({ 
+          error: 'Authentication Error',
+          details: errorMessage
+        }), { 
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    } catch (validationError) {
+      console.error('API key validation error:', validationError);
+      return new Response(JSON.stringify({ 
+        error: 'Authentication Error',
+        details: 'Failed to validate API key'
+      }), { 
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
     const systemInstructions = `You're an expert at converting natural language to GraphQL queries for our KeystoneJS API.
 
@@ -179,9 +238,11 @@ Always complete the full workflow and return actual data, not just schema discov
       system: systemInstructions,
       maxSteps: 10,
       onFinish: async (result) => {
+        console.log('Completion finished successfully');
         await mcpClient.close();
       },
       onError: async (error) => {
+        console.error('Stream error occurred:', error);
         await mcpClient.close();
       },
     };
@@ -192,8 +253,21 @@ Always complete the full workflow and return actual data, not just schema discov
     }
     
     const response = streamText(streamTextConfig);
-
-    return response.toDataStreamResponse();
+    return response.toDataStreamResponse({
+      getErrorMessage: (error: unknown) => {
+        console.error('Error forwarded to client:', error);
+        if (error == null) {
+          return 'Unknown error occurred';
+        }
+        if (typeof error === 'string') {
+          return error;
+        }
+        if (error instanceof Error) {
+          return error.message;
+        }
+        return JSON.stringify(error);
+      },
+    });
   } catch (error) {
     // Clean up MCP client if it was created
     if (mcpClient) {
@@ -201,6 +275,13 @@ Always complete the full workflow and return actual data, not just schema discov
         await mcpClient.close();
       } catch (closeError) {}
     }
+    
+    // Log the full error for debugging
+    console.error('Completion API Error:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      details: error
+    });
     
     return new Response(JSON.stringify({ 
       error: 'Internal Server Error',
