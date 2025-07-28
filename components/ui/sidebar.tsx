@@ -12,7 +12,7 @@ import {
 } from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, VariantProps } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon, MessagesSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -375,16 +375,28 @@ function SidebarTrigger({
   className,
   onClick,
   side,
-  icon: CustomIcon,
+  icon,
   ...props
-}: ComponentProps<typeof Button> & { 
-  side?: "left" | "right"
-  icon?: React.ComponentType<{ className?: string }>
-}) {
+}: ComponentProps<typeof Button> & { side?: "left" | "right"; icon?: string }) {
   const contextSide = useContext(SidebarInnerContext);
   const targetSide = side || contextSide || "left";
   const { toggleSidebar } = useSidebarWithSide(targetSide);
-  const IconComponent = CustomIcon || PanelLeftIcon;
+
+  // Map string icons to components
+  const getIconComponent = () => {
+    switch (icon) {
+      case "chat":
+        return <MessagesSquare className="size-4" />;
+      default:
+        return (
+          <PanelLeftIcon
+            className={cn("size-4", {
+              "rotate-180": targetSide === "right",
+            })}
+          />
+        );
+    }
+  };
 
   return (
     <Button
@@ -400,11 +412,7 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <IconComponent
-        className={cn({
-          "rotate-180": targetSide === "right" && !CustomIcon,
-        })}
-      />
+      {getIconComponent()}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
