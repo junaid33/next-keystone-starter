@@ -7,7 +7,7 @@
     "build": "keystone build --no-ui && npm run migrate && next build",
     "start": "next start",
     "lint": "next lint",
-    "migrate:gen": "keystone build --no-ui && tsx features/dashboard/views/index-to-view && keystone prisma migrate dev",
+    "migrate:gen": "keystone build --no-ui && tsx features/keystone/view-order/generate-view-order.ts && keystone prisma migrate dev",
     "migrate": "prisma migrate deploy"
   },
   "dependencies": {
