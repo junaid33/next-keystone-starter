@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
+import { MessagesSquare, Sparkles } from 'lucide-react'
 
 interface BreadcrumbItem {
   type: 'link' | 'page'
@@ -60,7 +61,7 @@ export function PageContainer({ children, title, header, breadcrumbs }: PageCont
         </div>
         
         <div className="flex items-center gap-2 px-4">
-          <SidebarTrigger side="right" />
+          <SidebarTrigger className='text-muted-foreground border border-transparent ring-1 ring-foreground/10' side="right" icon={MessagesSquare}/>
         </div>
       </header>
 

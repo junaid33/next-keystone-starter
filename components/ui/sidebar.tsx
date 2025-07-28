@@ -375,11 +375,16 @@ function SidebarTrigger({
   className,
   onClick,
   side,
+  icon: CustomIcon,
   ...props
-}: ComponentProps<typeof Button> & { side?: "left" | "right" }) {
+}: ComponentProps<typeof Button> & { 
+  side?: "left" | "right"
+  icon?: React.ComponentType<{ className?: string }>
+}) {
   const contextSide = useContext(SidebarInnerContext);
   const targetSide = side || contextSide || "left";
   const { toggleSidebar } = useSidebarWithSide(targetSide);
+  const IconComponent = CustomIcon || PanelLeftIcon;
 
   return (
     <Button
@@ -395,9 +400,9 @@ function SidebarTrigger({
       }}
       {...props}
     >
-      <PanelLeftIcon
+      <IconComponent
         className={cn({
-          "rotate-180": targetSide === "right",
+          "rotate-180": targetSide === "right" && !CustomIcon,
         })}
       />
       <span className="sr-only">Toggle Sidebar</span>

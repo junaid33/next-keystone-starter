@@ -26,7 +26,7 @@ const options = [
   {
     label: "Disable Chat",
     value: "disabled",
-    description: "Turn off AI chat functionality completely.",
+    description: "Turn off AI chat functionality completely. This will delete your local keys.",
   },
 ];
 

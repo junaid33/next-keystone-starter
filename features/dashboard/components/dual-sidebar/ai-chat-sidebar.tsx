@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
-import { useStickToBottom } from "use-stick-to-bottom";
+import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "./chat-container";
+import { ScrollButton } from "./scroll-button";
 import {
   RefreshCcwIcon,
   ArrowUp,
-  Key,
   Info,
 } from "lucide-react";
 
@@ -423,8 +423,7 @@ export function AiChatSidebar() {
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{available: boolean; missing: {apiKey: boolean; model: boolean; maxTokens: boolean}} | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   
-  // Smart scrolling that only auto-scrolls when user is already at bottom
-  const { scrollableRef, isAtBottom } = useStickToBottom();
+  // Remove the old useStickToBottom hook - now handled by PromptKit components
 
   // Load AI config on component mount
   useEffect(() => {
@@ -786,7 +785,8 @@ export function AiChatSidebar() {
       </div>
 
       {/* Messages */}
-      <div ref={scrollableRef} className="flex-1 overflow-y-auto p-3 space-y-3 relative">
+      <ChatContainerRoot className="flex-1 pt-3 px-3 relative">
+        <ChatContainerContent className="space-y-3">
         {messages.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-8 h-8 rounded-full bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50 border flex items-center justify-center mx-auto mb-2">
@@ -848,15 +848,15 @@ export function AiChatSidebar() {
                       {message.content}
                     </ReactMarkdown>
                   ) : (
-                    <div className="flex items-center gap-1 text-gray-500">
+                    <div className="flex items-center gap-1 text-muted-foreground">
                       <div className="flex gap-0.5">
-                        <div className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"></div>
+                        <div className="w-1 h-1 text-muted-foreground/40 rounded-full animate-pulse"></div>
                         <div
-                          className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"
+                          className="w-1 h-1 text-muted-foreground/40 rounded-full animate-pulse"
                           style={{ animationDelay: "0.2s" }}
                         ></div>
                         <div
-                          className="w-1 h-1 bg-gray-400 rounded-full animate-pulse"
+                          className="w-1 h-1 text-muted-foreground/40 rounded-full animate-pulse"
                           style={{ animationDelay: "0.4s" }}
                         ></div>
                       </div>
@@ -869,19 +869,16 @@ export function AiChatSidebar() {
           ))
         )}
         
-        {/* Scroll to bottom indicator */}
-        {!isAtBottom && messages.length > 0 && (
-          <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2">
-            <button
-              onClick={() => scrollableRef.current?.scrollTo({ top: scrollableRef.current.scrollHeight, behavior: 'smooth' })}
-              className="bg-background border border-border shadow-lg rounded-full p-2 hover:bg-muted transition-colors"
-              aria-label="Scroll to bottom"
-            >
-              <ArrowUp className="w-4 h-4 rotate-180" />
-            </button>
+        <ChatContainerScrollAnchor />
+        </ChatContainerContent>
+        
+        {/* PromptKit Scroll Button */}
+        {messages.length > 0 && (
+          <div className="absolute bottom-4 right-4">
+            <ScrollButton />
           </div>
         )}
-      </div>
+      </ChatContainerRoot>
 
       {/* Input Area or Onboarding */}
       {isAiChatReady ? (
