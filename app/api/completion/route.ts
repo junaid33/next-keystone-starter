@@ -238,7 +238,7 @@ Always complete the full workflow and return actual data, not just schema discov
       messages: messages.length > 0 ? messages : [{ role: 'user', content: prompt }],
       system: systemInstructions,
       maxSteps: 10,
-      onStepFinish: async (step) => {
+      onStepFinish: async (step: { toolCalls?: any[]; toolResults?: any[]; finishReason?: string; usage?: any; text?: string; }) => {
         // Track if any CRUD operations were called
         if (step.toolCalls && step.toolCalls.length > 0) {
           for (const toolCall of step.toolCalls) {
@@ -250,7 +250,7 @@ Always complete the full workflow and return actual data, not just schema discov
           }
         }
       },
-      onFinish: async (result) => {
+      onFinish: async (result: { text: string; finishReason: string; usage: any; response: any }) => {
         console.log('Completion finished successfully');
         // Send data change notification through the stream
         if (dataHasChanged) {
@@ -259,7 +259,7 @@ Always complete the full workflow and return actual data, not just schema discov
         }
         await mcpClient.close();
       },
-      onError: async (error) => {
+      onError: async (error: unknown) => {
         console.error('Stream error occurred:', error);
         await mcpClient.close();
       },
