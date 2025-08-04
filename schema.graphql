@@ -9,11 +9,16 @@ type User {
   role: Role
   tasks(where: TodoWhereInput! = {}, orderBy: [TodoOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoWhereUniqueInput): [Todo!]
   tasksCount(where: TodoWhereInput! = {}): Int
+  passwordResetToken: PasswordState
+  passwordResetIssuedAt: DateTime
+  passwordResetRedeemedAt: DateTime
 }
 
 type PasswordState {
   isSet: Boolean!
 }
+
+scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339#section-5.6")
 
 input UserWhereUniqueInput {
   id: ID
@@ -27,6 +32,9 @@ input UserWhereInput {
   name: StringFilter
   role: RoleWhereInput
   tasks: TodoManyRelationFilter
+  passwordResetToken: PasswordFilter
+  passwordResetIssuedAt: DateTimeNullableFilter
+  passwordResetRedeemedAt: DateTimeNullableFilter
 }
 
 input IDFilter {
@@ -80,9 +88,26 @@ input TodoManyRelationFilter {
   none: TodoWhereInput
 }
 
+input PasswordFilter {
+  isSet: Boolean!
+}
+
+input DateTimeNullableFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeNullableFilter
+}
+
 input UserOrderByInput {
   id: OrderDirection
   name: OrderDirection
+  passwordResetIssuedAt: OrderDirection
+  passwordResetRedeemedAt: OrderDirection
 }
 
 enum OrderDirection {
@@ -96,6 +121,9 @@ input UserUpdateInput {
   password: String
   role: RoleRelateToOneForUpdateInput
   tasks: TodoRelateToManyForUpdateInput
+  passwordResetToken: String
+  passwordResetIssuedAt: DateTime
+  passwordResetRedeemedAt: DateTime
 }
 
 input RoleRelateToOneForUpdateInput {
@@ -122,6 +150,9 @@ input UserCreateInput {
   password: String
   role: RoleRelateToOneForCreateInput
   tasks: TodoRelateToManyForCreateInput
+  passwordResetToken: String
+  passwordResetIssuedAt: DateTime
+  passwordResetRedeemedAt: DateTime
 }
 
 input RoleRelateToOneForCreateInput {
@@ -256,8 +287,6 @@ type Todo_description_Document {
   document(hydrateRelationships: Boolean! = false): JSON!
 }
 
-scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339#section-5.6")
-
 scalar Decimal
 
 scalar BigInt
@@ -327,17 +356,6 @@ input IntNullableFilter {
   not: IntNullableFilter
 }
 
-input DateTimeNullableFilter {
-  equals: DateTime
-  in: [DateTime!]
-  notIn: [DateTime!]
-  lt: DateTime
-  lte: DateTime
-  gt: DateTime
-  gte: DateTime
-  not: DateTimeNullableFilter
-}
-
 input FloatNullableFilter {
   equals: Float
   in: [Float!]
@@ -369,10 +387,6 @@ input BigIntNullableFilter {
   gt: BigInt
   gte: BigInt
   not: BigIntNullableFilter
-}
-
-input PasswordFilter {
-  isSet: Boolean!
 }
 
 input TodoImageManyRelationFilter {
@@ -549,6 +563,8 @@ type Mutation {
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
+  sendUserPasswordResetLink(email: String!): Boolean!
+  redeemUserPasswordResetToken(email: String!, token: String!, password: String!): RedeemUserPasswordResetTokenResult
 }
 
 union UserAuthenticationWithPasswordResult = UserAuthenticationWithPasswordSuccess | UserAuthenticationWithPasswordFailure
@@ -568,6 +584,17 @@ input CreateInitialUserInput {
   password: String
 }
 
+type RedeemUserPasswordResetTokenResult {
+  code: PasswordResetRedemptionErrorCode!
+  message: String!
+}
+
+enum PasswordResetRedemptionErrorCode {
+  FAILURE
+  TOKEN_EXPIRED
+  TOKEN_REDEEMED
+}
+
 type Query {
   user(where: UserWhereUniqueInput!): User
   users(where: UserWhereInput! = {}, orderBy: [UserOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: UserWhereUniqueInput): [User!]
@@ -583,10 +610,16 @@ type Query {
   todoImagesCount(where: TodoImageWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
+  validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult
   redirectToInit: Boolean
 }
 
 union AuthenticatedItem = User
+
+type ValidateUserPasswordResetTokenResult {
+  code: PasswordResetRedemptionErrorCode!
+  message: String!
+}
 
 type KeystoneMeta {
   adminMeta: KeystoneAdminMeta!
