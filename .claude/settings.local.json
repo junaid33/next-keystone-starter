@@ -36,8 +36,20 @@
       "Bash(diff:*)",
       "Bash(tsx test-list-todos.ts:*)",
       "Bash(mv:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git clone:*)",
+      "Bash(pnpm install:*)",
+      "Bash(npm run dev:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/Users/junaid/opensource.builders",
+      "/Users/junaid/openship-docs",
+      "/Users/junaid/openfront-docs",
+      "/Users/junaid/openfront",
+      "/Users/junaid/openship",
+      "/Users/junaid/os.org",
+      "/Users/junaid/NKS-dashboard/"
+    ]
   }
 }
