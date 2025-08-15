@@ -55,6 +55,7 @@ import {
 import { useSidebarWithSide } from "@/components/ui/sidebar";
 import { useChatMode } from "../DashboardLayout";
 
+
 // Chat mode types
 type ChatMode = "sidebar" | "chatbox";
 
@@ -464,11 +465,8 @@ function SidebarOnboarding({ onComplete }: { onComplete: () => void }) {
 export function AiChatSidebar() {
   const router = useRouter();
   const { toggleSidebar } = useSidebarWithSide("right");
-  const { chatMode, setChatMode } = useChatMode();
+  const { chatMode, setChatMode, messages, setMessages, loading, setLoading, sending, setSending } = useChatMode();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
   const [aiConfig, setAiConfig] = useState<AiChatConfig | null>(null);
   const [selectedMode, setSelectedMode] = useState<
     "env" | "local" | "disabled"
@@ -867,7 +865,7 @@ export function AiChatSidebar() {
             </SelectPrimitive.Trigger>
             <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2 [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
               <SelectGroup>
-                <SelectLabel className="ps-2">Open assistant in</SelectLabel>
+                <SelectLabel className="text-[10px] text-muted-foreground uppercase font-medium pl-2">Open assistant in</SelectLabel>
                 <SelectItem value="chatbox">
                   <MessageSquare className="size-4 opacity-60" />
                   <span className="truncate">Chat bubble</span>

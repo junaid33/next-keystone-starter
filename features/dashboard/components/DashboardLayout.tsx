@@ -20,11 +20,27 @@ import { cn } from '@/lib/utils'
 // Chat mode context
 type ChatMode = 'sidebar' | 'chatbox';
 
+// Shared Message type
+interface Message {
+  id: string;
+  content: string;
+  isUser: boolean;
+  timestamp: Date;
+}
+
 interface ChatModeContextType {
   chatMode: ChatMode;
   setChatMode: (mode: ChatMode) => void;
   isFloatingChatVisible: boolean;
   setIsFloatingChatVisible: (visible: boolean) => void;
+  // Shared messages state
+  messages: Message[];
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  // Shared loading states
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+  sending: boolean;
+  setSending: (sending: boolean) => void;
 }
 
 const ChatModeContext = createContext<ChatModeContextType | null>(null);
@@ -105,6 +121,11 @@ function ChatModeProvider({ children }: { children: React.ReactNode }) {
   const [chatMode, setChatMode] = useState<ChatMode>('sidebar')
   const [isFloatingChatVisible, setIsFloatingChatVisible] = useState(false)
   
+  // Shared chat state
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loading, setLoading] = useState(false)
+  const [sending, setSending] = useState(false)
+  
   // Auto-open chat box when switching to chatbox mode
   const handleSetChatMode = (mode: ChatMode) => {
     setChatMode(mode)
@@ -118,7 +139,13 @@ function ChatModeProvider({ children }: { children: React.ReactNode }) {
       chatMode,
       setChatMode: handleSetChatMode,
       isFloatingChatVisible,
-      setIsFloatingChatVisible
+      setIsFloatingChatVisible,
+      messages,
+      setMessages,
+      loading,
+      setLoading,
+      sending,
+      setSending
     }}>
       {children}
     </ChatModeContext.Provider>

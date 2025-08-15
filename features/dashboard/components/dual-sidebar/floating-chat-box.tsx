@@ -45,7 +45,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// Types
+// Import shared Message type and hook from DashboardLayout
+import { useChatMode } from "../DashboardLayout";
+
+// Message interface (defined in DashboardLayout)
 interface Message {
   id: string;
   content: string;
@@ -354,10 +357,8 @@ interface FloatingChatBoxProps {
 
 export function FloatingChatBox({ onClose, isVisible, onModeChange }: FloatingChatBoxProps) {
   const router = useRouter();
+  const { messages, setMessages, loading, setLoading, sending, setSending } = useChatMode();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [sending, setSending] = useState(false);
   const [aiConfig, setAiConfig] = useState<AiChatConfig | null>(null);
   const [selectedMode, setSelectedMode] = useState<"env" | "local" | "disabled">("env");
   const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
@@ -666,7 +667,7 @@ export function FloatingChatBox({ onClose, isVisible, onModeChange }: FloatingCh
             </SelectPrimitive.Trigger>
             <SelectContent className="[&_*[role=option]]:ps-2 [&_*[role=option]]:pe-8 [&_*[role=option]>span]:start-auto [&_*[role=option]>span]:end-2 [&_*[role=option]>span]:flex [&_*[role=option]>span]:items-center [&_*[role=option]>span]:gap-2">
               <SelectGroup>
-                <SelectLabel className="ps-2">Open assistant in</SelectLabel>
+                <SelectLabel className="text-[10px] text-muted-foreground uppercase font-medium pl-2">Open assistant in</SelectLabel>
                 <SelectItem value="chatbox">
                   <MessageSquare className="size-3 opacity-60" />
                   <span className="truncate">Chat bubble</span>
@@ -690,7 +691,7 @@ export function FloatingChatBox({ onClose, isVisible, onModeChange }: FloatingCh
       </div>
 
       {/* Messages */}
-      <ChatContainerRoot className="flex-1 pt-3 px-3 relative !overflow-hidden">
+      <ChatContainerRoot className="flex-1 pt-3 px-3 relative !overflow-y-hidden">
         <ChatContainerContent className="space-y-3 !overflow-y-auto !h-full">
           {messages.map((message) => (
             <ChatMessage key={message.id} isUser={message.isUser}>
@@ -730,7 +731,7 @@ export function FloatingChatBox({ onClose, isVisible, onModeChange }: FloatingCh
                       {message.content}
                     </ReactMarkdown>
                   ) : (
-                    <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm">
                       <span className="animate-pulse">Thinking...</span>
                     </div>
                   )}
