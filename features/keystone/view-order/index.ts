@@ -17,6 +17,7 @@ export const VIEW_ORDER = [
   "document",
   "select",
   "integer",
+  "multiselect",
   "float",
   "decimal",
   "bigInt",

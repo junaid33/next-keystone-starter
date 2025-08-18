@@ -77,6 +77,7 @@ interface AiChatConfig {
     model: string;
     maxTokens: string;
   };
+  chatMode?: "sidebar" | "chatbox";
 }
 
 // LocalStorage Manager
@@ -86,6 +87,8 @@ class AiChatStorage {
     const onboarded = localStorage.getItem("aiChatOnboarded") === "true";
     const keyMode =
       (localStorage.getItem("aiKeyMode") as "env" | "local") || "env";
+    const chatMode =
+      (localStorage.getItem("aiChatMode") as "sidebar" | "chatbox") || "chatbox";
 
     const localKeys =
       keyMode === "local"
@@ -97,7 +100,7 @@ class AiChatStorage {
           }
         : undefined;
 
-    return { enabled, onboarded, keyMode, localKeys };
+    return { enabled, onboarded, keyMode, localKeys, chatMode };
   }
 
   static saveConfig(config: Partial<AiChatConfig>) {
@@ -109,6 +112,9 @@ class AiChatStorage {
     }
     if (config.keyMode !== undefined) {
       localStorage.setItem("aiKeyMode", config.keyMode);
+    }
+    if (config.chatMode !== undefined) {
+      localStorage.setItem("aiChatMode", config.chatMode);
     }
     if (config.localKeys) {
       localStorage.setItem("openRouterApiKey", config.localKeys.apiKey);

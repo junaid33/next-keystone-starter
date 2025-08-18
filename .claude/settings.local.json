@@ -1,55 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rg:*)",
-      "Bash(/Users/junaid/.nvm/versions/node/v20.9.0/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/arm64-darwin/rg -o \"from [''\"\"]([^''\"\"]+)[''\"\"]|require\\([''\"\"]([^''\"\"]+)[''\"\"]\\)\" -r '$1$2' -g '*.ts' -g '*.tsx' -g '*.js' -g '*.jsx')",
-      "Bash(find:*)",
-      "Bash(grep:*)",
-      "Bash(npm install:*)",
-      "Bash(npm run generate-views-index:*)",
-      "Bash(ls:*)",
-      "Bash(node:*)",
-      "Bash(rm:*)",
-      "Bash(mkdir:*)",
-      "mcp__github__search_repositories",
-      "mcp__github__get_file_contents",
-      "Bash(git push:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git checkout:*)",
-      "Bash(git cherry-pick:*)",
-      "Bash(git branch:*)",
-      "mcp__github__search_code",
-      "Bash(curl:*)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Bash(cp:*)",
-      "Bash(touch:*)",
-      "Bash(npm run build:*)",
-      "Bash(npx tsc:*)",
-      "Bash(sed:*)",
-      "Bash(npx tsx:*)",
-      "WebFetch(domain:www.anthropic.com)",
-      "Bash(true)",
-      "Bash(npx @modelcontextprotocol/inspector:*)",
-      "WebFetch(domain:github.com)",
-      "Bash(diff:*)",
-      "Bash(tsx test-list-todos.ts:*)",
-      "Bash(mv:*)",
-      "Bash(git restore:*)",
-      "Bash(git clone:*)",
-      "Bash(pnpm install:*)",
-      "Bash(npm run dev:*)"
+      "mcp__github__search_code",
+      "mcp__github__get_file_contents",
+      "Bash(grep:*)"
     ],
     "deny": [],
-    "additionalDirectories": [
-      "/Users/junaid/opensource.builders",
-      "/Users/junaid/openship-docs",
-      "/Users/junaid/openfront-docs",
-      "/Users/junaid/openfront",
-      "/Users/junaid/openship",
-      "/Users/junaid/os.org",
-      "/Users/junaid/NKS-dashboard/"
-    ]
+    "ask": []
   }
 }

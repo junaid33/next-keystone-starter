@@ -12,7 +12,8 @@ import {
   timestamp, 
   json, 
   password, 
-  image
+  image,
+  multiselect
 } from "@keystone-6/core/fields";
 import { document } from "@keystone-6/fields-document";
 
@@ -33,7 +34,7 @@ export const Todo = list({
   ui: {
     hideCreate: (args) => !permissions.canCreateTodos(args),
     listView: {
-      initialColumns: ["label", "isComplete", "assignedTo"],
+      initialColumns: ["label", "tags", "isComplete", "assignedTo"],
     },
   },
   fields: {
@@ -69,6 +70,22 @@ export const Todo = list({
           defaultValue: 1,
           validation: { min: 1, max: 5 },
           label: "Priority (1-5)"
+        }),
+        tags: multiselect({
+          type: "string",
+          options: [
+            { label: "Frontend", value: "frontend" },
+            { label: "Backend", value: "backend" },
+            { label: "Database", value: "database" },
+            { label: "Testing", value: "testing" },
+            { label: "Documentation", value: "documentation" },
+            { label: "Bug Fix", value: "bug_fix" },
+            { label: "Feature", value: "feature" },
+            { label: "Urgent", value: "urgent" },
+            { label: "Nice to Have", value: "nice_to_have" }
+          ],
+          defaultValue: [],
+          label: "Tags"
         }),
       }
     }),

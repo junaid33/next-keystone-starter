@@ -46,6 +46,7 @@ model Todo {
   isComplete           Boolean     @default(false)
   status               String?     @default("todo")
   priority             Int?        @default(1)
+  tags                 Json        @default("[]")
   dueDate              DateTime?
   weight               Float?      @default(1)
   budget               Decimal?    @default("0.00") @postgresql.Decimal(10, 2)

@@ -270,6 +270,7 @@ type Todo {
   isComplete: Boolean
   status: String
   priority: Int
+  tags: [String!]
   dueDate: DateTime
   weight: Float
   budget: Decimal
@@ -414,6 +415,7 @@ input TodoUpdateInput {
   isComplete: Boolean
   status: String
   priority: Int
+  tags: [String!]
   dueDate: DateTime
   weight: Float
   budget: Decimal
@@ -457,6 +459,7 @@ input TodoCreateInput {
   isComplete: Boolean
   status: String
   priority: Int
+  tags: [String!]
   dueDate: DateTime
   weight: Float
   budget: Decimal
