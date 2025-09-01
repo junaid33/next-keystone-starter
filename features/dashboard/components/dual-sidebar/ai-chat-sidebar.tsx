@@ -54,6 +54,10 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarWithSide } from "@/components/ui/sidebar";
 import { useChatMode } from "../DashboardLayout";
+import { AiChatStorage, type AiChatConfig } from "./ai-chat-storage";
+import { AIActivationDialog } from "./ai-activation-dialog";
+import { AISettingsDialog } from "./ai-settings-dialog";
+import { RiRobot2Fill, RiRobot2Line } from "@remixicon/react";
 
 
 // Chat mode types
@@ -67,298 +71,7 @@ interface Message {
   timestamp: Date;
 }
 
-// AI Chat Configuration Types
-interface AiChatConfig {
-  enabled: boolean;
-  onboarded: boolean;
-  keyMode: "env" | "local";
-  localKeys?: {
-    apiKey: string;
-    model: string;
-    maxTokens: string;
-  };
-  chatMode?: "sidebar" | "chatbox";
-}
 
-// LocalStorage Manager
-class AiChatStorage {
-  static getConfig(): AiChatConfig {
-    const enabled = localStorage.getItem("aiChatEnabled") === "true";
-    const onboarded = localStorage.getItem("aiChatOnboarded") === "true";
-    const keyMode =
-      (localStorage.getItem("aiKeyMode") as "env" | "local") || "env";
-    const chatMode =
-      (localStorage.getItem("aiChatMode") as "sidebar" | "chatbox") || "chatbox";
-
-    const localKeys =
-      keyMode === "local"
-        ? {
-            apiKey: localStorage.getItem("openRouterApiKey") || "",
-            model:
-              localStorage.getItem("openRouterModel") || "openai/gpt-4o-mini",
-            maxTokens: localStorage.getItem("openRouterMaxTokens") || "4000",
-          }
-        : undefined;
-
-    return { enabled, onboarded, keyMode, localKeys, chatMode };
-  }
-
-  static saveConfig(config: Partial<AiChatConfig>) {
-    if (config.enabled !== undefined) {
-      localStorage.setItem("aiChatEnabled", config.enabled.toString());
-    }
-    if (config.onboarded !== undefined) {
-      localStorage.setItem("aiChatOnboarded", config.onboarded.toString());
-    }
-    if (config.keyMode !== undefined) {
-      localStorage.setItem("aiKeyMode", config.keyMode);
-    }
-    if (config.chatMode !== undefined) {
-      localStorage.setItem("aiChatMode", config.chatMode);
-    }
-    if (config.localKeys) {
-      localStorage.setItem("openRouterApiKey", config.localKeys.apiKey);
-      localStorage.setItem("openRouterModel", config.localKeys.model);
-      localStorage.setItem("openRouterMaxTokens", config.localKeys.maxTokens);
-    }
-  }
-}
-
-// Shared Keys Modal
-const SharedKeysModal = ({
-  open,
-  onOpenChange,
-  sharedKeysStatus,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  sharedKeysStatus: {
-    available: boolean;
-    missing: { apiKey: boolean; model: boolean; maxTokens: boolean };
-  } | null;
-}) => {
-  const setVars = [];
-  const missingVars = [];
-
-  if (sharedKeysStatus) {
-    if (!sharedKeysStatus.missing.apiKey) {
-      setVars.push({ name: "OPENROUTER_API_KEY", label: "Set" });
-    } else {
-      missingVars.push({ name: "OPENROUTER_API_KEY", label: "Missing" });
-    }
-
-    if (!sharedKeysStatus.missing.model) {
-      setVars.push({ name: "OPENROUTER_MODEL", label: "Set" });
-    } else {
-      missingVars.push({ name: "OPENROUTER_MODEL", label: "Missing" });
-    }
-
-    if (!sharedKeysStatus.missing.maxTokens) {
-      setVars.push({ name: "OPENROUTER_MAX_TOKENS", label: "Optional" });
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Shared API Keys</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            When using shared keys, the API keys are configured at the
-            application level through environment variables.
-          </p>
-
-          {setVars.length > 0 && (
-            <div className="bg-muted/40 rounded-lg p-3 border border-transparent ring-1 ring-foreground/10">
-              <h4 className="font-medium text-sm mb-2">Available Keys</h4>
-              <div className="space-y-1">
-                {setVars.map((envVar) => (
-                  <div key={envVar.name} className="flex items-center gap-2">
-                    <code className="bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded text-xs font-mono">
-                      {envVar.name}
-                    </code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {missingVars.length > 0 && (
-            <div className="bg-destructive/5 rounded-lg p-3 border border-destructive/20">
-              <h4 className="font-medium text-sm mb-2 text-destructive-foreground">
-                Missing Keys
-              </h4>
-              <div className="space-y-1">
-                {missingVars.map((envVar) => (
-                  <div key={envVar.name} className="flex items-center gap-2">
-                    <code className="bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded text-xs font-mono">
-                      {envVar.name}
-                    </code>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <p className="text-xs text-muted-foreground">
-            Set these environment variables when deploying your application to
-            enable AI chat functionality.
-          </p>
-        </div>
-        <DialogFooter>
-          <Button onClick={() => onOpenChange(false)} size="sm">
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Local Keys Modal
-const LocalKeysModal = ({
-  open,
-  onOpenChange,
-  initialKeys,
-  onSave,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  initialKeys?: {
-    apiKey: string;
-    model: string;
-    maxTokens: string;
-  };
-  onSave: (keys: { apiKey: string; model: string; maxTokens: string }) => void;
-}) => {
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState(
-    initialKeys?.model || "openai/gpt-4o-mini"
-  );
-  const [maxTokens, setMaxTokens] = useState(initialKeys?.maxTokens || "4000");
-  const [showMaskedKey, setShowMaskedKey] = useState(false);
-
-  // Set initial state when modal opens
-  useEffect(() => {
-    if (open) {
-      if (initialKeys?.apiKey) {
-        setApiKey(""); // Keep input empty
-        setShowMaskedKey(true); // Show masked placeholder
-      } else {
-        setApiKey("");
-        setShowMaskedKey(false);
-      }
-      setModel(initialKeys?.model || "openai/gpt-4o-mini");
-      setMaxTokens(initialKeys?.maxTokens || "4000");
-    }
-  }, [open, initialKeys]);
-
-  const handleSave = () => {
-    // If no new API key was entered and we had an initial key, keep the initial key
-    const finalApiKey = apiKey || initialKeys?.apiKey || "";
-    onSave({ apiKey: finalApiKey, model, maxTokens });
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Configure API Keys</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Label htmlFor="apiKey">OpenRouter API Key</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="size-3 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      You can get your OpenRouter API key at
-                      https://openrouter.ai/settings/keys
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Input
-              id="apiKey"
-              type="password"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                if (e.target.value) {
-                  setShowMaskedKey(false); // Hide masked placeholder when user types
-                }
-              }}
-              placeholder={
-                showMaskedKey ? "••••••••••••••••••••••••••••••••" : "sk-or-..."
-              }
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Label htmlFor="model">Model</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="size-3 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      You can get different model slugs from
-                      https://openrouter.ai/models
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            <Input
-              id="model"
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder="openai/gpt-4o-mini"
-            />
-          </div>
-          <div>
-            <Label htmlFor="maxTokens" className="block mb-2">
-              Max Tokens
-            </Label>
-            <Input
-              id="maxTokens"
-              type="number"
-              value={maxTokens}
-              onChange={(e) => setMaxTokens(e.target.value)}
-              placeholder="4000"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            size="sm"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={!apiKey && !initialKeys?.apiKey}
-            size="sm"
-          >
-            Save Keys
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 // Compact Chat Message for Sidebar
 function ChatMessage({
@@ -399,70 +112,30 @@ function ChatMessage({
   );
 }
 
-// Onboarding Component for Sidebar
-function SidebarOnboarding({ onComplete }: { onComplete: () => void }) {
-  const [confirmationText, setConfirmationText] = useState("");
-
-  const handleSubmit = () => {
-    if (confirmationText !== "I understand the risks") return;
-    onComplete();
-  };
-
-  const canSubmit = () => {
-    return confirmationText === "I understand the risks";
-  };
-
+// Simple Activation Component for Sidebar
+function SidebarActivation({ onActivate }: { onActivate: () => void }) {
   return (
-    <div className="shadow bg-background border border-transparent ring-1 ring-foreground/10 m-3 space-y-3 rounded-lg p-3">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">Configure your AI assistant</h3>
-        </div>
-        <p className="text-muted-foreground text-xs">
-          Welcome to your AI assistant. You can use this assistant to interact
-          with your data, create new items, delete items, update items.
-        </p>
-      </div>
+    <div className="flex flex-col items-center justify-center h-full px-6 gap-3">
+                <RiRobot2Line className="size-12  text-muted-foreground/40"
+/>
 
-      {/* Warning Card */}
-      <div className="border border-destructive/50 bg-destructive/5 rounded-lg p-2 shadow">
-        <div className="space-y-1">
-          <h4 className="font-medium text-sm text-destructive-foreground">
-            Be very careful when using this AI assistant
-          </h4>
-          <p className="text-xs text-destructive-foreground/90">
-            It can do everything you can do since it uses the same session. We
-            highly recommend you back up your database daily if you're using the
-            AI assistant.
+      <div className="space-y-8 text-center max-w-sm">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">AI Assistant</h3>
+          <p className="text-muted-foreground text-sm">
+            Set up your AI assistant to help manage your data and automate tasks.
           </p>
         </div>
-      </div>
-
-      {/* Confirmation Input */}
-      <div className="space-y-2">
-        <Label
-          htmlFor="confirmation"
-          className="text-sm font-medium text-muted-foreground"
+        
+        <Button
+          onClick={onActivate}
+          variant="outline"
+          className="w-full"
+          size="lg"
         >
-          Type "I understand the risks" to continue:
-        </Label>
-        <Input
-          id="confirmation"
-          value={confirmationText}
-          onChange={(e) => setConfirmationText(e.target.value)}
-          placeholder="I understand the risks"
-          className="mt-1"
-        />
+          Activate AI Chat
+        </Button>
       </div>
-
-      <Button
-        onClick={handleSubmit}
-        variant="destructive"
-        className="w-full text-sm h-8"
-        disabled={!canSubmit()}
-      >
-        Enable AI Chat
-      </Button>
     </div>
   );
 }
@@ -477,8 +150,8 @@ export function AiChatSidebar() {
   const [selectedMode, setSelectedMode] = useState<
     "env" | "local" | "disabled"
   >("env");
-  const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
-  const [showSharedKeysModal, setShowSharedKeysModal] = useState(false);
+  const [showActivationDialog, setShowActivationDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{
     available: boolean;
     missing: { apiKey: boolean; model: boolean; maxTokens: boolean };
@@ -539,18 +212,25 @@ export function AiChatSidebar() {
     return "indigo";
   };
 
-  // Handle onboarding completion
-  const handleOnboardingComplete = () => {
-    const newConfig: AiChatConfig = {
-      enabled: true,
-      onboarded: true,
-      keyMode: isSharedKeysConfigured() ? "env" : "local",
-      localKeys: undefined,
-    };
+  // Handle activation completion
+  const handleActivationComplete = () => {
+    // Reload config after activation
+    const config = AiChatStorage.getConfig();
+    setAiConfig(config);
+    setSelectedMode(config.keyMode);
+  };
 
-    AiChatStorage.saveConfig(newConfig);
-    setAiConfig(newConfig);
-    setSelectedMode(newConfig.keyMode);
+  // Handle settings save
+  const handleSettingsSave = () => {
+    // Reload config after settings change
+    const config = AiChatStorage.getConfig();
+    setAiConfig(config);
+    setSelectedMode(config.keyMode);
+  };
+
+  // Handle activation dialog open
+  const handleActivationOpen = () => {
+    setShowActivationDialog(true);
   };
 
   // Handle mode change
@@ -578,22 +258,6 @@ export function AiChatSidebar() {
     }
   };
 
-  // Handle local keys save
-  const handleLocalKeysSave = (keys: {
-    apiKey: string;
-    model: string;
-    maxTokens: string;
-  }) => {
-    const newConfig: AiChatConfig = {
-      enabled: true,
-      onboarded: true,
-      keyMode: "local",
-      localKeys: keys,
-    };
-
-    AiChatStorage.saveConfig(newConfig);
-    setAiConfig(newConfig);
-  };
 
   // Re-check shared keys status when needed
   const recheckSharedKeysStatus = async () => {
@@ -858,7 +522,7 @@ export function AiChatSidebar() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-5">
+      <div className="flex h-16 shrink-0 items-center justify-between px-4 border-b">
         <h3 className="font-medium text-muted-foreground">AI Assistant</h3>
         <div className="flex items-center gap-1">
           <Select value="sidebar" onValueChange={(value) => {
@@ -986,17 +650,10 @@ export function AiChatSidebar() {
           <div className="flex justify-between">
             <div className="flex gap-2">
               <ModeSplitButton
-                value={selectedMode}
-                onValueChange={handleModeChange}
                 disabled={sending || loading}
                 onSettingsClick={() => {
-                  if (selectedMode === "local") {
-                    setShowLocalKeysModal(true);
-                  } else if (selectedMode === "env") {
-                    setShowSharedKeysModal(true);
-                  }
+                  setShowSettingsDialog(true);
                 }}
-                settingsButtonStatus={getSettingsButtonStatus()}
               />
             </div>
 
@@ -1011,21 +668,21 @@ export function AiChatSidebar() {
           </div>
         </div>
       ) : (
-        <SidebarOnboarding onComplete={handleOnboardingComplete} />
+        <SidebarActivation onActivate={handleActivationOpen} />
       )}
 
-      <LocalKeysModal
-        open={showLocalKeysModal}
-        onOpenChange={setShowLocalKeysModal}
-        initialKeys={aiConfig?.localKeys}
-        onSave={handleLocalKeysSave}
+      <AIActivationDialog
+        open={showActivationDialog}
+        onOpenChange={setShowActivationDialog}
+        onComplete={handleActivationComplete}
       />
 
-      <SharedKeysModal
-        open={showSharedKeysModal}
-        onOpenChange={setShowSharedKeysModal}
-        sharedKeysStatus={sharedKeysStatus}
+      <AISettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        onSave={handleSettingsSave}
       />
+
     </div>
   );
 }

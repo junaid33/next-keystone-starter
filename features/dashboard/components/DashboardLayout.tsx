@@ -5,7 +5,7 @@
 
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { AdminMetaProvider } from '../hooks/useAdminMeta'
 import { SidebarProvider, SidebarInset, useSidebarWithSide } from '@/components/ui/sidebar'
 import { Sidebar } from './Sidebar'
@@ -118,7 +118,9 @@ function DashboardLayoutContent({ children, adminMeta, authenticatedItem }: Dash
 }
 
 function ChatModeProvider({ children }: { children: React.ReactNode }) {
+  // Initialize chat mode with default value, load from localStorage after hydration
   const [chatMode, setChatMode] = useState<ChatMode>('chatbox')
+  const [isHydrated, setIsHydrated] = useState(false)
   const [isFloatingChatVisible, setIsFloatingChatVisible] = useState(false)
   
   // Shared chat state
@@ -126,9 +128,22 @@ function ChatModeProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   
-  // Auto-open chat box when switching to chatbox mode
+  // Load chat mode from localStorage after hydration
+  useEffect(() => {
+    const savedMode = localStorage.getItem('aiChatMode') as ChatMode
+    if (savedMode && (savedMode === 'sidebar' || savedMode === 'chatbox')) {
+      setChatMode(savedMode)
+    }
+    setIsHydrated(true)
+  }, [])
+  
+  // Auto-open chat box when switching to chatbox mode and persist to localStorage
   const handleSetChatMode = (mode: ChatMode) => {
     setChatMode(mode)
+    // Save to localStorage (only after hydration)
+    if (isHydrated) {
+      localStorage.setItem('aiChatMode', mode)
+    }
     if (mode === 'chatbox') {
       setIsFloatingChatVisible(true)
     }

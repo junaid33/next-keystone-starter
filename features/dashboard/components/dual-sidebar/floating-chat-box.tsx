@@ -55,6 +55,9 @@ import {
 
 // Import shared Message type and hook from DashboardLayout
 import { useChatMode } from "../DashboardLayout";
+import { AiChatStorage, type AiChatConfig } from "./ai-chat-storage";
+import { AIActivationDialog } from "./ai-activation-dialog";
+import { AISettingsDialog } from "./ai-settings-dialog";
 
 // Message interface (defined in DashboardLayout)
 interface Message {
@@ -62,64 +65,6 @@ interface Message {
   content: string;
   isUser: boolean;
   timestamp: Date;
-}
-
-// AI Chat Configuration Types
-interface AiChatConfig {
-  enabled: boolean;
-  onboarded: boolean;
-  keyMode: "env" | "local";
-  localKeys?: {
-    apiKey: string;
-    model: string;
-    maxTokens: string;
-  };
-  chatMode?: "sidebar" | "chatbox";
-}
-
-// LocalStorage Manager
-class AiChatStorage {
-  static getConfig(): AiChatConfig {
-    const enabled = localStorage.getItem("aiChatEnabled") === "true";
-    const onboarded = localStorage.getItem("aiChatOnboarded") === "true";
-    const keyMode =
-      (localStorage.getItem("aiKeyMode") as "env" | "local") || "env";
-    const chatMode =
-      (localStorage.getItem("aiChatMode") as "sidebar" | "chatbox") ||
-      "chatbox";
-
-    const localKeys =
-      keyMode === "local"
-        ? {
-            apiKey: localStorage.getItem("openRouterApiKey") || "",
-            model:
-              localStorage.getItem("openRouterModel") || "openai/gpt-4o-mini",
-            maxTokens: localStorage.getItem("openRouterMaxTokens") || "4000",
-          }
-        : undefined;
-
-    return { enabled, onboarded, keyMode, localKeys, chatMode };
-  }
-
-  static saveConfig(config: Partial<AiChatConfig>) {
-    if (config.enabled !== undefined) {
-      localStorage.setItem("aiChatEnabled", config.enabled.toString());
-    }
-    if (config.onboarded !== undefined) {
-      localStorage.setItem("aiChatOnboarded", config.onboarded.toString());
-    }
-    if (config.keyMode !== undefined) {
-      localStorage.setItem("aiKeyMode", config.keyMode);
-    }
-    if (config.chatMode !== undefined) {
-      localStorage.setItem("aiChatMode", config.chatMode);
-    }
-    if (config.localKeys) {
-      localStorage.setItem("openRouterApiKey", config.localKeys.apiKey);
-      localStorage.setItem("openRouterModel", config.localKeys.model);
-      localStorage.setItem("openRouterMaxTokens", config.localKeys.maxTokens);
-    }
-  }
 }
 
 // Shared Keys Modal
@@ -358,56 +303,23 @@ const LocalKeysModal = ({
   );
 };
 
-// Mini Onboarding Component for Floating Box
-function MiniOnboarding({ onComplete }: { onComplete: () => void }) {
-  const [confirmationText, setConfirmationText] = useState("");
-
-  const handleSubmit = () => {
-    if (confirmationText !== "I understand the risks") return;
-    onComplete();
-  };
-
-  const canSubmit = () => {
-    return confirmationText === "I understand the risks";
-  };
-
+// Simple Activation Component for Floating Chat Box
+function FloatingActivation({ onActivate }: { onActivate: () => void }) {
   return (
     <div className="p-3 space-y-3 bg-background border border-transparent ring-2 ring-foreground/5 rounded-lg m-2">
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold">Setup AI Assistant</h3>
+      <div className="space-y-2 text-center">
+        <h3 className="text-sm font-semibold">AI Assistant</h3>
         <p className="text-xs text-muted-foreground">
-          AI can create, update, and delete your data. Backup your database
-          regularly.
+          Set up your AI assistant to help manage your data and automate tasks.
         </p>
       </div>
-
-      <div className="border border-destructive/50 bg-destructive/5 rounded-lg p-2">
-        <p className="flex items-start gap-2 text-xs text-destructive-foreground">
-          <AlertCircle className="size-4" />
-          Use with caution, chat can modify everything you can
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="mini-confirmation" className="text-xs">
-          Type "I understand the risks"
-        </Label>
-        <Input
-          id="mini-confirmation"
-          value={confirmationText}
-          onChange={(e) => setConfirmationText(e.target.value)}
-          placeholder="I understand the risks"
-          className="mt-2 text-base"
-        />
-      </div>
-
+      
       <Button
-        onClick={handleSubmit}
-        variant="destructive"
-        className="w-full text-xs h-7"
-        disabled={!canSubmit()}
+        onClick={onActivate}
+        className="w-full text-xs"
+        style={{ height: '32px' }}
       >
-        Enable AI Chat
+        Activate AI Chat
       </Button>
     </div>
   );
@@ -460,8 +372,8 @@ export function FloatingChatBox({
   const [selectedMode, setSelectedMode] = useState<
     "env" | "local" | "disabled"
   >("env");
-  const [showLocalKeysModal, setShowLocalKeysModal] = useState(false);
-  const [showSharedKeysModal, setShowSharedKeysModal] = useState(false);
+  const [showActivationDialog, setShowActivationDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{
     available: boolean;
     missing: { apiKey: boolean; model: boolean; maxTokens: boolean };
@@ -507,18 +419,25 @@ export function FloatingChatBox({
     return sharedKeysStatus?.available || false;
   };
 
-  // Handle onboarding completion
-  const handleOnboardingComplete = () => {
-    const newConfig: AiChatConfig = {
-      enabled: true,
-      onboarded: true,
-      keyMode: isSharedKeysConfigured() ? "env" : "local",
-      localKeys: undefined,
-    };
+  // Handle activation completion
+  const handleActivationComplete = () => {
+    // Reload config after activation
+    const config = AiChatStorage.getConfig();
+    setAiConfig(config);
+    setSelectedMode(config.keyMode);
+  };
 
-    AiChatStorage.saveConfig(newConfig);
-    setAiConfig(newConfig);
-    setSelectedMode(newConfig.keyMode);
+  // Handle settings save
+  const handleSettingsSave = () => {
+    // Reload config after settings change
+    const config = AiChatStorage.getConfig();
+    setAiConfig(config);
+    setSelectedMode(config.keyMode);
+  };
+
+  // Handle activation dialog open
+  const handleActivationOpen = () => {
+    setShowActivationDialog(true);
   };
 
   // Get settings button status color
@@ -559,22 +478,6 @@ export function FloatingChatBox({
     }
   };
 
-  // Handle local keys save
-  const handleLocalKeysSave = (keys: {
-    apiKey: string;
-    model: string;
-    maxTokens: string;
-  }) => {
-    const newConfig: AiChatConfig = {
-      enabled: true,
-      onboarded: true,
-      keyMode: "local",
-      localKeys: keys,
-    };
-
-    AiChatStorage.saveConfig(newConfig);
-    setAiConfig(newConfig);
-  };
 
   const handleSubmit = async () => {
     if (!input.trim() || !aiConfig?.enabled) return;
@@ -774,7 +677,7 @@ export function FloatingChatBox({
   return (
     <div className="fixed bottom-20 right-3 w-90 h-100 bg-sidebar border border-border rounded-lg shadow-xl z-40 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-3">
+      <div className="flex items-center justify-between p-3 border-b">
         <h3 className="font-medium text-sm">AI Assistant</h3>
         <div className="flex items-center gap-1">
           <Select
@@ -890,17 +793,10 @@ export function FloatingChatBox({
           <div className="flex justify-between">
             <div className="flex gap-2">
               <ModeSplitButton
-                value={selectedMode}
-                onValueChange={handleModeChange}
                 disabled={sending || loading}
                 onSettingsClick={() => {
-                  if (selectedMode === "local") {
-                    setShowLocalKeysModal(true);
-                  } else if (selectedMode === "env") {
-                    setShowSharedKeysModal(true);
-                  }
+                  setShowSettingsDialog(true);
                 }}
-                settingsButtonStatus={getSettingsButtonStatus()}
               />
             </div>
 
@@ -915,21 +811,21 @@ export function FloatingChatBox({
           </div>
         </div>
       ) : (
-        <MiniOnboarding onComplete={handleOnboardingComplete} />
+        <FloatingActivation onActivate={handleActivationOpen} />
       )}
 
-      <LocalKeysModal
-        open={showLocalKeysModal}
-        onOpenChange={setShowLocalKeysModal}
-        initialKeys={aiConfig?.localKeys}
-        onSave={handleLocalKeysSave}
+      <AIActivationDialog
+        open={showActivationDialog}
+        onOpenChange={setShowActivationDialog}
+        onComplete={handleActivationComplete}
       />
 
-      <SharedKeysModal
-        open={showSharedKeysModal}
-        onOpenChange={setShowSharedKeysModal}
-        sharedKeysStatus={sharedKeysStatus}
+      <AISettingsDialog
+        open={showSettingsDialog}
+        onOpenChange={setShowSettingsDialog}
+        onSave={handleSettingsSave}
       />
+
     </div>
   );
 }
