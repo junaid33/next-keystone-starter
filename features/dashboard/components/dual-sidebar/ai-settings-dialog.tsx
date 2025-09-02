@@ -32,7 +32,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { AiChatStorage } from "./ai-chat-storage";
+import { useAiConfig } from "../../hooks/use-ai-config";
 import { checkSharedKeysAvailable } from "../../actions/ai-chat";
 
 // Popular AI models with user-friendly names and their OpenRouter slugs
@@ -55,12 +55,12 @@ interface AISettingsDialogProps {
 
 function AISettingsDialogInner({ onSave, onOpenChange }: { onSave: () => void; onOpenChange: (open: boolean) => void }) {
   // Initialize state from current storage values
-  const config = AiChatStorage.getConfig();
+  const { config, setConfig } = useAiConfig();
   const [configType, setConfigType] = useState<"global" | "local">(config.keyMode === "env" ? "global" : "local");
   const [localKeys, setLocalKeys] = useState({
-    apiKey: localStorage.getItem("openRouterApiKey") || "",
-    model: localStorage.getItem("openRouterModel") || "openai/gpt-4o-mini",
-    maxTokens: localStorage.getItem("openRouterMaxTokens") || "4000",
+    apiKey: config.localKeys?.apiKey || "",
+    model: config.localKeys?.model || "openai/gpt-4o-mini",
+    maxTokens: config.localKeys?.maxTokens || "4000",
   });
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{
     available: boolean;
@@ -95,7 +95,7 @@ function AISettingsDialogInner({ onSave, onOpenChange }: { onSave: () => void; o
       localKeys: configType === "local" ? localKeys : undefined
     };
 
-    AiChatStorage.saveConfig(config);
+    setConfig(config);
     onSave();
     onOpenChange(false);
   };

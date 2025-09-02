@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { AiChatStorage } from "./ai-chat-storage";
+import { useAiConfig } from "../../hooks/use-ai-config";
 import { getSharedKeys, checkSharedKeysAvailable } from "../../actions/ai-chat";
 
 // Popular AI models with user-friendly names and their OpenRouter slugs
@@ -55,6 +55,7 @@ interface AIActivationDialogProps {
 }
 
 export function AIActivationDialog({ open, onOpenChange, onComplete }: AIActivationDialogProps) {
+  const { setConfig } = useAiConfig();
   const [configType, setConfigType] = useState<"global" | "local">("global");
   const [confirmationText, setConfirmationText] = useState("");
   const [sharedKeysStatus, setSharedKeysStatus] = useState<{
@@ -113,7 +114,7 @@ export function AIActivationDialog({ open, onOpenChange, onComplete }: AIActivat
       localKeys: configType === "local" ? localKeys : undefined
     };
 
-    AiChatStorage.saveConfig(config);
+    setConfig(config);
     onComplete();
     onOpenChange(false);
   };

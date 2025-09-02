@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -41,10 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import * as SelectPrimitive from "@radix-ui/react-select";
-import {
-  getSharedKeys,
-  checkSharedKeysAvailable,
-} from "@/features/dashboard/actions/ai-chat";
+import { checkSharedKeysAvailable } from "@/features/dashboard/actions/ai-chat";
 import { ModeSplitButton } from "./mode-split-button";
 import {
   Tooltip,
@@ -54,9 +50,12 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebarWithSide } from "@/components/ui/sidebar";
 import { useChatMode } from "../DashboardLayout";
-import { AiChatStorage, type AiChatConfig } from "./ai-chat-storage";
+import { useAiConfig } from "../../hooks/use-ai-config";
+import { useChatSubmission } from "../../hooks/use-chat-submission";
 import { AIActivationDialog } from "./ai-activation-dialog";
 import { AISettingsDialog } from "./ai-settings-dialog";
+import { ChatEmptyState } from "./chat-empty-state";
+import { ChatUnactivatedState } from "./chat-unactivated-state";
 import { RiRobot2Fill, RiRobot2Line } from "@remixicon/react";
 
 
@@ -112,41 +111,20 @@ function ChatMessage({
   );
 }
 
-// Simple Activation Component for Sidebar
-function SidebarActivation({ onActivate }: { onActivate: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-6 gap-3">
-                <RiRobot2Line className="size-12  text-muted-foreground/40"
-/>
-
-      <div className="space-y-8 text-center max-w-sm">
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">AI Assistant</h3>
-          <p className="text-muted-foreground text-sm">
-            Set up your AI assistant to help manage your data and automate tasks.
-          </p>
-        </div>
-        
-        <Button
-          onClick={onActivate}
-          variant="outline"
-          className="w-full"
-          size="lg"
-        >
-          Activate AI Chat
-        </Button>
-      </div>
-    </div>
-  );
-}
+// This component is no longer used - replaced with ChatUnactivatedState
 
 // Main Sidebar Chat Component
 export function AiChatSidebar() {
-  const router = useRouter();
   const { toggleSidebar } = useSidebarWithSide("right");
-  const { chatMode, setChatMode, messages, setMessages, loading, setLoading, sending, setSending } = useChatMode();
+  const { setChatMode, messages, setMessages, loading, setLoading, sending, setSending, user } = useChatMode();
   const [input, setInput] = useState("");
-  const [aiConfig, setAiConfig] = useState<AiChatConfig | null>(null);
+  const { config: aiConfig, setConfig: setAiConfig } = useAiConfig();
+  const { handleSubmit: submitChat } = useChatSubmission({
+    messages,
+    setMessages,
+    setLoading,
+    setSending,
+  });
   const [selectedMode, setSelectedMode] = useState<
     "env" | "local" | "disabled"
   >("env");
@@ -161,17 +139,15 @@ export function AiChatSidebar() {
 
   // Remove the old useStickToBottom hook - now handled by PromptKit components
 
-  // Load AI config on component mount
+  // Initialize selected mode based on AI config
   useEffect(() => {
-    const config = AiChatStorage.getConfig();
-    setAiConfig(config);
-    if (config.enabled) {
-      setSelectedMode(config.keyMode);
+    if (aiConfig.enabled) {
+      setSelectedMode(aiConfig.keyMode);
     } else {
       setSelectedMode("disabled");
     }
     setIsInitializing(false);
-  }, []);
+  }, [aiConfig.enabled, aiConfig.keyMode]);
 
   // Check shared keys status
   useEffect(() => {
@@ -214,18 +190,14 @@ export function AiChatSidebar() {
 
   // Handle activation completion
   const handleActivationComplete = () => {
-    // Reload config after activation
-    const config = AiChatStorage.getConfig();
-    setAiConfig(config);
-    setSelectedMode(config.keyMode);
+    // Config will automatically update via the useAiConfig hook
+    setSelectedMode(aiConfig.keyMode);
   };
 
   // Handle settings save
   const handleSettingsSave = () => {
-    // Reload config after settings change
-    const config = AiChatStorage.getConfig();
-    setAiConfig(config);
-    setSelectedMode(config.keyMode);
+    // Config will automatically update via the useAiConfig hook
+    setSelectedMode(aiConfig.keyMode);
   };
 
   // Handle activation dialog open
@@ -238,23 +210,19 @@ export function AiChatSidebar() {
     setSelectedMode(mode);
 
     if (mode === "disabled") {
-      const newConfig: AiChatConfig = {
+      setAiConfig({
         enabled: false,
         onboarded: false,
         keyMode: "env",
         localKeys: undefined,
-      };
-      AiChatStorage.saveConfig(newConfig);
-      setAiConfig(newConfig);
+      });
     } else {
-      const newConfig: AiChatConfig = {
+      setAiConfig({
         enabled: true,
         onboarded: true,
         keyMode: mode,
-        localKeys: aiConfig?.localKeys,
-      };
-      AiChatStorage.saveConfig(newConfig);
-      setAiConfig(newConfig);
+        localKeys: aiConfig.localKeys,
+      });
     }
   };
 
@@ -273,235 +241,10 @@ export function AiChatSidebar() {
   };
 
   const handleSubmit = async () => {
-    if (!input.trim() || !aiConfig?.enabled) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: input,
-      isUser: true,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
+    if (!input.trim()) return;
     const currentInput = input;
     setInput("");
-    setSending(true);
-
-    try {
-      const conversationHistory = [...messages, userMessage].map((msg) => ({
-        role: msg.isUser ? "user" : "assistant",
-        content: msg.content,
-      }));
-
-      let res: Response;
-
-      if (aiConfig?.keyMode === "local") {
-        // Local keys mode - validate keys are provided
-        if (!aiConfig.localKeys?.apiKey || !aiConfig.localKeys?.model) {
-          const errorMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            content:
-              "Error: Local API key and model are required. Please configure them in settings.",
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-          return;
-        }
-
-        // Call completion route directly with local keys
-        res = await fetch("/api/completion", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: currentInput,
-            messages: conversationHistory,
-            useLocalKeys: true,
-            apiKey: aiConfig.localKeys.apiKey,
-            model: aiConfig.localKeys.model,
-            maxTokens: parseInt(aiConfig.localKeys.maxTokens),
-          }),
-          credentials: "include",
-        });
-      } else {
-        // Shared keys mode - get keys from server action then call completion route
-        try {
-          const keysResult = await getSharedKeys();
-          if (!keysResult.success) {
-            const errorMessage: Message = {
-              id: (Date.now() + 1).toString(),
-              content: `Error: ${keysResult.error}`,
-              isUser: false,
-              timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMessage]);
-            return;
-          }
-
-          res = await fetch("/api/completion", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              prompt: currentInput,
-              messages: conversationHistory,
-              useLocalKeys: true,
-              apiKey: keysResult.keys!.apiKey,
-              model: keysResult.keys!.model,
-              maxTokens: keysResult.keys!.maxTokens,
-            }),
-            credentials: "include",
-          });
-        } catch (error) {
-          const errorMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            content: `Error: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`,
-            isUser: false,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, errorMessage]);
-          return;
-        }
-      }
-
-      setSending(false);
-      setLoading(true);
-
-      if (!res.ok) {
-        let errorMessage = "Unknown error";
-        try {
-          const error = await res.json();
-          errorMessage = error.error || error.details || "Unknown error";
-        } catch {
-          errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-        }
-
-        const errorMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          content: `Error: ${errorMessage}`,
-          isUser: false,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
-        setLoading(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      if (!reader) return;
-
-      let fullResponse = "";
-      const decoder = new TextDecoder();
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "",
-        isUser: false,
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, aiMessage]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-          break;
-        }
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
-
-        for (const line of lines) {
-          console.log("STREAM LINE DEBUG:", line);
-          if (line.startsWith("0:")) {
-            const text = line.slice(2);
-            if (text.startsWith('"') && text.endsWith('"')) {
-              fullResponse += JSON.parse(text);
-            }
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === aiMessage.id
-                  ? { ...msg, content: fullResponse }
-                  : msg
-              )
-            );
-          } else if (line.startsWith("9:")) {
-            // Handle data change notification
-            try {
-              const dataInfo = JSON.parse(line.slice(2));
-              if (dataInfo.dataHasChanged) {
-                console.log("Data has changed, refreshing page");
-                router.refresh();
-              }
-            } catch (error) {
-              console.error("Failed to parse data change notification:", error);
-            }
-          } else if (line.startsWith("3:")) {
-            // Error in stream - replace the thinking message with error
-            console.log("ERROR STREAM LINE DETECTED:", line);
-            try {
-              const errorText = line.slice(2);
-              console.log("ERROR TEXT TO PARSE:", errorText);
-              const errorData = JSON.parse(errorText);
-              console.log("PARSED ERROR DATA:", errorData);
-              const finalErrorMsg = `Error: ${
-                typeof errorData === "string"
-                  ? errorData
-                  : errorData.error ||
-                    errorData.message ||
-                    "Streaming error occurred"
-              }`;
-              console.log("FINAL ERROR MESSAGE TO SHOW:", finalErrorMsg);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === aiMessage.id
-                    ? { ...msg, content: finalErrorMsg }
-                    : msg
-                )
-              );
-              setLoading(false);
-              return;
-            } catch (parseError) {
-              // Failed to parse error JSON, but still show the raw error text
-              const errorText = line.slice(2);
-              console.log("PARSE ERROR OCCURRED:", parseError);
-              console.log("RAW ERROR TEXT FROM STREAM:", errorText);
-              const fallbackMsg = `Error: ${
-                errorText ||
-                "Streaming error occurred. Please check that your API key and model are correct."
-              }`;
-              console.log("FALLBACK ERROR MESSAGE TO SHOW:", fallbackMsg);
-              setMessages((prev) =>
-                prev.map((msg) =>
-                  msg.id === aiMessage.id
-                    ? { ...msg, content: fallbackMsg }
-                    : msg
-                )
-              );
-              setLoading(false);
-              return;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: `Error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setSending(false);
-      setLoading(false);
-    }
+    await submitChat(currentInput);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -512,7 +255,7 @@ export function AiChatSidebar() {
   };
 
   const isAiChatReady =
-    aiConfig?.enabled && aiConfig?.onboarded && selectedMode !== "disabled";
+    aiConfig.enabled && aiConfig.onboarded && selectedMode !== "disabled";
 
   // Don't render anything while initializing to prevent flash
   if (isInitializing) {
@@ -559,80 +302,86 @@ export function AiChatSidebar() {
       </div>
 
       {/* Messages */}
-      <ChatContainerRoot className="flex-1 pt-3 px-3 relative">
-        <ChatContainerContent className="space-y-3">
-          {messages.map((message) => (
-            <ChatMessage key={message.id} isUser={message.isUser}>
-              {message.isUser ? (
-                <p className="whitespace-pre-wrap break-words">
-                  {message.content}
-                </p>
-              ) : (
-                <>
-                  {message.content ? (
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks]}
-                      components={{
-                        p: ({ children }) => (
-                          <div className="mb-1 last:mb-0 break-words">
-                            {children}
-                          </div>
-                        ),
-                        ul: ({ children }) => (
-                          <ul className="mb-1 last:mb-0 pl-2">{children}</ul>
-                        ),
-                        ol: ({ children }) => (
-                          <ol className="mb-1 last:mb-0 pl-2">{children}</ol>
-                        ),
-                        li: ({ children }) => (
-                          <li className="mb-0.5">{children}</li>
-                        ),
-                        strong: ({ children }) => (
-                          <strong className="font-semibold">{children}</strong>
-                        ),
-                        code: ({ children, ...props }) => {
-                          if ((props as any).inline) {
-                            return (
-                              <code className="bg-muted px-1 rounded font-mono break-all">
-                                {children}
-                              </code>
-                            );
-                          }
-                          return (
-                            <pre className="bg-muted border rounded p-2 overflow-x-auto">
-                              <code className="font-mono break-all">
-                                {children}
-                              </code>
-                            </pre>
-                          );
-                        },
-                        pre: ({ children }) => (
-                          <div className="mb-1 last:mb-0">{children}</div>
-                        ),
-                      }}
-                    >
+      {isAiChatReady ? (
+        <ChatContainerRoot className="flex-1 pt-3 px-3 relative">
+          <ChatContainerContent className="space-y-3">
+            {messages.length === 0 ? (
+              <ChatEmptyState userName={user?.name} />
+            ) : (
+              messages.map((message) => (
+                <ChatMessage key={message.id} isUser={message.isUser}>
+                  {message.isUser ? (
+                    <p className="whitespace-pre-wrap break-words">
                       {message.content}
-                    </ReactMarkdown>
+                    </p>
                   ) : (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <span className="animate-pulse">Thinking...</span>
-                    </div>
+                    <>
+                      {message.content ? (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            p: ({ children }) => (
+                              <div className="mb-1 last:mb-0 break-words">
+                                {children}
+                              </div>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="mb-1 last:mb-0 pl-2">{children}</ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="mb-1 last:mb-0 pl-2">{children}</ol>
+                            ),
+                            li: ({ children }) => (
+                              <li className="mb-0.5">{children}</li>
+                            ),
+                            strong: ({ children }) => (
+                              <strong className="font-semibold">{children}</strong>
+                            ),
+                            code: ({ children, ...props }) => {
+                              if ((props as any).inline) {
+                                return (
+                                  <code className="bg-muted px-1 rounded font-mono break-all">
+                                    {children}
+                                  </code>
+                                );
+                              }
+                              return (
+                                <pre className="bg-muted border rounded p-2 overflow-x-auto">
+                                  <code className="font-mono break-all">
+                                    {children}
+                                  </code>
+                                </pre>
+                              );
+                            },
+                            pre: ({ children }) => (
+                              <div className="mb-1 last:mb-0">{children}</div>
+                            ),
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <span className="animate-pulse">Thinking...</span>
+                        </div>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </ChatMessage>
-          ))}
+                </ChatMessage>
+              ))
+            )}
 
-          <ChatContainerScrollAnchor />
-        </ChatContainerContent>
+            <ChatContainerScrollAnchor />
+          </ChatContainerContent>
 
-        {/* PromptKit Scroll Button */}
-        {messages.length > 0 && (
-          <div className="absolute bottom-4 right-4">
-            <ScrollButton />
-          </div>
-        )}
-      </ChatContainerRoot>
+          {/* PromptKit Scroll Button */}
+          {messages.length > 0 && (
+            <div className="absolute bottom-4 right-4">
+              <ScrollButton />
+            </div>
+          )}
+        </ChatContainerRoot>
+      ) : null}
 
       {/* Input Area or Onboarding */}
       {isAiChatReady ? (
@@ -668,7 +417,12 @@ export function AiChatSidebar() {
           </div>
         </div>
       ) : (
-        <SidebarActivation onActivate={handleActivationOpen} />
+        <div className="flex-1 flex items-center justify-center">
+          <ChatUnactivatedState 
+            userName={user?.name} 
+            onActivate={handleActivationOpen} 
+          />
+        </div>
       )}
 
       <AIActivationDialog
