@@ -228,6 +228,7 @@ function useBlockPopover(
     }
   }
 
+  // @ts-expect-error - triggerAnchorPoint is not available in our version of react-aria
   return {
     arrowProps,
     placement,
