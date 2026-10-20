@@ -5,6 +5,7 @@
 
 'use server'
 
+import { PUBLIC_REQUEST_ERROR, safeErrorSummary } from '@/features/dashboard/lib/security';
 import { keystoneClient } from '../lib/keystoneClient'
 
 export async function getListCounts(
@@ -13,24 +14,30 @@ export async function getListCounts(
     isSingleton?: boolean;
     graphql?: {
       names: {
-        listQueryCountName: string;
+        listQueryName?: string;
+        listQueryCountName?: string;
       };
     };
   }>
 ) {
   try {
-    // Skip counting for singleton lists
     const listsToCount = lists.filter((list) => !list.isSingleton)
+    const singletonLists = lists.filter((list) => list.isSingleton)
 
-    if (listsToCount.length === 0) return { success: true, data: {} }
-
-    // Build a query to get counts for all non-singleton lists at once
-    const countQueries = listsToCount.map((list) => {
+    const countQueries = listsToCount.flatMap((list) => {
       const countName = list.graphql?.names?.listQueryCountName
-      return `${list.key}: ${countName}`
+      return countName ? [`${list.key}: ${countName}`] : []
     })
 
-    const query = `query GetListCounts { ${countQueries.join('\n')} }`
+    const singletonQueries = singletonLists.flatMap((list) => {
+      const listQueryName = list.graphql?.names?.listQueryName
+      return listQueryName ? [`singleton_${list.key}: ${listQueryName}(take: 1) { id }`] : []
+    })
+
+    const selections = [...countQueries, ...singletonQueries]
+    if (selections.length === 0) return { success: true, data: {} }
+
+    const query = `query GetListCounts { ${selections.join('\n')} }`
     
     const response = await keystoneClient(
       query,
@@ -45,11 +52,9 @@ export async function getListCounts(
 
     return response
   } catch (error: unknown) {
-    console.error('Error fetching list counts:', error)
+    console.error('Error fetching list counts:', safeErrorSummary(error))
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'Unknown error fetching list counts'
+      PUBLIC_REQUEST_ERROR
     return { success: false, error: errorMessage }
   }
 }

@@ -4,6 +4,7 @@
 
 'use server'
 
+import { PUBLIC_REQUEST_ERROR, safeErrorSummary } from '@/features/dashboard/lib/security';
 import { cache } from 'react'
 import { keystoneClient, type KeystoneResponse } from '../lib/keystoneClient'
 import { getGraphQLNames } from '../lib/getGqlNames'
@@ -24,6 +25,7 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
                 field
                 direction
               }
+              initialFilter
               path
               label
               singular
@@ -35,6 +37,7 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
               labelField
               isSingleton
               isHidden
+              hideNavigation
               hideCreate
               hideDelete
 
@@ -53,13 +56,17 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
                 isNonNull
                 createView {
                   fieldMode
+                  fieldPosition
+                  isRequired
                 }
                 itemView {
                   fieldMode
                   fieldPosition
+                  isRequired
                 }
                 listView {
                   fieldMode
+                  fieldPosition
                 }
               }
 
@@ -79,7 +86,7 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
   const response = await keystoneClient(query)
 
   if (!response.success) {
-    console.error('Failed to fetch admin meta:', response.error)
+    console.error('Failed to fetch admin meta:', PUBLIC_REQUEST_ERROR)
     return response
   }
 
@@ -156,10 +163,10 @@ export async function getAdminMetaAction(listKey?: string): Promise<KeystoneResp
     // Return full admin meta
     return response
   } catch (error) {
-    console.error('Error in getAdminMetaAction:', error)
+    console.error('Error in getAdminMetaAction:', safeErrorSummary(error))
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: PUBLIC_REQUEST_ERROR
     }
   }
 }

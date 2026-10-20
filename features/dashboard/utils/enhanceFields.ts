@@ -3,6 +3,7 @@
  * This mimics exactly what Keystone does in their context provider
  */
 
+import { PUBLIC_REQUEST_ERROR, safeErrorSummary } from '@/features/dashboard/lib/security';
 import { getFieldViews } from '../views/registry'
 
 const expectedExports = new Set(['Field', 'controller'])
@@ -12,7 +13,7 @@ export function enhanceFields(rawFields: Record<string, any>, listKey: string) {
   
   for (const [fieldPath, field] of Object.entries(rawFields)) {
     if (typeof field.viewsIndex !== 'number') {
-      console.warn(`Field ${fieldPath} has invalid viewsIndex:`, field.viewsIndex)
+      console.error(`Field ${fieldPath} has invalid viewsIndex:`, PUBLIC_REQUEST_ERROR)
       continue
     }
 
@@ -49,6 +50,7 @@ export function enhanceFields(rawFields: Record<string, any>, listKey: string) {
         ...field,
         createView: {
           fieldMode: field.createView?.fieldMode ?? null,
+          fieldPosition: field.createView?.fieldPosition ?? null,
           isRequired: field.createView?.isRequired ?? false,
         },
         itemView: {
@@ -58,6 +60,7 @@ export function enhanceFields(rawFields: Record<string, any>, listKey: string) {
         },
         listView: {
           fieldMode: field.listView?.fieldMode ?? null,
+          fieldPosition: field.listView?.fieldPosition ?? null,
         },
         graphql: {
           isNonNull: field.isNonNull || [],
@@ -73,7 +76,7 @@ export function enhanceFields(rawFields: Record<string, any>, listKey: string) {
         }),
       }
     } catch (error) {
-      console.error(`Error enhancing field ${fieldPath}:`, error)
+      console.error(`Error enhancing field ${fieldPath}:`, safeErrorSummary(error))
     }
   }
   
