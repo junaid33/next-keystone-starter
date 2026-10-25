@@ -22,7 +22,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.svg (favicon file)
+     * - oauth, .well-known (MCP OAuth screens and discovery serve themselves)
      */
-    '/((?!api|_next/static|_next/image|favicon.svg).*)',
+    '/((?!api|oauth|\\.well-known|_next/static|_next/image|favicon.svg).*)',
   ],
 };

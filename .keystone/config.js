@@ -1,7 +1,9 @@
 "use strict";
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -15,6 +17,14 @@ var __copyProps = (to, from, except, desc) => {
   }
   return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // keystone.ts
@@ -26,7 +36,7 @@ module.exports = __toCommonJS(keystone_exports);
 
 // features/keystone/index.ts
 var import_auth = require("@keystone-6/auth");
-var import_core5 = require("@keystone-6/core");
+var import_core10 = require("@keystone-6/core");
 var import_config = require("dotenv/config");
 
 // features/keystone/models/User.ts
@@ -389,12 +399,318 @@ var TodoImage = (0, import_core4.list)({
   }
 });
 
+// features/keystone/models/OAuthApp.ts
+var import_core5 = require("@keystone-6/core");
+var import_fields6 = require("@keystone-6/core/fields");
+
+// features/keystone/models/trackingFields.ts
+var import_fields5 = require("@keystone-6/core/fields");
+var trackingFields = {
+  createdAt: (0, import_fields5.timestamp)({
+    access: { read: () => true, create: () => false, update: () => false },
+    validation: { isRequired: true },
+    defaultValue: { kind: "now" },
+    ui: {
+      createView: { fieldMode: "hidden" },
+      itemView: { fieldMode: "read" }
+    }
+  }),
+  updatedAt: (0, import_fields5.timestamp)({
+    access: { read: () => true, create: () => false, update: () => false },
+    db: { updatedAt: true },
+    validation: { isRequired: true },
+    defaultValue: { kind: "now" },
+    ui: {
+      createView: { fieldMode: "hidden" },
+      itemView: { fieldMode: "read" }
+    }
+  })
+};
+
+// features/keystone/mcp-oauth/core.ts
+var import_node_crypto = __toESM(require("node:crypto"));
+var MCP_SCOPES = ["mcp:read", "mcp:write"];
+var MCP_ACCESS_PREFIX = "mcp_at_";
+var ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
+var REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1e3;
+var AUTHORIZATION_CODE_TTL_MS = 5 * 60 * 1e3;
+var CONSENT_TICKET_TTL_MS = 10 * 60 * 1e3;
+var DEVELOPMENT_SECRET = "this secret should only be used in testing";
+function secret() {
+  return process.env.SESSION_SECRET || DEVELOPMENT_SECRET;
+}
+function randomToken(prefix, bytes = 32) {
+  return `${prefix}${import_node_crypto.default.randomBytes(bytes).toString("base64url")}`;
+}
+function digestToken(token, purpose = "mcp-oauth-token") {
+  return import_node_crypto.default.createHmac("sha256", secret()).update(`${purpose}\0${token}`, "utf8").digest("hex");
+}
+function bearerToken(header) {
+  const value = Array.isArray(header) ? header[0] : header;
+  if (typeof value !== "string") return null;
+  const match = /^Bearer\s+(\S+)\s*$/i.exec(value);
+  return match ? match[1] : null;
+}
+function isMcpAccessToken(token) {
+  return typeof token === "string" && token.startsWith(MCP_ACCESS_PREFIX) && token.length > MCP_ACCESS_PREFIX.length;
+}
+function storedScopes(value) {
+  return Array.isArray(value) ? MCP_SCOPES.filter((scope) => value.includes(scope)) : [];
+}
+
+// features/keystone/models/OAuthApp.ts
+var OAuthApp = (0, import_core5.list)({
+  access: {
+    operation: {
+      query: permissions.canManagePeople,
+      create: permissions.canManagePeople,
+      update: permissions.canManagePeople,
+      delete: permissions.canManagePeople
+    }
+  },
+  fields: {
+    name: (0, import_fields6.text)({
+      validation: {
+        isRequired: true
+      }
+    }),
+    clientId: (0, import_fields6.text)({
+      isIndexed: "unique",
+      hooks: {
+        resolveInput: ({ operation, resolvedData }) => {
+          if (operation === "create" && !resolvedData.clientId) {
+            return randomToken("mcp_cl_", 18);
+          }
+          return resolvedData.clientId;
+        }
+      },
+      ui: {
+        createView: { fieldMode: "hidden" },
+        itemView: { fieldMode: "read" },
+        description: "Auto-generated unique identifier for your application."
+      }
+    }),
+    clientSecret: (0, import_fields6.text)({
+      access: {
+        read: () => false
+      },
+      hooks: {
+        resolveInput: ({ resolvedData }) => {
+          if (resolvedData.clientSecret) {
+            return digestToken(resolvedData.clientSecret, "oauth-client-secret");
+          }
+          return void 0;
+        }
+      },
+      ui: {
+        createView: { fieldMode: "hidden" },
+        itemView: { fieldMode: "hidden" },
+        description: "Stored only as a digest. Public MCP clients have no secret."
+      }
+    }),
+    tokenEndpointAuthMethod: (0, import_fields6.select)({
+      options: [
+        { label: "Client secret (POST)", value: "client_secret_post" },
+        { label: "Client secret (Basic)", value: "client_secret_basic" },
+        { label: "None (public PKCE client)", value: "none" }
+      ],
+      defaultValue: "client_secret_post",
+      ui: {
+        description: "How the app authenticates at the token endpoint. MCP clients are public (none)."
+      }
+    }),
+    redirectUris: (0, import_fields6.json)({
+      defaultValue: [],
+      ui: {
+        description: "Array of allowed redirect URIs for OAuth callbacks"
+      }
+    }),
+    scopes: (0, import_fields6.json)({
+      defaultValue: [...MCP_SCOPES],
+      ui: {
+        description: "Array of allowed OAuth scopes. MCP scopes only narrow the signed-in user's own access."
+      }
+    }),
+    webhookUrl: (0, import_fields6.text)({
+      ui: {
+        description: "URL to receive webhook notifications"
+      }
+    }),
+    status: (0, import_fields6.select)({
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Suspended", value: "suspended" },
+        { label: "Pending", value: "pending" }
+      ],
+      defaultValue: "active"
+    }),
+    installUrl: (0, import_fields6.text)({
+      ui: {
+        description: "URL where users can install this app"
+      }
+    }),
+    uninstallUrl: (0, import_fields6.text)({
+      ui: {
+        description: "URL to handle app uninstallation"
+      }
+    }),
+    description: (0, import_fields6.text)({
+      ui: {
+        displayMode: "textarea"
+      }
+    }),
+    metadata: (0, import_fields6.json)({
+      defaultValue: {},
+      ui: {
+        description: "Additional app-specific configuration and settings"
+      }
+    }),
+    developerEmail: (0, import_fields6.text)(),
+    privacyPolicyUrl: (0, import_fields6.text)(),
+    termsOfServiceUrl: (0, import_fields6.text)(),
+    supportUrl: (0, import_fields6.text)(),
+    ...trackingFields
+  },
+  ui: {
+    labelField: "name",
+    listView: {
+      initialColumns: ["name", "clientId", "status", "createdAt"]
+    }
+  }
+});
+
+// features/keystone/models/OAuthToken.ts
+var import_core7 = require("@keystone-6/core");
+var import_fields7 = require("@keystone-6/core/fields");
+var digestTokenInput = {
+  resolveInput: ({ resolvedData, fieldKey }) => resolvedData[fieldKey] ? digestToken(resolvedData[fieldKey]) : resolvedData[fieldKey]
+};
+var OAuthToken = (0, import_core7.list)({
+  access: {
+    operation: {
+      query: permissions.canManagePeople,
+      create: permissions.canManagePeople,
+      update: permissions.canManagePeople,
+      delete: permissions.canManagePeople
+    }
+  },
+  fields: {
+    tokenType: (0, import_fields7.select)({
+      options: [
+        { label: "Authorization Code", value: "authorization_code" },
+        { label: "Access Token", value: "access_token" },
+        { label: "Refresh Token", value: "refresh_token" }
+      ],
+      validation: {
+        isRequired: true
+      }
+    }),
+    token: (0, import_fields7.text)({
+      access: { read: () => false },
+      validation: {
+        isRequired: true
+      },
+      isIndexed: "unique",
+      hooks: digestTokenInput
+    }),
+    clientId: (0, import_fields7.text)({
+      validation: {
+        isRequired: true
+      },
+      isIndexed: true
+    }),
+    user: (0, import_fields7.relationship)({
+      ref: "User",
+      ui: {
+        description: "The user who authorized this token"
+      }
+    }),
+    scopes: (0, import_fields7.json)({
+      defaultValue: [],
+      ui: {
+        description: "Array of granted scopes"
+      }
+    }),
+    redirectUri: (0, import_fields7.text)({
+      ui: {
+        description: "The redirect URI used during authorization"
+      }
+    }),
+    resource: (0, import_fields7.text)({
+      ui: {
+        description: "The MCP endpoint (RFC 8707 resource) this grant is for"
+      }
+    }),
+    expiresAt: (0, import_fields7.timestamp)({
+      ui: {
+        description: "When this token expires"
+      }
+    }),
+    isRevoked: (0, import_fields7.select)({
+      options: [
+        { label: "Active", value: "false" },
+        { label: "Revoked", value: "true" }
+      ],
+      defaultValue: "false"
+    }),
+    authorizationCode: (0, import_fields7.text)({
+      access: { read: () => false },
+      hooks: digestTokenInput,
+      ui: {
+        description: "The authorization code that was exchanged for this token (for access tokens)"
+      }
+    }),
+    refreshToken: (0, import_fields7.text)({
+      access: { read: () => false },
+      hooks: digestTokenInput,
+      ui: {
+        description: "Associated refresh token (for access tokens)"
+      }
+    }),
+    accessToken: (0, import_fields7.text)({
+      access: { read: () => false },
+      hooks: digestTokenInput,
+      ui: {
+        description: "Associated access token (for refresh tokens)"
+      }
+    }),
+    state: (0, import_fields7.text)({
+      ui: {
+        description: "OAuth state parameter for CSRF protection"
+      }
+    }),
+    codeChallenge: (0, import_fields7.text)({
+      ui: {
+        description: "PKCE code challenge"
+      }
+    }),
+    codeChallengeMethod: (0, import_fields7.select)({
+      options: [
+        { label: "Plain", value: "plain" },
+        { label: "SHA256", value: "S256" }
+      ],
+      ui: {
+        description: "PKCE code challenge method"
+      }
+    }),
+    ...trackingFields
+  },
+  ui: {
+    labelField: "clientId",
+    listView: {
+      initialColumns: ["tokenType", "clientId", "user", "scopes", "expiresAt", "isRevoked"]
+    }
+  }
+});
+
 // features/keystone/models/index.ts
 var models = {
   User,
   Role,
   Todo,
-  TodoImage
+  TodoImage,
+  OAuthApp,
+  OAuthToken
 };
 
 // features/keystone/index.ts
@@ -497,6 +813,37 @@ async function sendPasswordResetEmail(resetToken, to, baseUrl) {
   }
 }
 
+// features/keystone/mcp-oauth/session.ts
+async function resolveMcpAccessToken(context, token, listKey = "User") {
+  try {
+    const sudo = context.sudo();
+    const record = await sudo.db.OAuthToken.findOne({ where: { token: digestToken(token) } });
+    if (!record || record.tokenType !== "access_token" || record.isRevoked !== "false" || !record.userId || !record.expiresAt || new Date(record.expiresAt).getTime() <= Date.now()) {
+      return void 0;
+    }
+    const app = await sudo.db.OAuthApp.findOne({ where: { clientId: record.clientId } });
+    if (!app || app.status !== "active") return void 0;
+    const mcp = {
+      clientId: record.clientId,
+      scopes: storedScopes(record.scopes),
+      tokenId: String(record.id)
+    };
+    return { itemId: String(record.userId), listKey, mcp };
+  } catch {
+    return void 0;
+  }
+}
+function withMcpBearerSessions(strategy, listKey = "User") {
+  return {
+    ...strategy,
+    async get({ context }) {
+      const token = bearerToken(context?.req?.headers?.authorization);
+      if (isMcpAccessToken(token)) return resolveMcpAccessToken(context, token, listKey);
+      return strategy.get({ context });
+    }
+  };
+}
+
 // features/keystone/index.ts
 var databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
 var sessionConfig = {
@@ -554,7 +901,7 @@ var { withAuth } = (0, import_auth.createAuth)({
   `
 });
 var keystone_default = withAuth(
-  (0, import_core5.config)({
+  (0, import_core10.config)({
     db: {
       provider: "postgresql",
       url: databaseURL
@@ -576,7 +923,8 @@ var keystone_default = withAuth(
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false
     },
-    session: (0, import_session.statelessSessions)(sessionConfig),
+    // MCP OAuth bearer tokens resolve to the approving user; everything else is unchanged.
+    session: withMcpBearerSessions((0, import_session.statelessSessions)(sessionConfig)),
     graphql: {
       extendGraphqlSchema
     }

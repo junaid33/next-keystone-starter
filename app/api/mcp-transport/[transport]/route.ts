@@ -13,6 +13,8 @@ import {
   isInputObjectType,
 } from 'graphql';
 import { getBaseUrl } from '@/features/dashboard/lib/getBaseUrl';
+import { keystoneContext } from '@/features/keystone/context';
+import { authorizeMcpRequest } from '@/features/keystone/mcp-oauth/http';
 
 // Get simple type name for display
 function getSimpleTypeName(type: any): string {
@@ -25,13 +27,13 @@ function getSimpleTypeName(type: any): string {
   return type.name || type.toString();
 }
 
-// Execute GraphQL query with authentication
-async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: string): Promise<any> {
+// Execute GraphQL query as the caller: their session cookie, or their MCP OAuth bearer token
+async function executeGraphQL(query: string, graphqlEndpoint: string, auth: Record<string, string>): Promise<any> {
   const response = await fetch(graphqlEndpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Cookie': cookie,
+      ...auth,
     },
     body: JSON.stringify({ query }),
   });
@@ -44,12 +46,12 @@ async function executeGraphQL(query: string, graphqlEndpoint: string, cookie: st
 }
 
 // Get GraphQL schema from introspection
-async function getGraphQLSchema(graphqlEndpoint: string, cookie: string): Promise<GraphQLSchema> {
+async function getGraphQLSchema(graphqlEndpoint: string, auth: Record<string, string>): Promise<GraphQLSchema> {
   const response = await fetch(graphqlEndpoint, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      'Cookie': cookie,
+      ...auth,
     },
     body: JSON.stringify({ query: getIntrospectionQuery() }),
   });
@@ -77,14 +79,22 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
     const baseUrl = await getBaseUrl();
     const graphqlEndpoint = `${baseUrl}/api/graphql`;
     
-    // Extract cookie from request
-    const cookie = request.headers.get('cookie') || ''
-  
-    // Get the GraphQL schema
-    const schema = await getGraphQLSchema(graphqlEndpoint, cookie);
-    
     // Parse the JSON-RPC request
     const body = await request.json();
+
+    // Every call runs as one Keystone user: the session cookie (built-in assistant)
+    // or an MCP OAuth token. Without either, answer with the OAuth challenge.
+    const authorization = await authorizeMcpRequest(keystoneContext, request, body);
+    if (authorization instanceof Response) return authorization;
+    const auth = authorization.forwardHeaders;
+
+    // Notifications have no response body (Streamable HTTP: 202 Accepted)
+    if (typeof body.method === 'string' && body.method.startsWith('notifications/')) {
+      return new Response(null, { status: 202 });
+    }
+
+    // Get the GraphQL schema
+    const schema = await getGraphQLSchema(graphqlEndpoint, auth);
     
     // Handle the request based on method
     if (body.method === 'initialize') {
@@ -105,7 +115,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
-    } else if (body.method === 'notifications/initialized') {
+    } else if (body.method === 'ping') {
       return new Response(JSON.stringify({
         jsonrpc: '2.0',
         id: body.id,
@@ -364,7 +374,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           `.trim();
           
           // Execute the query
-          const result = await executeGraphQL(queryString, graphqlEndpoint, cookie || '');
+          const result = await executeGraphQL(queryString, graphqlEndpoint, auth);
           
           return new Response(JSON.stringify({
             jsonrpc: '2.0',
@@ -617,7 +627,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           `.trim();
           
           // Execute the mutation
-          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, auth);
           
           // Mark that data has changed
           dataHasChanged = true;
@@ -656,7 +666,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           `.trim();
           
           // Execute the mutation
-          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, auth);
           
           // Mark that data has changed
           dataHasChanged = true;
@@ -694,7 +704,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           `.trim();
           
           // Execute the mutation
-          const result = await executeGraphQL(mutationString, graphqlEndpoint, cookie || '');
+          const result = await executeGraphQL(mutationString, graphqlEndpoint, auth);
           
           // Mark that data has changed
           dataHasChanged = true;
@@ -847,7 +857,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
           `.trim();
           
           // Execute the search query
-          const result = await executeGraphQL(queryString, graphqlEndpoint, cookie || '');
+          const result = await executeGraphQL(queryString, graphqlEndpoint, auth);
           
           return new Response(JSON.stringify({
             jsonrpc: '2.0',
@@ -915,18 +925,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tra
   }
 }
 
-export async function GET(request: Request, { params }: { params: Promise<{ transport: string }> }) {
-  const { transport } = await params;
-  
-  const baseUrl = await getBaseUrl();
-  const graphqlEndpoint = `${baseUrl}/api/graphql`;
-  
-  return new Response(JSON.stringify({ 
-    message: 'Simple MCP Server is running',
-    transport: transport,
-    graphqlEndpoint
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
+// Stateless Streamable HTTP: no server-initiated SSE stream, so GET is 405 (MCP spec).
+export async function GET() {
+  return new Response(JSON.stringify({ error: 'Method not allowed. POST JSON-RPC to this endpoint.' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json', Allow: 'POST' },
   });
 }

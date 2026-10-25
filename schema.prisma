@@ -12,16 +12,17 @@ generator client {
 }
 
 model User {
-  id                      String    @id @default(cuid())
-  name                    String    @default("")
-  email                   String    @unique @default("")
+  id                      String       @id @default(cuid())
+  name                    String       @default("")
+  email                   String       @unique @default("")
   password                String
-  role                    Role?     @relation("User_role", fields: [roleId], references: [id])
-  roleId                  String?   @map("role")
-  tasks                   Todo[]    @relation("Todo_assignedTo")
+  role                    Role?        @relation("User_role", fields: [roleId], references: [id])
+  roleId                  String?      @map("role")
+  tasks                   Todo[]       @relation("Todo_assignedTo")
   passwordResetToken      String?
   passwordResetIssuedAt   DateTime?
   passwordResetRedeemedAt DateTime?
+  from_OAuthToken_user    OAuthToken[] @relation("OAuthToken_user")
 
   @@index([roleId])
 }
@@ -77,4 +78,51 @@ model TodoImage {
   altText         String  @default("")
   todos           Todo[]  @relation("Todo_todoImages")
   metadata        Json?
+}
+
+model OAuthApp {
+  id                      String   @id @default(cuid())
+  name                    String   @default("")
+  clientId                String   @unique @default("")
+  clientSecret            String   @default("")
+  tokenEndpointAuthMethod String?  @default("client_secret_post")
+  redirectUris            Json?    @default("[]")
+  scopes                  Json?    @default("[\"mcp:read\",\"mcp:write\"]")
+  webhookUrl              String   @default("")
+  status                  String?  @default("active")
+  installUrl              String   @default("")
+  uninstallUrl            String   @default("")
+  description             String   @default("")
+  metadata                Json?    @default("{}")
+  developerEmail          String   @default("")
+  privacyPolicyUrl        String   @default("")
+  termsOfServiceUrl       String   @default("")
+  supportUrl              String   @default("")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @default(now()) @updatedAt
+}
+
+model OAuthToken {
+  id                  String    @id @default(cuid())
+  tokenType           String
+  token               String    @unique @default("")
+  clientId            String    @default("")
+  user                User?     @relation("OAuthToken_user", fields: [userId], references: [id])
+  userId              String?   @map("user")
+  scopes              Json?     @default("[]")
+  redirectUri         String    @default("")
+  resource            String    @default("")
+  expiresAt           DateTime?
+  isRevoked           String?   @default("false")
+  authorizationCode   String    @default("")
+  refreshToken        String    @default("")
+  accessToken         String    @default("")
+  state               String    @default("")
+  codeChallenge       String    @default("")
+  codeChallengeMethod String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @default(now()) @updatedAt
+
+  @@index([clientId])
+  @@index([userId])
 }

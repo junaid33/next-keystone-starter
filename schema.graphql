@@ -533,6 +533,245 @@ input TodoImageCreateInput {
   metadata: JSON
 }
 
+type OAuthApp {
+  id: ID!
+  name: String
+  clientId: String
+  clientSecret: String
+  tokenEndpointAuthMethod: String
+  redirectUris: JSON
+  scopes: JSON
+  webhookUrl: String
+  status: String
+  installUrl: String
+  uninstallUrl: String
+  description: String
+  metadata: JSON
+  developerEmail: String
+  privacyPolicyUrl: String
+  termsOfServiceUrl: String
+  supportUrl: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input OAuthAppWhereUniqueInput {
+  id: ID
+  clientId: String
+}
+
+input OAuthAppWhereInput {
+  AND: [OAuthAppWhereInput!]
+  OR: [OAuthAppWhereInput!]
+  NOT: [OAuthAppWhereInput!]
+  id: IDFilter
+  name: StringFilter
+  clientId: StringFilter
+  clientSecret: StringFilter
+  tokenEndpointAuthMethod: StringNullableFilter
+  webhookUrl: StringFilter
+  status: StringNullableFilter
+  installUrl: StringFilter
+  uninstallUrl: StringFilter
+  description: StringFilter
+  developerEmail: StringFilter
+  privacyPolicyUrl: StringFilter
+  termsOfServiceUrl: StringFilter
+  supportUrl: StringFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input DateTimeFilter {
+  equals: DateTime
+  in: [DateTime!]
+  notIn: [DateTime!]
+  lt: DateTime
+  lte: DateTime
+  gt: DateTime
+  gte: DateTime
+  not: DateTimeFilter
+}
+
+input OAuthAppOrderByInput {
+  id: OrderDirection
+  name: OrderDirection
+  clientId: OrderDirection
+  clientSecret: OrderDirection
+  tokenEndpointAuthMethod: OrderDirection
+  webhookUrl: OrderDirection
+  status: OrderDirection
+  installUrl: OrderDirection
+  uninstallUrl: OrderDirection
+  description: OrderDirection
+  developerEmail: OrderDirection
+  privacyPolicyUrl: OrderDirection
+  termsOfServiceUrl: OrderDirection
+  supportUrl: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input OAuthAppUpdateInput {
+  name: String
+  clientId: String
+  clientSecret: String
+  tokenEndpointAuthMethod: String
+  redirectUris: JSON
+  scopes: JSON
+  webhookUrl: String
+  status: String
+  installUrl: String
+  uninstallUrl: String
+  description: String
+  metadata: JSON
+  developerEmail: String
+  privacyPolicyUrl: String
+  termsOfServiceUrl: String
+  supportUrl: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input OAuthAppUpdateArgs {
+  where: OAuthAppWhereUniqueInput!
+  data: OAuthAppUpdateInput!
+}
+
+input OAuthAppCreateInput {
+  name: String
+  clientId: String
+  clientSecret: String
+  tokenEndpointAuthMethod: String
+  redirectUris: JSON
+  scopes: JSON
+  webhookUrl: String
+  status: String
+  installUrl: String
+  uninstallUrl: String
+  description: String
+  metadata: JSON
+  developerEmail: String
+  privacyPolicyUrl: String
+  termsOfServiceUrl: String
+  supportUrl: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type OAuthToken {
+  id: ID!
+  tokenType: String
+  token: String
+  clientId: String
+  user: User
+  scopes: JSON
+  redirectUri: String
+  resource: String
+  expiresAt: DateTime
+  isRevoked: String
+  authorizationCode: String
+  refreshToken: String
+  accessToken: String
+  state: String
+  codeChallenge: String
+  codeChallengeMethod: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input OAuthTokenWhereUniqueInput {
+  id: ID
+  token: String
+}
+
+input OAuthTokenWhereInput {
+  AND: [OAuthTokenWhereInput!]
+  OR: [OAuthTokenWhereInput!]
+  NOT: [OAuthTokenWhereInput!]
+  id: IDFilter
+  tokenType: StringFilter
+  token: StringFilter
+  clientId: StringFilter
+  user: UserWhereInput
+  redirectUri: StringFilter
+  resource: StringFilter
+  expiresAt: DateTimeNullableFilter
+  isRevoked: StringNullableFilter
+  authorizationCode: StringFilter
+  refreshToken: StringFilter
+  accessToken: StringFilter
+  state: StringFilter
+  codeChallenge: StringFilter
+  codeChallengeMethod: StringNullableFilter
+  createdAt: DateTimeFilter
+  updatedAt: DateTimeFilter
+}
+
+input OAuthTokenOrderByInput {
+  id: OrderDirection
+  tokenType: OrderDirection
+  token: OrderDirection
+  clientId: OrderDirection
+  redirectUri: OrderDirection
+  resource: OrderDirection
+  expiresAt: OrderDirection
+  isRevoked: OrderDirection
+  authorizationCode: OrderDirection
+  refreshToken: OrderDirection
+  accessToken: OrderDirection
+  state: OrderDirection
+  codeChallenge: OrderDirection
+  codeChallengeMethod: OrderDirection
+  createdAt: OrderDirection
+  updatedAt: OrderDirection
+}
+
+input OAuthTokenUpdateInput {
+  tokenType: String
+  token: String
+  clientId: String
+  user: UserRelateToOneForUpdateInput
+  scopes: JSON
+  redirectUri: String
+  resource: String
+  expiresAt: DateTime
+  isRevoked: String
+  authorizationCode: String
+  refreshToken: String
+  accessToken: String
+  state: String
+  codeChallenge: String
+  codeChallengeMethod: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+input OAuthTokenUpdateArgs {
+  where: OAuthTokenWhereUniqueInput!
+  data: OAuthTokenUpdateInput!
+}
+
+input OAuthTokenCreateInput {
+  tokenType: String
+  token: String
+  clientId: String
+  user: UserRelateToOneForCreateInput
+  scopes: JSON
+  redirectUri: String
+  resource: String
+  expiresAt: DateTime
+  isRevoked: String
+  authorizationCode: String
+  refreshToken: String
+  accessToken: String
+  state: String
+  codeChallenge: String
+  codeChallengeMethod: String
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -563,6 +802,18 @@ type Mutation {
   updateTodoImages(data: [TodoImageUpdateArgs!]!): [TodoImage]
   deleteTodoImage(where: TodoImageWhereUniqueInput!): TodoImage
   deleteTodoImages(where: [TodoImageWhereUniqueInput!]!): [TodoImage]
+  createOAuthApp(data: OAuthAppCreateInput!): OAuthApp
+  createOAuthApps(data: [OAuthAppCreateInput!]!): [OAuthApp]
+  updateOAuthApp(where: OAuthAppWhereUniqueInput!, data: OAuthAppUpdateInput!): OAuthApp
+  updateOAuthApps(data: [OAuthAppUpdateArgs!]!): [OAuthApp]
+  deleteOAuthApp(where: OAuthAppWhereUniqueInput!): OAuthApp
+  deleteOAuthApps(where: [OAuthAppWhereUniqueInput!]!): [OAuthApp]
+  createOAuthToken(data: OAuthTokenCreateInput!): OAuthToken
+  createOAuthTokens(data: [OAuthTokenCreateInput!]!): [OAuthToken]
+  updateOAuthToken(where: OAuthTokenWhereUniqueInput!, data: OAuthTokenUpdateInput!): OAuthToken
+  updateOAuthTokens(data: [OAuthTokenUpdateArgs!]!): [OAuthToken]
+  deleteOAuthToken(where: OAuthTokenWhereUniqueInput!): OAuthToken
+  deleteOAuthTokens(where: [OAuthTokenWhereUniqueInput!]!): [OAuthToken]
   endSession: Boolean!
   authenticateUserWithPassword(email: String!, password: String!): UserAuthenticationWithPasswordResult
   createInitialUser(data: CreateInitialUserInput!): UserAuthenticationWithPasswordSuccess!
@@ -611,6 +862,12 @@ type Query {
   todoImage(where: TodoImageWhereUniqueInput!): TodoImage
   todoImages(where: TodoImageWhereInput! = {}, orderBy: [TodoImageOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: TodoImageWhereUniqueInput): [TodoImage!]
   todoImagesCount(where: TodoImageWhereInput! = {}): Int
+  oAuthApp(where: OAuthAppWhereUniqueInput!): OAuthApp
+  oAuthApps(where: OAuthAppWhereInput! = {}, orderBy: [OAuthAppOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OAuthAppWhereUniqueInput): [OAuthApp!]
+  oAuthAppsCount(where: OAuthAppWhereInput! = {}): Int
+  oAuthToken(where: OAuthTokenWhereUniqueInput!): OAuthToken
+  oAuthTokens(where: OAuthTokenWhereInput! = {}, orderBy: [OAuthTokenOrderByInput!]! = [], take: Int, skip: Int! = 0, cursor: OAuthTokenWhereUniqueInput): [OAuthToken!]
+  oAuthTokensCount(where: OAuthTokenWhereInput! = {}): Int
   keystone: KeystoneMeta!
   authenticatedItem: AuthenticatedItem
   validateUserPasswordResetToken(email: String!, token: String!): ValidateUserPasswordResetTokenResult

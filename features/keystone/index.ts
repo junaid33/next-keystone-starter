@@ -5,6 +5,7 @@ import { models } from "./models";
 import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
+import { withMcpBearerSessions } from "./mcp-oauth/session";
 
 const databaseURL = process.env.DATABASE_URL || "file:./keystone.db";
 
@@ -89,7 +90,8 @@ export default withAuth(
     ui: {
       isAccessAllowed: ({ session }) => session?.data.role?.canAccessDashboard ?? false,
     },
-    session: statelessSessions(sessionConfig),
+    // MCP OAuth bearer tokens resolve to the approving user; everything else is unchanged.
+    session: withMcpBearerSessions(statelessSessions(sessionConfig)),
     graphql: {
       extendGraphqlSchema,
     },
