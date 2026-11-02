@@ -2,6 +2,7 @@ import { createAuth } from "@keystone-6/auth";
 import { config } from "@keystone-6/core";
 import "dotenv/config";
 import { models } from "./models";
+import { withDemoGuard } from "./lib/demo-guard";
 import { statelessSessions } from "@keystone-6/core/session";
 import { extendGraphqlSchema } from "./mutations";
 import { sendPasswordResetEmail } from "./lib/mail";
@@ -73,7 +74,7 @@ export default withAuth(
       provider: "postgresql",
       url: databaseURL,
     },
-    lists: models,
+    lists: withDemoGuard(models),
     storage: {
       my_images: {
         kind: "s3",
