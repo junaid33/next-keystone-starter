@@ -116,3 +116,14 @@ test('the guard is wired into the Keystone config and the GraphQL route', () => 
   assert.match(fs.readFileSync(path.join(root, 'features/keystone/index.ts'), 'utf8'), /withDemoGuard\(/);
   assert.match(fs.readFileSync(path.join(root, 'pages/api/graphql.ts'), 'utf8'), /useDemoGuardErrors\(\)/);
 });
+
+test('fields policy: unchanged protected values pass, changed or unverifiable ones are refused', async () => {
+  const sample = withDemoGuard({ Store: { fields: {} } }, { Store: { kind: 'fields', fields: ['name', 'logoColor', 'inviteLinkTemplate'] } }, env);
+  const hook = sample.Store.hooks.beforeOperation;
+  const call = (args) => hook({ listKey: 'Store', operation: 'update', context: { session: DEMO }, ...args });
+  const item = { id: 's', name: 'Shop', logoColor: '#111111', inviteLinkTemplate: null };
+  await call({ item, inputData: { name: ' Shop ', logoColor: '#111111', inviteLinkTemplate: '', taxRate: 8 } });
+  await assert.rejects(call({ item, inputData: { name: 'Other' } }), (e) => e.message === DEMO_GUARD_MESSAGE);
+  await assert.rejects(call({ item, inputData: { inviteLinkTemplate: 'https://x' } }), (e) => e.message === DEMO_GUARD_MESSAGE);
+  await assert.rejects(call({ inputData: { name: 'Shop' } }), (e) => e.message === DEMO_GUARD_MESSAGE);
+});
