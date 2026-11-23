@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AiConfigProvider } from '../hooks/use-ai-config'
 import { QueryProvider } from '../providers/QueryProvider'
+import { CommandPaletteProvider } from './CommandPalette'
 
 // Shared Message type
 interface Message {
@@ -71,11 +72,9 @@ function FloatingChatButton() {
       aria-label={showChevron ? 'Close assistant' : 'Open assistant'}
       data-assistant-floating=""
       className={cn(
-        // Phones: hidden when the page header carries the assistant button, so it never covers row ends.
-        "fixed bottom-3 z-40 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 max-md:[body:has([data-assistant-header])_&]:hidden",
-        showChevron
-          ? "right-[calc(18rem+1rem)] md:right-[calc(30rem+1rem)] bg-background hover:bg-accent"
-          : "right-3"
+        // Hidden whenever the page top bar carries the assistant button, so it never covers rows or fields.
+        "fixed bottom-3 z-40 size-11 rounded-full [body:has([data-assistant-header])_&]:hidden",
+        showChevron ? "right-[calc(30rem+1rem)]" : "right-3"
       )}
     >
       <Icon className="h-5 w-5" />
@@ -87,8 +86,7 @@ function DashboardLayoutContent({ children, adminMeta, authenticatedItem }: Dash
   return (
     <>
       <Sidebar adminMeta={adminMeta} user={authenticatedItem} />
-      {/* pb-20 keeps the last rows and fields clear of the floating assistant button */}
-      <SidebarInset className="min-w-0 pb-20">
+      <SidebarInset className="min-w-0">
         {children}
       </SidebarInset>
       <RightSidebar side="right" />
@@ -127,9 +125,11 @@ export function DashboardLayout({ children, adminMeta, authenticatedItem }: Dash
             <AiConfigProvider>
               <ChatModeProvider user={authenticatedItem}>
                 <SidebarProvider defaultOpenRight={false}>
-                  <DashboardLayoutContent adminMeta={adminMeta} authenticatedItem={authenticatedItem}>
-                    {children}
-                  </DashboardLayoutContent>
+                  <CommandPaletteProvider user={authenticatedItem}>
+                    <DashboardLayoutContent adminMeta={adminMeta} authenticatedItem={authenticatedItem}>
+                      {children}
+                    </DashboardLayoutContent>
+                  </CommandPaletteProvider>
                 </SidebarProvider>
               </ChatModeProvider>
             </AiConfigProvider>

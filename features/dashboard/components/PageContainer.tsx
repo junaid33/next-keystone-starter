@@ -1,21 +1,9 @@
 /**
- * PageContainer component - Page wrapper with breadcrumbs and header
- * Based on Keystone's PageContainer with Dashboard 1's styling
+ * PageContainer: the shared top bar, an optional page head, then the page body.
  */
 
 import React, { ReactNode } from 'react'
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
-} from '@/components/ui/breadcrumb'
-import { Separator } from '@/components/ui/separator'
-import { SidebarTrigger } from '@/components/ui/sidebar'
-import { MessagesSquare, Sparkles } from 'lucide-react'
-import { AssistantHeaderButton } from './AssistantHeaderButton'
+import { TopBar } from './TopBar'
 
 interface BreadcrumbItem {
   type: 'link' | 'page'
@@ -28,53 +16,20 @@ interface PageContainerProps {
   title?: string
   header?: ReactNode
   breadcrumbs?: BreadcrumbItem[]
+  actions?: ReactNode
 }
 
-export function PageContainer({ children, title, header, breadcrumbs }: PageContainerProps) {
+export function PageContainer({ children, title, header, breadcrumbs, actions }: PageContainerProps) {
+  const crumbs = (breadcrumbs && breadcrumbs.length > 0 ? breadcrumbs : [{ type: 'page' as const, label: title || '' }]).map((b) => ({
+    label: b.label,
+    href: b.type === 'link' ? b.href : undefined,
+  }))
+
   return (
-    <div className="flex flex-col space-y-4">
-      {/* Header with breadcrumbs */}
-      <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b">
-        <div className="flex min-w-0 items-center gap-2 px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          
-          {breadcrumbs && breadcrumbs.length > 0 && (
-            <Breadcrumb>
-              <BreadcrumbList>
-                {breadcrumbs.map((item, index) => (
-                  <React.Fragment key={index}>
-                    {/* Phones keep the last two crumbs so the trail stays on one line next to the header buttons. */}
-                    <BreadcrumbItem className={index < breadcrumbs.length - 2 ? 'max-sm:hidden' : undefined}>
-                      {item.type === 'link' && item.href ? (
-                        <BreadcrumbLink href={item.href}>
-                          {item.label}
-                        </BreadcrumbLink>
-                      ) : (
-                        <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                      )}
-                    </BreadcrumbItem>
-                    {index < breadcrumbs.length - 1 && <BreadcrumbSeparator className={index < breadcrumbs.length - 2 ? 'max-sm:hidden' : undefined} />}
-                  </React.Fragment>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
-          )}
-        </div>
-        <AssistantHeaderButton className="mr-4" />
-      </header>
-
-      {/* Page header section */}
-      {header && (
-        <div className="flex flex-col space-y-1.5 px-4 md:px-6">
-          {header}
-        </div>
-      )}
-
-      {/* Main content */}
-      <div className="flex-1">
-        {children}
-      </div>
+    <div className="flex min-h-full flex-col">
+      <TopBar crumbs={crumbs} actions={actions} />
+      {header && <div className="px-4 pt-5 md:px-6 md:pt-6">{header}</div>}
+      <div className="flex-1">{children}</div>
     </div>
   )
 }

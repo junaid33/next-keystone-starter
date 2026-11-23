@@ -1,19 +1,12 @@
 /**
- * UserProfileClient - dashboard user profile dropdown
- * Based on Dashboard1's UserProfileClient with dashboard styling
+ * UserProfileClient: the account menu at the foot of the sidebar.
  */
 
 "use client";
 
-import {
-  ArrowUpRight,
-  ChevronsUpDown,
-  Database,
-  LogOut,
-  Palette,
-} from "lucide-react";
+import Link from "next/link";
+import { ChevronsUpDown, CircleUser, Database, LogOut } from "lucide-react";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
 import { signOut } from "@/features/dashboard/actions/auth";
 
@@ -42,16 +30,26 @@ interface UserProfileClientProps {
   user: User;
 }
 
-export function UserProfileClient({ user }: UserProfileClientProps) {
-  const { isMobile } = useSidebar();
+export function initialsFor(user: { name?: string | null; email?: string | null }) {
+  const source = user.name?.trim() || user.email || "?";
+  const parts = source.split(/\s+/).filter(Boolean);
+  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : source.slice(0, 2);
+  return letters.toUpperCase();
+}
 
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : user.email.slice(0, 2).toUpperCase();
+export function UserAvatar({ user, className = "size-7 text-[12px]" }: { user: { name?: string | null; email?: string | null }; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`ks-raised grid shrink-0 place-items-center rounded-full font-mono font-medium text-[var(--ks-ink-2)] ${className}`}
+    >
+      {initialsFor(user)}
+    </span>
+  );
+}
+
+export function UserProfileClient({ user }: UserProfileClientProps) {
+  const { isMobile, setOpenMobile } = useSidebar();
 
   return (
     <SidebarMenu>
@@ -60,83 +58,55 @@ export function UserProfileClient({ user }: UserProfileClientProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!p-0 group-data-[collapsible=icon]:!justify-center"
+              className="gap-2.5 px-1.5 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0"
             >
-              <Avatar className="h-8 w-8 rounded-lg group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6">
-                <AvatarFallback className="bg-muted/80 border rounded-lg">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">
-                  {user.name || "User"}
-                </span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+              <UserAvatar user={user} />
+              <span className="grid min-w-0 flex-1 text-left leading-4 group-data-[collapsible=icon]:hidden">
+                <span className="truncate text-[13px] font-medium text-[var(--ks-ink)]">{user.name || user.email}</span>
+                <span className="truncate text-[12px] text-[var(--ks-label)]">{user.email}</span>
+              </span>
+              <ChevronsUpDown className="ml-auto !size-3.5 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-60"
+            side={isMobile ? "top" : "right"}
             align="end"
-            sideOffset={4}
+            sideOffset={6}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div
-                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm cursor-pointer hover:bg-accent rounded-md"
-                onClick={() =>
-                  (window.location.href = `/dashboard/users/${user.id}`)
-                }
-              >
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src="" alt={user.name || user.email} />
-                  <AvatarFallback className="bg-muted/40 border rounded-lg">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user.name || "User"}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-              </div>
+            <DropdownMenuLabel className="flex items-center gap-2.5 px-2 py-2 font-normal normal-case tracking-normal">
+              <UserAvatar user={user} className="size-8 text-[12px]" />
+              <span className="grid min-w-0 leading-4">
+                <span className="truncate text-[13px] font-medium text-[var(--ks-ink)]">{user.name || user.email}</span>
+                <span className="truncate font-sans text-[12px] text-[var(--ks-label)]">{user.email}</span>
+              </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem 
-                className="gap-3"
-                onClick={() => window.open('/api/graphql', '_blank')}
-              >
-                <Database className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">GraphQL API</span>
+              <DropdownMenuItem asChild className="gap-2.5">
+                <Link href="/dashboard/account" onClick={() => setOpenMobile(false)}>
+                  <CircleUser className="text-[var(--ks-label)]" />
+                  Account
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2.5" onClick={() => window.open("/api/graphql", "_blank")}>
+                <Database className="text-[var(--ks-label)]" />
+                GraphQL API
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="gap-3 justify-between"
-                onSelect={(event) => {
-                  event.preventDefault();
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <Palette className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Theme</span>
-                </div>
-                <ThemeSwitcher className="h-6" />
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            <div className="flex items-center justify-between gap-3 px-2 py-1.5">
+              <span className="text-[13px] text-[var(--ks-ink-2)]">Theme</span>
+              <ThemeSwitcher />
+            </div>
             <DropdownMenuSeparator />
             <form action={signOut}>
-              <button type="submit" className="flex items-center gap-3 w-full px-2 py-1.5 text-sm hover:bg-accent rounded-sm">
-                <LogOut className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Log out</span>
-              </button>
+              <DropdownMenuItem asChild className="w-full gap-2.5">
+                <button type="submit">
+                  <LogOut className="text-[var(--ks-label)]" />
+                  Sign out
+                </button>
+              </DropdownMenuItem>
             </form>
           </DropdownMenuContent>
         </DropdownMenu>

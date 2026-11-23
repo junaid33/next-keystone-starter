@@ -1,6 +1,6 @@
 /**
- * Sidebar component - Navigation for Dashboard 2
- * Based on Dashboard 1 sidebar with consistent ShadCN styling and models dropdown
+ * Sidebar: overview, every list the session can see, search, and the account menu.
+ * List visibility still comes from visibleSidebarLists (role + Keystone isHidden).
  */
 
 'use client'
@@ -8,46 +8,34 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  Sidebar as SidebarComponent, 
-  SidebarContent, 
-  SidebarHeader, 
+import {
+  Sidebar as SidebarComponent,
+  SidebarContent,
+  SidebarHeader,
   SidebarFooter,
   SidebarRail,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarMenu, 
-  SidebarMenuItem, 
+  SidebarMenu,
+  SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  useSidebar
+  useSidebar,
 } from '@/components/ui/sidebar'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { AdminMeta } from '../hooks/useAdminMeta'
-import { Home, Database, ChevronRight, Package } from 'lucide-react'
-import { Logo, LogoIcon } from '@/features/dashboard/components/Logo'
+import { LayoutGrid, Search } from 'lucide-react'
+import { LogoIcon } from '@/features/dashboard/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
 import { visibleSidebarLists } from '../lib/sidebarAccess'
+import { useCommandPalette } from './CommandPalette'
+import { listIcon } from './listIcons'
 
 interface User {
-  id: string;
-  email: string;
-  name?: string;
+  id: string
+  email: string
+  name?: string
   role?: {
-    canAccessDashboard?: boolean;
-  };
+    canAccessDashboard?: boolean
+  }
 }
 
 interface SidebarProps {
@@ -56,177 +44,96 @@ interface SidebarProps {
 }
 
 export function Sidebar({ adminMeta, user }: SidebarProps) {
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { setOpenMobile } = useSidebar()
   const pathname = usePathname()
+  const palette = useCommandPalette()
 
-  const lists = adminMeta?.lists || {}
-  const listsArray = Object.values(lists)
+  const listsArray = Object.values(adminMeta?.lists || {})
 
-  // Function to check if a link is active
   const isLinkActive = React.useCallback(
     (href: string) => {
       if (!pathname) return false
-
-      // Exact match for dashboard root
-      if (href === '/dashboard' && pathname === '/dashboard') {
-        return true
-      }
-
-      // For other pages, check if the pathname starts with the href
-      if (href !== '/dashboard') {
-        return pathname.startsWith(href)
-      }
-
-      return false
+      if (href === '/dashboard') return pathname === '/dashboard'
+      return pathname === href || pathname.startsWith(`${href}/`)
     },
     [pathname]
   )
 
-  // Convert lists to sidebar links format
   const sidebarLinks = visibleSidebarLists(listsArray as any[], user).map((list: any) => ({
+    key: list.key,
     title: list.label,
-    href: `/dashboard/${list.path}`
+    href: `/dashboard/${list.path}`,
   }))
 
-  // Dashboard items for the collapsible menu
-  const dashboardItems = [
-    {
-      title: "Models",
-      items: sidebarLinks,
-      isActive: false,
-      icon: Package,
-    },
-  ].filter((group) => group.items.length > 0)
+  const close = () => setOpenMobile(false)
 
   return (
-    <SidebarComponent collapsible="icon">
-      <SidebarHeader>
-        <SidebarMenuButton asChild>
-          <div className="group-has-[[data-collapsible=icon]]/sidebar-wrapper:hidden p-2">
-            <Logo />
-          </div>
-        </SidebarMenuButton>
-        <SidebarMenuButton asChild>
-          <div className="hidden group-has-[[data-collapsible=icon]]/sidebar-wrapper:block">
-            <LogoIcon />
-          </div>
-        </SidebarMenuButton>
+    <SidebarComponent collapsible="icon" variant="inset">
+      <SidebarHeader className="gap-2 px-2 pb-1 pt-2.5">
+        <Link
+          href="/dashboard"
+          onClick={close}
+          className="flex h-8 items-center gap-2 rounded-[8px] px-1.5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+        >
+          <span className="ks-raised grid size-6 shrink-0 place-items-center rounded-[7px]">
+            <LogoIcon className="size-3.5" suffix="-nav" />
+          </span>
+          <span className="truncate text-[13px] font-semibold tracking-[-0.01em] text-[var(--ks-ink)] group-data-[collapsible=icon]:hidden">
+            Keystone
+          </span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => {
+            close()
+            palette.open()
+          }}
+          className="ks-field flex h-8 w-full items-center gap-2 px-2 text-left text-[13px] text-[var(--ks-label)] outline-none hover:text-[var(--ks-dim)] group-data-[collapsible=icon]:hidden"
+        >
+          <Search className="size-3.5" />
+          <span className="flex-1">Search</span>
+          <span className="ks-kbd max-md:hidden">⌘K</span>
+        </button>
       </SidebarHeader>
 
       <SidebarContent className="no-scrollbar">
-        {/* Dashboard Home Link */}
-        <SidebarGroup>
+        <SidebarGroup className="py-1">
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isLinkActive('/dashboard')}>
-                <Link href="/dashboard" onClick={() => setOpenMobile(false)}>
-                  <Home className="h-4 w-4" />
-                  <span>Dashboard</span>
+              <SidebarMenuButton asChild isActive={isLinkActive('/dashboard')} tooltip="Overview">
+                <Link href="/dashboard" onClick={close}>
+                  <LayoutGrid />
+                  <span>Overview</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
-        {/* Models Dropdown - Collapsible */}
-        {dashboardItems.map((dashboardItem) => (
-        <SidebarGroup key={dashboardItem.title}>
-          <SidebarMenu>
-            <SidebarGroupLabel>{dashboardItem.title}</SidebarGroupLabel>
-            <div className="max-h-full overflow-y-auto group-has-[[data-collapsible=icon]]/sidebar-wrapper:hidden">
-              <Collapsible
-                key={dashboardItem.title}
-                asChild
-                defaultOpen={dashboardItem.isActive}
-                className="group/collapsible"
-              >
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton>
-                      <dashboardItem.icon className="h-4 w-4" />
-                      <span>{dashboardItem.title}</span>
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+        {sidebarLinks.length > 0 && (
+          <SidebarGroup className="py-1">
+            <SidebarGroupLabel>Lists</SidebarGroupLabel>
+            <SidebarMenu>
+              {sidebarLinks.map((link) => {
+                const Icon = listIcon(link.key)
+                return (
+                  <SidebarMenuItem key={link.href}>
+                    <SidebarMenuButton asChild isActive={isLinkActive(link.href)} tooltip={link.title}>
+                      <Link href={link.href} onClick={close}>
+                        <Icon />
+                        <span>{link.title}</span>
+                      </Link>
                     </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {dashboardItem.items.map((link) => {
-                        const handleClick = (e: React.MouseEvent) => {
-                          setOpenMobile(false)
-                        }
-
-                        return (
-                          <SidebarMenuSubItem key={link.href}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isLinkActive(link.href)}
-                            >
-                              <Link href={link.href} onClick={handleClick}>
-                                <span>{link.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-            </div>
-
-            {/* Models Dropdown - Icon Mode */}
-            <div className="hidden group-has-[[data-collapsible=icon]]/sidebar-wrapper:block">
-              <DropdownMenu>
-                <SidebarMenuItem>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                      <dashboardItem.icon className="h-4 w-4" />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side={isMobile ? "bottom" : "right"}
-                    align={isMobile ? "end" : "start"}
-                    className="min-w-56"
-                  >
-                    <div className="max-h-[calc(100vh-16rem)] overflow-y-auto py-1">
-                      {dashboardItem.items.map((link) => {
-                        const handleClick = (e: React.MouseEvent) => {
-                          setOpenMobile(false)
-                        }
-
-                        return (
-                          <DropdownMenuItem
-                            asChild
-                            key={link.href}
-                            className={
-                              isLinkActive(link.href)
-                                ? "bg-blue-50 text-blue-600"
-                                : ""
-                            }
-                          >
-                            <Link href={link.href} onClick={handleClick}>
-                              <span>{link.title}</span>
-                              {isLinkActive(link.href) && (
-                                <div className="ml-auto h-2 w-2 rounded-full bg-blue-600" />
-                              )}
-                            </Link>
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </div>
-                  </DropdownMenuContent>
-                </SidebarMenuItem>
-              </DropdownMenu>
-            </div>
-           </SidebarMenu>
+                  </SidebarMenuItem>
+                )
+              })}
+            </SidebarMenu>
           </SidebarGroup>
-        ))}
+        )}
       </SidebarContent>
-      
-      <SidebarFooter>
-        {user && <UserProfileClient user={user} />}
-      </SidebarFooter>
-      
+
+      <SidebarFooter className="p-2">{user && <UserProfileClient user={user} />}</SidebarFooter>
+
       <SidebarRail />
     </SidebarComponent>
   )

@@ -5,19 +5,24 @@ import { useSidebarWithSide } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
 /**
- * Phone-only assistant trigger that sits in the page header. While it is on
- * screen the floating corner button is hidden on phones (see DashboardLayout), so
- * the assistant never covers row actions, prices or statuses.
+ * Assistant trigger in the page top bar. While it is on screen the floating corner
+ * button stays hidden (see DashboardLayout), so nothing covers rows or fields.
  */
 export function AssistantHeaderButton({ className }: { className?: string }) {
-  const { toggleSidebar } = useSidebarWithSide('right')
+  const { toggleSidebar, open, openMobile, isMobile } = useSidebarWithSide('right')
+  const isOpen = isMobile ? openMobile : open
   return (
     <button
       type="button"
       data-assistant-header=""
       onClick={toggleSidebar}
-      aria-label="Open assistant"
-      className={cn('inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background shadow-sm transition-colors hover:bg-foreground/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden', className)}
+      aria-label="Assistant"
+      aria-pressed={isOpen}
+      title="Assistant"
+      className={cn(
+        'grid size-8 shrink-0 place-items-center rounded-[7px] text-[var(--ks-dim)] transition-colors hover:bg-[var(--ks-hover)] hover:text-[var(--ks-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] aria-pressed:bg-[var(--ks-hover)] aria-pressed:text-[var(--ks-accent-ink)]',
+        className
+      )}
     >
       <Sparkles className="size-4" aria-hidden="true" />
     </button>
