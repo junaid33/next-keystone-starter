@@ -10,7 +10,7 @@ const FieldDescription = React.forwardRef<HTMLParagraphElement, FieldDescription
     return (
       <p
         ref={ref}
-        className={cn("text-sm text-muted-foreground", className)}
+        className={cn("text-[12px] leading-4 text-[var(--ks-label)]", className)}
         {...props}
       >
         {children}
@@ -20,4 +20,4 @@ const FieldDescription = React.forwardRef<HTMLParagraphElement, FieldDescription
 )
 FieldDescription.displayName = "FieldDescription"
 
-export { FieldDescription } 
+export { FieldDescription }

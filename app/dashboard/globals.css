@@ -55,75 +55,125 @@
   }
 }
 
+/*
+  Dashboard design tokens. One calm, dense surface system for light and dark:
+  page (canvas) > surface (panel, card) > track (recessed well) > raised (pill, row).
+  Text floor is 12px; body is 13px; labels are 12px mono uppercase.
+*/
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --ks-page: #f4f4f5;
+  --ks-surface: #ffffff;
+  --ks-surface-2: #fafafa;
+  --ks-line: #e8e8eb;
+  --ks-line-strong: #dcdce0;
+  --ks-ink: #17171a;
+  --ks-ink-2: #3a3a40;
+  --ks-dim: #63636b;
+  --ks-label: #6b6b74;
+  --ks-track: #ececef;
+  --ks-recess: inset 0 1px 2px rgb(20 20 30 / .11), 0 1px 0 rgb(255 255 255 / .85);
+  --ks-raised: linear-gradient(180deg, #ffffff, #f6f6f7);
+  --ks-raised-hover: #ffffff;
+  --ks-raised-shadow: 0 0 0 1px rgb(20 20 30 / .09), 0 1px 2px rgb(20 20 30 / .09), inset 0 1px 0 #fff;
+  --ks-field: #fbfbfb;
+  --ks-field-shadow: inset 0 0 0 1px #dfdfe3, inset 0 1px 2px rgb(20 20 30 / .04);
+  --ks-hover: #f5f5f6;
+  --ks-selected: #eef3fd;
+  --ks-accent: #2b6cf0;
+  --ks-accent-ink: #1d5bd8;
+  --ks-primary: linear-gradient(180deg, #3577f2, #2763e0);
+  --ks-primary-hover: linear-gradient(180deg, #4483f5, #2d6ae6);
+  --ks-primary-ink: #ffffff;
+  --ks-danger: #d4342c;
+  --ks-danger-fill: linear-gradient(180deg, #e2463d, #cc3027);
+  --ks-focus: #5b8ff0;
+  --ks-card-shadow: 0 0 0 1px rgb(20 20 30 / .07), 0 1px 2px rgb(20 20 30 / .05);
+  --ks-pop-shadow: 0 0 0 1px rgb(20 20 30 / .08), 0 8px 24px rgb(20 20 30 / .12), 0 2px 6px rgb(20 20 30 / .06);
+  --ks-green: #1f9d55;
+  --ks-amber: #c98a0b;
+  --ks-red: #d4342c;
+  --ks-blue: #2b6cf0;
+  --ks-violet: #7c4ddb;
+  --ks-gray: #9a9aa3;
+
+  --background: var(--ks-page);
+  --foreground: var(--ks-ink);
+  --card: var(--ks-surface);
+  --card-foreground: var(--ks-ink);
+  --popover: var(--ks-surface);
+  --popover-foreground: var(--ks-ink);
+  --primary: var(--ks-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ks-track);
+  --secondary-foreground: var(--ks-ink);
+  --muted: var(--ks-track);
+  --muted-foreground: var(--ks-dim);
+  --accent: var(--ks-hover);
+  --accent-foreground: var(--ks-ink);
+  --destructive: var(--ks-danger);
+  --destructive-foreground: var(--ks-danger);
+  --border: var(--ks-line);
+  --input: var(--ks-line-strong);
+  --ring: var(--ks-focus);
+  --chart-1: #2b6cf0;
+  --chart-2: #1f9d55;
+  --chart-3: #c98a0b;
+  --chart-4: #7c4ddb;
+  --chart-5: #d4342c;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --sidebar: var(--ks-page);
+  --sidebar-foreground: var(--ks-ink);
+  --sidebar-primary: var(--ks-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--ks-hover);
+  --sidebar-accent-foreground: var(--ks-ink);
+  --sidebar-border: var(--ks-line);
+  --sidebar-ring: var(--ks-focus);
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.141 0.005 285.823);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.141 0.005 285.823);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.274 0.006 286.033);
-  --input: oklch(0.274 0.006 286.033);
-  --ring: oklch(0.442 0.017 285.786);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.274 0.006 286.033);
-  --sidebar-ring: oklch(0.442 0.017 285.786);
+  --ks-page: #09090a;
+  --ks-surface: #111113;
+  --ks-surface-2: #141416;
+  --ks-line: rgb(255 255 255 / .07);
+  --ks-line-strong: rgb(255 255 255 / .12);
+  --ks-ink: #f3f3f4;
+  --ks-ink-2: #d2d2d6;
+  --ks-dim: #a0a0a8;
+  --ks-label: #8d8d96;
+  --ks-track: #08080a;
+  --ks-recess: inset 0 1px 2px rgb(0 0 0 / .6), 0 1px 0 rgb(255 255 255 / .04);
+  --ks-raised: linear-gradient(180deg, #232326, #1c1c1f);
+  --ks-raised-hover: linear-gradient(180deg, #29292d, #212124);
+  --ks-raised-shadow: inset 0 1px 0 rgb(255 255 255 / .065), 0 0 0 1px rgb(0 0 0 / .55), 0 1px 2px rgb(0 0 0 / .3);
+  --ks-field: #0c0c0e;
+  --ks-field-shadow: inset 0 0 0 1px rgb(255 255 255 / .085), inset 0 1px 2px rgb(0 0 0 / .45);
+  --ks-hover: #18181b;
+  --ks-selected: #13203a;
+  --ks-accent: #5b93f7;
+  --ks-accent-ink: #8db5fb;
+  --ks-primary: linear-gradient(180deg, #2a5bc0, #2350aa);
+  --ks-primary-hover: linear-gradient(180deg, #3266cc, #2858b6);
+  --ks-primary-ink: #eef4ff;
+  --ks-danger: #f26b63;
+  --ks-danger-fill: linear-gradient(180deg, #b8332b, #a02a23);
+  --ks-focus: #6f9ef5;
+  --ks-card-shadow: inset 0 1px 0 rgb(255 255 255 / .045), 0 0 0 1px rgb(0 0 0 / .6), 0 0 0 1px rgb(255 255 255 / .04), 0 2px 6px rgb(0 0 0 / .3);
+  --ks-pop-shadow: inset 0 1px 0 rgb(255 255 255 / .05), 0 0 0 1px rgb(255 255 255 / .08), 0 12px 32px rgb(0 0 0 / .55);
+  --ks-green: #3fbf73;
+  --ks-amber: #e3a32a;
+  --ks-red: #f26b63;
+  --ks-blue: #5b93f7;
+  --ks-violet: #a183f0;
+  --ks-gray: #6e6e77;
+
+  --primary-foreground: #ffffff;
+  --chart-1: #5b93f7;
+  --chart-2: #3fbf73;
+  --chart-3: #e3a32a;
+  --chart-4: #a183f0;
+  --chart-5: #f26b63;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -132,7 +182,203 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-size: 13px;
+    line-height: 20px;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-tap-highlight-color: transparent;
   }
+  ::selection {
+    background: color-mix(in oklab, var(--ks-accent) 28%, transparent);
+  }
+}
+
+@layer components {
+  /* Panel/card surface. */
+  .ks-card {
+    background: var(--ks-surface);
+    border-radius: 12px;
+    box-shadow: var(--ks-card-shadow);
+  }
+  /* Recessed title band inside a card. */
+  .ks-band {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--ks-line);
+    background: var(--ks-surface-2);
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+  }
+  /* Recessed well that holds raised pills. */
+  .ks-track {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    align-items: center;
+    gap: 3px;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--ks-track);
+    box-shadow: var(--ks-recess);
+  }
+  .ks-track-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* Raised pill. Standalone it carries its own 2px track moat; inside a track it sits flush. */
+  .ks-pill {
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 7px;
+    background: var(--ks-raised);
+    box-shadow: 0 0 0 2px var(--ks-track), var(--ks-raised-shadow);
+    color: var(--ks-ink);
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 120ms ease, transform 100ms ease, opacity 120ms ease;
+  }
+  .ks-track > .ks-pill,
+  .ks-track > * > .ks-pill,
+  .ks-track > [data-pill-wrap] > .ks-pill {
+    box-shadow: var(--ks-raised-shadow);
+  }
+  .ks-pill:active:not(:disabled) { transform: translateY(1px); }
+  .ks-pill:disabled { cursor: default; opacity: .5; }
+  .ks-pill > svg { color: var(--ks-dim); }
+  .ks-pill[data-variant="primary"] { background: var(--ks-primary); color: var(--ks-primary-ink); }
+  .ks-pill[data-variant="primary"] > svg { color: currentColor; }
+  .ks-pill[data-variant="danger"] { color: var(--ks-danger); }
+  .ks-pill[data-variant="danger"] > svg { color: currentColor; }
+  .ks-pill[data-variant="danger-fill"] { background: var(--ks-danger-fill); color: #fff; }
+  .ks-pill[data-variant="danger-fill"] > svg { color: currentColor; }
+  .ks-pill[data-state="open"] { background: var(--ks-raised-hover); }
+  @media (hover: hover) {
+    .ks-pill:hover:not(:disabled) { background: var(--ks-raised-hover); }
+    .ks-pill[data-variant="primary"]:hover:not(:disabled) { background: var(--ks-primary-hover); }
+    .ks-pill[data-variant="danger-fill"]:hover:not(:disabled) { filter: brightness(1.08); background: var(--ks-danger-fill); }
+  }
+  /* Segmented control: a track of flat buttons, the checked one raised. */
+  .ks-seg > button,
+  .ks-seg > a {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 7px;
+    color: var(--ks-dim);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .ks-seg > :is(button, a):hover { color: var(--ks-ink); }
+  .ks-seg > :is(button, a):is([aria-checked="true"], [aria-pressed="true"], [aria-current="page"], [data-state="active"], [data-state="on"]) {
+    background: var(--ks-raised);
+    box-shadow: var(--ks-raised-shadow);
+    color: var(--ks-ink);
+  }
+  /* The one mono uppercase label. */
+  .ks-label {
+    color: var(--ks-label);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  /* Status dot. Colour via the tone attribute. */
+  .ks-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 999px;
+    background: var(--ks-gray);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-gray) 20%, transparent);
+  }
+  .ks-dot[data-tone="green"] { background: var(--ks-green); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-green) 20%, transparent); }
+  .ks-dot[data-tone="amber"] { background: var(--ks-amber); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-amber) 22%, transparent); }
+  .ks-dot[data-tone="red"] { background: var(--ks-red); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-red) 20%, transparent); }
+  .ks-dot[data-tone="blue"] { background: var(--ks-blue); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-blue) 20%, transparent); }
+  .ks-dot[data-tone="violet"] { background: var(--ks-violet); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ks-violet) 20%, transparent); }
+  .ks-dot[data-pulse] { animation: ks-pulse 1.2s ease-in-out infinite; }
+  /* Recessed text field. */
+  .ks-field {
+    border: 0;
+    border-radius: 8px;
+    background: var(--ks-field);
+    box-shadow: var(--ks-field-shadow);
+    color: var(--ks-ink);
+    transition: box-shadow 120ms ease, background 120ms ease;
+  }
+  .ks-field::placeholder { color: var(--ks-label); }
+  .ks-field:focus-visible,
+  .ks-field:focus-within:not(:has(:focus-visible:is(button))),
+  .ks-field[data-state="open"] {
+    outline: none;
+    box-shadow: inset 0 0 0 1px var(--ks-focus), 0 0 0 3px color-mix(in oklab, var(--ks-focus) 22%, transparent);
+  }
+  .ks-field[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1px var(--ks-danger), 0 0 0 3px color-mix(in oklab, var(--ks-danger) 16%, transparent);
+  }
+  /* Raised row or tile surface. */
+  .ks-raised {
+    border-radius: 9px;
+    background: var(--ks-raised);
+    box-shadow: var(--ks-raised-shadow);
+    transition: background 120ms ease;
+  }
+  @media (hover: hover) {
+    .ks-raised:is(a, button):hover { background: var(--ks-raised-hover); }
+  }
+  /* Floating surfaces: popovers, menus, dialogs. */
+  .ks-pop {
+    border: 0 !important;
+    border-radius: 12px;
+    background: var(--ks-surface);
+    box-shadow: var(--ks-pop-shadow);
+  }
+  .ks-kbd {
+    display: inline-flex;
+    height: 20px;
+    min-width: 20px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: var(--ks-surface);
+    box-shadow: var(--ks-raised-shadow);
+    color: var(--ks-dim);
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1;
+  }
+  .ks-scroll-x { overflow-x: auto; scrollbar-width: none; }
+  .ks-scroll-x::-webkit-scrollbar { display: none; }
+}
+
+@keyframes ks-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-dot[data-pulse] { animation: none; }
+  .ks-pill { transition: none; }
 }
 
 .ProseMirror {

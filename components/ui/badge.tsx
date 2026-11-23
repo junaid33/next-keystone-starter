@@ -3,14 +3,14 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const standardBadgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex h-5 items-center gap-1 rounded-[6px] px-1.5 text-[12px] font-medium leading-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)]",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        default: "bg-[var(--ks-track)] text-[var(--ks-ink-2)] shadow-[inset_0_0_0_1px_var(--ks-line)]",
+        secondary: "bg-[var(--ks-track)] text-[var(--ks-dim)] shadow-[inset_0_0_0_1px_var(--ks-line)]",
+        destructive: "bg-[color-mix(in_oklab,var(--ks-danger)_10%,transparent)] text-[var(--ks-danger)]",
+        outline: "text-[var(--ks-ink-2)] shadow-[inset_0_0_0_1px_var(--ks-line-strong)]",
       },
     },
     defaultVariants: {
@@ -20,7 +20,7 @@ const standardBadgeVariants = cva(
 )
 
 const coloredBadgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold",
+  "inline-flex h-5 items-center gap-1 rounded-[6px] border px-1.5 text-[12px] font-medium leading-none",
   {
     variants: {
       color: {

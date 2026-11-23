@@ -9,18 +9,16 @@ interface FieldLabelProps extends React.ComponentProps<typeof Label> {
 const FieldLabel = React.forwardRef<HTMLLabelElement, FieldLabelProps>(
   ({ className, children, ...props }, ref) => {
     return (
-      <div className="mb-1">
-        <Label
-          ref={ref}
-          className={cn("text-sm font-medium", className)}
-          {...props}
-        >
-          {children}
-        </Label>
-      </div>
+      <Label
+        ref={ref}
+        className={cn("mb-1.5 flex items-center gap-1.5 text-[12px] font-medium leading-4 text-[var(--ks-dim)]", className)}
+        {...props}
+      >
+        {children}
+      </Label>
     )
   }
 )
 FieldLabel.displayName = "FieldLabel"
 
-export { FieldLabel } 
+export { FieldLabel }
