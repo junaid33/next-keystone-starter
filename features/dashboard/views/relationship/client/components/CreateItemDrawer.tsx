@@ -56,11 +56,11 @@ function CreateItemForm({
       </div>
 
       <DrawerFooter className="flex-shrink-0">
-        <div className="flex gap-2 justify-end">
-          <Button type="button" variant="outline" onClick={onClose}>
+        <div className="ks-track self-end">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={createItem.state === 'loading'}>
+          <Button type="submit" size="sm" disabled={createItem.state === 'loading'}>
             {createItem.state === 'loading' ? 'Creating...' : `Add ${list.singular}`}
           </Button>
         </div>
@@ -114,7 +114,7 @@ export function CreateItemDrawer({ listKey, isOpen, onClose, onCreate }: CreateI
           <DrawerHeader>
             <DrawerTitle>Error</DrawerTitle>
           </DrawerHeader>
-          <div className="px-4 py-8 text-center text-red-600">
+          <div className="px-4 py-8 text-center text-[var(--ks-danger)]">
             {error ? `Error loading ${listKey}: ${PUBLIC_REQUEST_ERROR}` : `Could not load form for ${listKey}`}
           </div>
           <DrawerFooter>

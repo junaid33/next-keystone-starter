@@ -137,8 +137,8 @@ export function InlineEdit({
 
   return (
     <section>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <div className="flex flex-col gap-4">
           <Fields
             list={list}
             fields={fields}
@@ -151,8 +151,8 @@ export function InlineEdit({
           />
         </div>
 
-        <div className="flex gap-2 bg-muted/40 border rounded-lg p-2 justify-end">
-          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+        <div className="ks-track self-end">
+          <Button type="button" size="sm" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" size="sm" disabled={isLoading}>

@@ -6,9 +6,6 @@
 'use client'
 
 import React, { useMemo, useId, ReactNode } from 'react'
-import { buttonVariants } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
 import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -57,9 +54,11 @@ interface FieldsProps {
   isRequireds?: Record<string, any>
   view?: 'createView' | 'itemView'
   groups?: FieldGroupMeta[]
+  /** 'cards': loose fields share one section card, each group gets its own (item and create pages). */
+  layout?: 'plain' | 'cards'
 }
 
-export function Fields({ fields, value, onChange, forceValidation, invalidFields, isRequireds, view = 'itemView', groups = [] }: FieldsProps) {
+export function Fields({ fields, value, onChange, forceValidation, invalidFields, isRequireds, view = 'itemView', groups = [], layout = 'plain' }: FieldsProps) {
   // Create serialized data exactly like Keystone for testFilter
   const serialized = useMemo(() => {
     const result: Record<string, unknown> = {}
@@ -120,13 +119,25 @@ export function Fields({ fields, value, onChange, forceValidation, invalidFields
 
   const rendered: ReactNode[] = []
   const fieldGroups = new Map()
-  
+
   // Create group mapping
   for (const group of groups) {
     const state = { group, rendered: false }
     for (const field of group.fields) {
       fieldGroups.set(field.path, state)
     }
+  }
+
+  // In card layout, consecutive ungrouped fields are collected into one section
+  let loose: ReactNode[] = []
+  const flushLoose = () => {
+    if (!loose.length) return
+    rendered.push(
+      <section key={`loose-${rendered.length}`} className="ks-card flex flex-col gap-5 p-4 md:p-5">
+        {loose}
+      </section>
+    )
+    loose = []
   }
 
   // Render grouped and ungrouped fields
@@ -146,28 +157,32 @@ export function Fields({ fields, value, onChange, forceValidation, invalidFields
         continue
       }
 
+      if (layout === 'cards') flushLoose()
       rendered.push(
         <FieldGroup
           key={group.label}
           count={group.fields.length}
           label={group.label}
           description={group.description}
+          layout={layout}
         >
           {renderedFieldsInGroup}
         </FieldGroup>
       )
       continue
     }
-    if (renderedFields[fieldKey] === null) {
+    if (renderedFields[fieldKey] === null || renderedFields[fieldKey] === undefined) {
       continue
     }
-    rendered.push(renderedFields[fieldKey])
+    if (layout === 'cards') loose.push(renderedFields[fieldKey])
+    else rendered.push(renderedFields[fieldKey])
   }
+  if (layout === 'cards') flushLoose()
 
   return (
-    <div className="grid w-full grid-cols-1 items-center gap-4">
+    <div className={cn("grid w-full grid-cols-1", layout === 'cards' ? "gap-4" : "items-center gap-5")}>
       {rendered.length === 0 && value && Object.keys(value).length === 0
-        ? "There are no fields that you can read or edit"
+        ? <p className="text-[13px] text-[var(--ks-dim)]">No fields</p>
         : rendered}
     </div>
   )
@@ -178,16 +193,16 @@ function FieldGroup(props: {
   description?: string | null
   count: number
   children: ReactNode
+  layout?: 'plain' | 'cards'
 }) {
   const descriptionId = useId()
   const labelId = useId()
-
-  const divider = <Separator orientation="vertical" />
 
   // Count actual fields (excluding virtual fields in create view)
   const actualFieldCount = props.children ? Array.isArray(props.children) ? props.children.filter(
     (item) =>
       item !== undefined &&
+      item !== null &&
       !(
         item?.props?.value &&
         typeof item?.props?.value === "symbol" &&
@@ -201,51 +216,39 @@ function FieldGroup(props: {
     return null
   }
 
+  const cards = props.layout === 'cards'
+
   return (
     <div
       role="group"
       aria-labelledby={labelId}
       aria-describedby={props.description === null || props.description === undefined ? undefined : descriptionId}
+      className={cn(cards && "ks-card overflow-hidden")}
     >
-      <details open className="group">
-        <summary className="list-none outline-none [&::-webkit-details-marker]:hidden cursor-pointer">
-          <div className="flex gap-1.5">
-            <span>
-              <div
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "icon" }),
-                  "border self-start transition-transform group-open:rotate-90 [&_svg]:size-3 h-6 w-6"
-                )}
-              >
-                <ChevronRight />
-              </div>
+      <details open className="group/fg">
+        <summary
+          className={cn(
+            "flex cursor-pointer list-none items-start gap-2 outline-none [&::-webkit-details-marker]:hidden focus-visible:[&>span]:ring-2 focus-visible:[&>span]:ring-[var(--ks-focus)]",
+            cards ? "px-4 py-3 md:px-5 group-open/fg:border-b group-open/fg:border-[var(--ks-line)]" : "py-1"
+          )}
+        >
+          <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-[4px] text-[var(--ks-label)] transition-transform group-open/fg:rotate-90">
+            <ChevronRight className="size-3.5" />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span id={labelId} className="text-[13px] font-semibold leading-5 text-[var(--ks-ink)]">
+              {props.label}
             </span>
-            {divider}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <div id={labelId} className="relative text-lg/5 font-medium">
-                  {props.label}
-                </div>
-                <Badge className="text-[.7rem] py-0.5 uppercase tracking-wide font-medium">
-                  {actualFieldCount} FIELD{actualFieldCount !== 1 && "S"}
-                </Badge>
-              </div>
-              {props.description !== null && props.description !== undefined && (
-                <p
-                  className="opacity-50 text-sm"
-                  id={descriptionId}
-                >
-                  {props.description}
-                </p>
-              )}
-            </div>
-          </div>
+            {props.description !== null && props.description !== undefined && (
+              <span className="text-[12px] leading-4 text-[var(--ks-dim)]" id={descriptionId}>
+                {props.description}
+              </span>
+            )}
+          </span>
+          <span className="ml-auto mt-0.5 font-mono text-[12px] text-[var(--ks-label)]">{actualFieldCount}</span>
         </summary>
-        <div className="flex ml-[2.25rem] mt-2">
-          {divider}
-          <div className="w-full">
-            <div className="space-y-4">{props.children}</div>
-          </div>
+        <div className={cn("flex flex-col gap-5", cards ? "p-4 md:p-5" : "ml-2 mt-3 border-l border-[var(--ks-line)] pl-4")}>
+          {props.children}
         </div>
       </details>
     </div>

@@ -289,6 +289,32 @@
     box-shadow: var(--ks-raised-shadow);
     color: var(--ks-ink);
   }
+  /* Editor toolbar group: recessed track of flat icon buttons; pressed/selected ones are raised. */
+  .ks-tools {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 9px;
+    background: var(--ks-track);
+    box-shadow: var(--ks-recess);
+  }
+  .ks-tools button {
+    height: 26px;
+    min-width: 26px;
+    border-radius: 7px;
+    color: var(--ks-dim);
+    background: transparent;
+    box-shadow: none;
+  }
+  .ks-tools button:hover:not(:disabled) { color: var(--ks-ink); background: transparent; }
+  .ks-tools button:is([data-pressed="true"], [data-selected="true"], [data-state="open"]) {
+    background: var(--ks-raised);
+    box-shadow: var(--ks-raised-shadow);
+    color: var(--ks-ink);
+  }
+  .ks-tools button svg { width: 14px; height: 14px; }
   /* The one mono uppercase label. */
   .ks-label {
     color: var(--ks-label);

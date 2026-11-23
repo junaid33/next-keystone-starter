@@ -91,7 +91,6 @@ export function Field({
           id={`field-${field.path}`}
           readOnly
           value="Auto increment"
-          className="bg-muted shadow-xs"
         />
         <Alert>
           <Info className="h-4 w-4" />
@@ -135,10 +134,10 @@ export function Field({
           onChange({ ...value, value: !Number.isFinite(numValue) ? null : numValue })
         }}
         value={value.value ?? ''}
-        className={errorMessage ? 'border-red-500 shadow-xs' : 'shadow-xs'}
+        aria-invalid={!!errorMessage || undefined}
       />
       {errorMessage && (
-        <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
+        <p className="text-[12px] text-[var(--ks-danger)]" role="alert">{errorMessage}</p>
       )}
     </FieldContainer>
   )

@@ -46,7 +46,7 @@ export function Field({
           id={`field-${field.path}`}
           readOnly
           value={displayValue}
-          className="bg-muted font-mono"
+          className="font-mono"
           autoFocus={autoFocus}
         />
         <Badge variant="secondary" className="flex items-center gap-1">
@@ -57,7 +57,7 @@ export function Field({
       {field.description && (
         <p className="text-sm text-muted-foreground">{field.description}</p>
       )}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[12px] text-[var(--ks-label)]">
         This field is automatically managed and cannot be edited.
       </p>
     </div>

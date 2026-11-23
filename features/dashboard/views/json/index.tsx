@@ -45,7 +45,7 @@ export function Field({
 
   return (
     <FieldContainer>
-      <FieldLabel htmlFor={`field-${field.path}`} className={errorMessage ? "text-red-600" : ""}>
+      <FieldLabel htmlFor={`field-${field.path}`} className={errorMessage ? "text-[var(--ks-danger)]" : ""}>
         {field.label}
       </FieldLabel>
       {field.description && (
@@ -57,12 +57,13 @@ export function Field({
         readOnly={isReadOnly}
         onChange={(e) => onChange?.(e.target.value)}
         value={value}
-        className={`font-mono text-sm ${errorMessage ? 'border-red-500' : ''}`}
+        aria-invalid={!!errorMessage || undefined}
+        className="font-mono text-[12px] leading-5"
         rows={8}
         placeholder={`{\n  "key": "value"\n}`}
       />
       {errorMessage && (
-        <div className="text-sm text-red-600" role="alert">{errorMessage}</div>
+        <div className="text-[12px] text-[var(--ks-danger)]" role="alert">{errorMessage}</div>
       )}
     </FieldContainer>
   )
@@ -93,8 +94,8 @@ export function CardValue({ item, field }: CellProps) {
       <div className="text-sm text-muted-foreground">
         {value ? (
           <div className="space-y-1">
-            <Badge variant="secondary" className="text-xs">JSON</Badge>
-            <pre className="text-xs font-mono bg-muted p-2 rounded overflow-auto max-h-32">
+            <span className="ks-label">JSON</span>
+            <pre className="max-h-32 overflow-auto rounded-[8px] bg-[var(--ks-surface-2)] p-2 font-mono text-[12px]">
               {JSON.stringify(value, null, 2)}
             </pre>
           </div>

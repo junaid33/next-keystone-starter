@@ -11,7 +11,7 @@ import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } fr
 import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { Fields } from '../../components/Fields'
-import { PageBreadcrumbs } from '../../components/PageBreadcrumbs'
+import { PageContainer } from '../../components/PageContainer'
 import { useInvalidFields } from '../../utils/useInvalidFields'
 import { useHasChanges, serializeValueToOperationItem } from '../../utils/useHasChanges'
 import { enhanceFields } from '../../utils/enhanceFields'
@@ -27,19 +27,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
 import {
   AlertCircle,
   Check,
   Copy,
-  Loader2,
+  FileQuestion,
+  Trash2,
   Undo2,
-  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useDashboard } from '../../context/DashboardProvider'
 import { updateItemAction, deleteItemAction } from '../../actions/item-actions'
 import { queryKeys } from '../../lib/queryKeys'
+import { findStatusField } from '../../lib/listQueryFields'
+import { statusTone } from '../../lib/statusTone'
 
 interface ItemPageClientProps {
   list: any
@@ -120,32 +122,23 @@ function DeleteButton({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm" className="sm:text-sm text-xs">
-          <X className="size-3 shrink-0" />
-          {isDesktop ? (
-            'Delete'
-          ) : (
-            <span className="hidden sm:inline">Delete</span>
-          )}
+        <Button variant="outline" size="sm" data-variant="danger" aria-label="Delete" className={isDesktop ? undefined : 'max-sm:w-7 max-sm:px-0'}>
+          <Trash2 />
+          <span className={isDesktop ? undefined : 'max-sm:hidden'}>Delete</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete item</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete{' '}
-            <strong>
-              {list.singular}
-              {!list.isSingleton && ` ${itemId}`}
-            </strong>
-            ? This action cannot be undone.
-          </AlertDialogDescription>
+          <AlertDialogTitle>Delete {list.singular.toLowerCase()}</AlertDialogTitle>
+          <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete}>
-            Yes, delete
-          </AlertDialogAction>
+          <div className="ks-track">
+            <AlertDialogCancel className="h-7 px-2.5 text-[12px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction data-variant="danger-fill" className="h-7 px-2.5 text-[12px]" onClick={handleDelete}>
+              Delete
+            </AlertDialogAction>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -157,27 +150,23 @@ function ResetButton(props: { onReset: () => void; hasChanges?: boolean; isDeskt
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="sm:text-sm text-xs" disabled={!props.hasChanges}>
-          <Undo2 className="size-3 shrink-0" />
-          {props.isDesktop ? (
-            'Reset'
-          ) : (
-            <span className="hidden sm:inline">Reset</span>
-          )}
+        <Button variant="outline" size="sm" aria-label="Reset" disabled={!props.hasChanges} className={props.isDesktop ? undefined : 'max-sm:w-7 max-sm:px-0'}>
+          <Undo2 />
+          <span className={props.isDesktop ? undefined : 'max-sm:hidden'}>Reset</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Reset changes</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure? Lost changes cannot be recovered.
-          </AlertDialogDescription>
+          <AlertDialogTitle>Discard changes</AlertDialogTitle>
+          <AlertDialogDescription>Unsaved edits will be lost.</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={props.onReset}>
-            Yes, reset
-          </AlertDialogAction>
+          <div className="ks-track">
+            <AlertDialogCancel className="h-7 px-2.5 text-[12px]">Keep editing</AlertDialogCancel>
+            <AlertDialogAction data-variant="danger-fill" className="h-7 px-2.5 text-[12px]" onClick={props.onReset}>
+              Discard
+            </AlertDialogAction>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -187,16 +176,10 @@ function ResetButton(props: { onReset: () => void; hasChanges?: boolean; isDeskt
 // Item Not Found Component (adapted from Keystone)
 function ItemNotFound({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 bg-muted/40 rounded-lg p-8 border shadow">
-      <div className="text-gray-400">
-        <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      </div>
-      <h2 className="text-xl font-semibold">Not found</h2>
-      <div className="text-center max-w-md text-muted-foreground">
+    <div className="ks-card mx-4 mt-6 md:mx-6">
+      <EmptyState title="Not found" icons={[FileQuestion]}>
         {children}
-      </div>
+      </EmptyState>
     </div>
   )
 }
@@ -207,15 +190,17 @@ function ErrorDialog({ error, onClose }: { error: Error; onClose: () => void }) 
     <AlertDialog open={true} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Error Details</AlertDialogTitle>
+          <AlertDialogTitle>Error</AlertDialogTitle>
           <AlertDialogDescription className="whitespace-pre-line break-words">
             {error.message || PUBLIC_REQUEST_ERROR}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction onClick={onClose}>
-            Close
-          </AlertDialogAction>
+          <div className="ks-track">
+            <AlertDialogAction className="h-7 px-2.5 text-[12px]" onClick={onClose}>
+              Close
+            </AlertDialogAction>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -371,172 +356,149 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
     setForceValidation(false)
   }, [initialValue])
 
-  const pageLabel = (item[list.labelField] || item.id || itemId) as string
-  const pageTitle = list.isSingleton || typeof pageLabel !== 'string' ? list.label : pageLabel
+  const { basePath } = useDashboard()
+
+  // Cmd/Ctrl+S saves, like every desktop editor
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (hasChanges && !loading) handleSave()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [hasChanges, loading, handleSave])
+
+  const pageLabel = String(item[list.labelField] ?? item.id ?? itemId)
+  const pageTitle = list.isSingleton ? list.label : pageLabel
 
   // Copy ID to clipboard handler
   const handleCopyId = useCallback(() => {
     navigator.clipboard.writeText(itemId)
-    toast.success('ID copied to clipboard')
+    toast.success('ID copied')
   }, [itemId])
 
-  // Split fields by position for sidebar/main layout
+  // Keystone's itemView.fieldPosition: 'sidebar' fields go in the right rail, the rest in the form
   const fieldsSplit = useMemo(() => {
     const sidebarFields: Record<string, any> = {}
     const mainFields: Record<string, any> = {}
-    
+
     Object.entries(enhancedFields).forEach(([key, field]) => {
-      // For now, put all fields in main - you can add logic here for sidebar fields
-      mainFields[key] = field
+      if (field.itemView?.fieldPosition === 'sidebar') sidebarFields[key] = field
+      else mainFields[key] = field
     })
-    
+
     return { sidebarFields, mainFields }
   }, [enhancedFields])
 
-  // Breadcrumb items
+  // Status dot on the title line follows the live value of the list's status select, if any
+  const statusField = useMemo(() => findStatusField(list.fields || {}), [list.fields])
+  const status = useMemo(() => {
+    if (!statusField) return null
+    const live = (value[statusField.path] as any)?.value
+    const raw = live ? live.value : item[statusField.path]
+    const option = statusField.fieldMeta?.options?.find((o: any) => String(o.value) === String(raw))
+    return { tone: statusTone(raw), label: option?.label ?? (raw == null ? 'None' : String(raw)) }
+  }, [statusField, value, item])
+
   const breadcrumbItems = [
-    { type: 'link' as const, label: 'Dashboard', href: '/' },
-    { type: 'link' as const, label: list.label, href: `/${list.path}` },
-    { type: 'page' as const, label: pageLabel }
+    { type: 'link' as const, label: 'Dashboard', href: basePath },
+    { type: 'link' as const, label: list.label, href: `${basePath}/${list.path}` },
+    { type: 'page' as const, label: pageTitle }
   ]
 
   // If item doesn't exist
   if (!item || Object.keys(item).length === 0) {
     return (
-      <div className="container mx-auto p-6">
+      <PageContainer breadcrumbs={breadcrumbItems.slice(0, 2).concat({ type: 'page' as const, label: 'Not found' })}>
         <ItemNotFound>
-          {list.isSingleton ? (
-            itemId === '1' ? (
-              <div>
-                <p>"{list.label}" doesn't exist, or you don't have access to it.</p>
-                {!list.hideCreate && (
-                  <Button className="mt-4" onClick={() => router.push(`/${list.path}/create`)}>
-                    Create {list.singular}
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <p>An item with ID <strong>"{itemId}"</strong> does not exist.</p>
-            )
+          {list.isSingleton && itemId === '1' && !list.hideCreate ? (
+            <Button size="sm" onClick={() => router.push(`${basePath}/${list.path}/create`)}>
+              New {list.singular.toLowerCase()}
+            </Button>
           ) : (
-            <p>
-              The item with ID <strong>"{itemId}"</strong> doesn't exist, or you don't have access to it.
-            </p>
+            <Button size="sm" variant="outline" onClick={() => router.push(`${basePath}/${list.path}`)}>
+              {list.label}
+            </Button>
           )}
         </ItemNotFound>
-      </div>
+      </PageContainer>
     )
   }
 
+  const hasSidebar = Object.keys(fieldsSplit.sidebarFields).length > 0
+
+  const actions = (
+    <div className="ks-track">
+      {!list.hideDelete && (
+        <DeleteButton
+          list={list}
+          value={value}
+          onError={setErrorDialogValue}
+          queryClient={queryClient}
+          isDesktop={false}
+        />
+      )}
+      {hasChanges && (
+        <ResetButton hasChanges={hasChanges} onReset={handleReset} isDesktop={false} />
+      )}
+      <Button
+        size="sm"
+        onClick={handleSave}
+        disabled={!hasChanges || loading || saveState === 'saving'}
+        title="Save (⌘S)"
+      >
+        {saveState === 'saved' && !hasChanges ? <Check /> : null}
+        {saveState === 'saving' ? 'Saving' : saveState === 'saved' && !hasChanges ? 'Saved' : 'Save'}
+      </Button>
+    </div>
+  )
+
   return (
-    <>
-      {/* Breadcrumbs */}
-      <PageBreadcrumbs 
-        items={breadcrumbItems} 
-        actions={
-          <div className="flex items-center gap-2">
-            {!list.hideDelete && (
-              <DeleteButton
-                list={list}
-                value={value}
-                onError={setErrorDialogValue}
-                queryClient={queryClient}
-                isDesktop={true}
-              />
+    <PageContainer breadcrumbs={breadcrumbItems} actions={actions}>
+      <div className={hasSidebar ? 'mx-auto w-full max-w-[1120px] px-4 pb-16 pt-5 md:px-6 md:pt-6' : 'mx-auto w-full max-w-[760px] px-4 pb-16 pt-5 md:px-6 md:pt-6'}>
+        {/* Title line: status dot + record label; meta: list, ID */}
+        <div className="mb-5 flex flex-col gap-1.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {status && (
+              <span className="ks-dot" data-tone={status.tone} role="img" aria-label={status.label} title={status.label} />
             )}
+            <h1 className="min-w-0 truncate text-[18px] font-semibold leading-7 tracking-[-0.01em] text-[var(--ks-ink)] md:text-[20px]" title={pageTitle}>
+              {pageTitle}
+            </h1>
             {hasChanges && (
-              <ResetButton 
-                hasChanges={hasChanges} 
-                onReset={handleReset}
-                isDesktop={true}
-              />
+              <span className="shrink-0 rounded-[6px] bg-[color-mix(in_oklab,var(--ks-amber)_14%,transparent)] px-1.5 py-0.5 text-[12px] font-medium leading-4 text-[var(--ks-amber)]">
+                Edited
+              </span>
             )}
-            <Button
-              size="sm"
-              className="sm:text-sm text-xs"
-              onClick={handleSave}
-              disabled={!hasChanges || loading || saveState === 'saving'}
-            >
-              Save Changes
-              <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
-            </Button>
           </div>
-        }
-      />
-      
-      <div className="w-full max-w-5xl p-4 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(240px,2fr)_3fr] gap-6 gap-y-8">
-          {/* Sidebar */}
-          <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7.5rem)] flex flex-col h-full">
-            <div className="space-y-6 flex-grow overflow-y-auto pb-2">
-              <div>
-                <h1
-                  className="text-lg font-semibold md:text-2xl"
-                  title={pageLabel}
-                >
-                  {pageLabel}
-                </h1>
-                <div className="mt-6">
-                  <div className="relative border rounded-md bg-muted/40 transition-all">
-                    <div className="p-1 flex items-center gap-3">
-                      <div className="flex gap-3 flex-1 min-w-0">
-                        <div className="flex-shrink-0">
-                          <div className="bg-background shadow-xs border rounded-sm py-0.5 px-1 text-[.65rem] text-muted-foreground">
-                            ID
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-mono truncate">
-                            {itemId}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-sm h-6 w-6 flex-shrink-0"
-                        onClick={handleCopyId}
-                      >
-                        <Copy className="size-3" />
-                        <span className="sr-only">Copy ID</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--ks-dim)]">
+            {status && <span className="shrink-0">{status.label}</span>}
+            {status && <span aria-hidden="true" className="text-[var(--ks-label)]">·</span>}
+            <button
+              type="button"
+              onClick={handleCopyId}
+              className="group/id flex min-w-0 items-center gap-1.5 rounded-[6px] font-mono text-[12px] text-[var(--ks-dim)] hover:text-[var(--ks-ink)]"
+              aria-label="Copy ID"
+            >
+              <span className="truncate">{itemId}</span>
+              <Copy className="size-3 shrink-0 opacity-60 group-hover/id:opacity-100" />
+            </button>
+          </div>
+        </div>
 
-              {/* Sidebar Fields */}
-              {Object.keys(fieldsSplit.sidebarFields).length > 0 && (
-                <Fields
-                  list={list}
-                  fields={fieldsSplit.sidebarFields}
-                  value={value}
-                  onChange={setValue}
-                  forceValidation={forceValidation}
-                  invalidFields={invalidFields}
-                  isRequireds={isRequireds}
-                />
-              )}
-            </div>
+        {errorDialogValue && (
+          <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-[10px] bg-[color-mix(in_oklab,var(--ks-red)_10%,transparent)] px-3 py-2.5 text-[13px] text-[var(--ks-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--ks-red)_25%,transparent)]">
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <p className="whitespace-pre-line break-words">{errorDialogValue.message || PUBLIC_REQUEST_ERROR}</p>
+          </div>
+        )}
 
-          </aside>
-
-
-          {/* Main content */}
-          <div className="space-y-6">
-            {/* Error display */}
-            {errorDialogValue && (
-              <Badge className="border border-red-200 bg-red-50 text-red-700 items-start gap-4 p-4">
-                <AlertCircle className="h-5 w-5" />
-                <div>
-                  <h2 className="font-medium">Error</h2>
-                  <p className="whitespace-pre-line break-words">{errorDialogValue.message || PUBLIC_REQUEST_ERROR}</p>
-                </div>
-              </Badge>
-            )}
-
-
-            {/* Main Fields */}
+        <div
+          className={hasSidebar ? 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]' : undefined}
+        >
+          <div className="min-w-0">
             {Object.keys(fieldsSplit.mainFields).length > 0 && (
               <Fields
                 list={list}
@@ -547,19 +509,35 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
                 invalidFields={invalidFields}
                 isRequireds={isRequireds}
                 groups={list.groups}
+                layout="cards"
               />
             )}
           </div>
+
+          {hasSidebar && (
+            <aside className="min-w-0 lg:sticky lg:top-16 lg:self-start">
+              <Fields
+                list={list}
+                fields={fieldsSplit.sidebarFields}
+                value={value}
+                onChange={setValue}
+                forceValidation={forceValidation}
+                invalidFields={invalidFields}
+                isRequireds={isRequireds}
+                layout="cards"
+              />
+            </aside>
+          )}
         </div>
       </div>
 
       {/* Error Dialog */}
       {errorDialogValue && (
-        <ErrorDialog 
-          error={errorDialogValue} 
-          onClose={() => setErrorDialogValue(null)} 
+        <ErrorDialog
+          error={errorDialogValue}
+          onClose={() => setErrorDialogValue(null)}
         />
       )}
-    </>
+    </PageContainer>
   )
 }

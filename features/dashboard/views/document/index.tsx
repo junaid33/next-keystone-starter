@@ -148,10 +148,12 @@ export function Field({
       <FieldLabel id={`${field.path}-label`}>
         {field.label}
       </FieldLabel>
-      <FieldDescription id={`${field.path}-description`}>
-        {field.description}
-      </FieldDescription>
-      <div className="border bg-background rounded-md overflow-hidden">
+      {field.description && (
+        <FieldDescription id={`${field.path}-description`}>
+          {field.description}
+        </FieldDescription>
+      )}
+      <div className="ks-field overflow-hidden">
         <ForceValidationProvider value={!!forceValidation}>
           <DocumentEditor
             autoFocus={autoFocus}
@@ -335,10 +337,10 @@ export function Filter({ value, onChange, operator }: FilterProps) {
         onValueChange={onChange}
         className="justify-start"
       >
-        <ToggleGroupItem value="true" className="text-xs">
+        <ToggleGroupItem value="true" className="text-[12px]">
           Empty
         </ToggleGroupItem>
-        <ToggleGroupItem value="false" className="text-xs">
+        <ToggleGroupItem value="false" className="text-[12px]">
           Not Empty
         </ToggleGroupItem>
       </ToggleGroup>

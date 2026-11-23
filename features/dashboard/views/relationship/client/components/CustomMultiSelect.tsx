@@ -101,7 +101,7 @@ export function CustomMultiSelect({
     <div className="relative" ref={commandRef}>
       <div
         className={cn(
-          "border-input ring-offset-background focus-within:ring-ring flex min-h-11 w-full items-center justify-between rounded-md border bg-transparent px-4 py-2 focus-within:ring-2 focus-within:ring-offset-2 text-left",
+          "ks-field flex min-h-8 w-full items-center justify-between gap-2 py-1 pl-1 pr-2 text-left text-[13px]",
           isDisabled && "cursor-not-allowed opacity-50",
           className
         )}
@@ -116,7 +116,7 @@ export function CustomMultiSelect({
           {value.map((option) => (
             <div
               key={option.value}
-              className="animate-fadeIn bg-background text-secondary-foreground relative inline-flex h-7 cursor-default items-center rounded-md border ps-2 pe-7 text-xs font-medium transition-all disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 max-w-full"
+              className="animate-fadeIn ks-raised relative inline-flex h-6 max-w-full cursor-default items-center rounded-[6px] ps-2 pe-6 text-[12px] font-medium text-[var(--ks-ink)]"
             >
               <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">{option.label}</span>
               {!isDisabled && (
@@ -126,7 +126,8 @@ export function CustomMultiSelect({
                     e.stopPropagation();
                     handleRemove(option);
                   }}
-                  className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute -inset-y-px -end-px flex size-7 items-center justify-center rounded-e-md border border-transparent p-0 outline-hidden transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
+                  aria-label={`Remove ${option.label}`}
+                  className="absolute inset-y-0 end-0 flex w-6 items-center justify-center rounded-e-[6px] text-[var(--ks-label)] outline-none hover:text-[var(--ks-ink)] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)]"
                 >
                   <XIcon className="h-3 w-3" />
                 </button>
@@ -139,7 +140,7 @@ export function CustomMultiSelect({
             value={inputValue}
             onChange={(e) => handleInputChange(e.target.value)}
             className={cn(
-              "placeholder:text-muted-foreground flex-1 bg-transparent outline-none",
+              "h-6 flex-1 bg-transparent px-1.5 outline-none placeholder:text-[var(--ks-label)]",
               value.length === 0 ? "w-full" : "w-20"
             )}
             placeholder={value.length === 0 ? placeholder : ""}
@@ -153,32 +154,33 @@ export function CustomMultiSelect({
                 e.stopPropagation();
                 handleClearAll();
               }}
-              className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex size-7 items-center justify-center rounded-md border border-transparent transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
+              aria-label="Clear all"
+              className="flex size-6 items-center justify-center rounded-[6px] text-[var(--ks-label)] outline-none hover:text-[var(--ks-ink)] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)]"
             >
-              <XIcon className="h-4 w-4" />
+              <XIcon className="size-3.5" />
             </button>
           )}
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown className="size-3.5 shrink-0 text-[var(--ks-label)]" />
         </div>
       </div>
       {open && (
-        <div className="absolute z-10 mt-1 w-full max-w-[400px]">
-          <Command className="border-input rounded-md border bg-popover shadow-md">
+        <div className="absolute z-50 mt-1.5 w-full max-w-[400px]">
+          <Command className="ks-pop">
             <CommandList>
               {isLoading ? (
                 <div className="flex items-center justify-center py-6">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <div className="size-4 animate-spin rounded-full border-2 border-[var(--ks-accent)] border-t-transparent" />
                 </div>
               ) : (
                 <>
                   {filteredOptions.length === 0 ? (
-                    <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">
+                    <CommandEmpty className="py-4 text-center text-[12px] text-[var(--ks-dim)]">
                       {inputValue.length > 0 ? (
-                        <>No results found for "{inputValue}"</>
+                        <>No matches</>
                       ) : availableOptions.length === 0 ? (
-                        <>No options available</>
+                        <>None</>
                       ) : (
-                        <>All options have been selected</>
+                        <>All added</>
                       )}
                     </CommandEmpty>
                   ) : (
@@ -187,7 +189,7 @@ export function CustomMultiSelect({
                         <div className="px-1 py-0.5" key={option.value}>
                           <div 
                             onClick={() => handleSelect(option)}
-                            className="relative cursor-pointer rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                            className="relative cursor-pointer rounded-[7px] px-2 py-1.5 text-[13px] outline-none hover:bg-[var(--ks-hover)]"
                           >
                             <div className="flex-1 whitespace-normal break-words overflow-visible min-w-0 pr-2">
                               {option.label}

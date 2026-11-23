@@ -97,9 +97,9 @@ function NullableFieldWrapper({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {children}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2">
         <Checkbox
           id={nullId}
           checked={isNull}
@@ -107,8 +107,8 @@ function NullableFieldWrapper({
           disabled={isReadOnly}
           autoFocus={autoFocus}
         />
-        <Label htmlFor={nullId} className="text-sm text-muted-foreground">
-          Set field as null
+        <Label htmlFor={nullId} className="text-[12px] font-normal text-[var(--ks-dim)]">
+          No value
         </Label>
       </div>
     </div>
@@ -181,7 +181,7 @@ export function Field({
               ))}
             </RadioGroup>
             {errorMessage && (
-              <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
+              <p className="text-[12px] text-[var(--ks-danger)]" role="alert">{errorMessage}</p>
             )}
           </div>
         )
@@ -198,7 +198,7 @@ export function Field({
               onValueChange={onSelectionChange}
               value={selectedKey || ''}
             >
-              <SelectTrigger id={`field-${field.path}`} className={errorMessage ? 'border-red-500 shadow-xs' : 'shadow-xs'}>
+              <SelectTrigger id={`field-${field.path}`} aria-invalid={!!errorMessage || undefined}>
                 <SelectValue placeholder="Select an option..." />
               </SelectTrigger>
               <SelectContent>
@@ -210,7 +210,7 @@ export function Field({
               </SelectContent>
             </Select>
             {errorMessage && (
-              <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
+              <p className="text-[12px] text-[var(--ks-danger)]" role="alert">{errorMessage}</p>
             )}
           </div>
         )

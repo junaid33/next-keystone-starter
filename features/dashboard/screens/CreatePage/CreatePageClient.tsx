@@ -5,15 +5,12 @@
 
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { Save, ArrowLeft, AlertTriangle, Loader2, Check, X } from 'lucide-react'
+import { AlertTriangle, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { PageBreadcrumbs } from '../../components/PageBreadcrumbs'
+import { PageContainer } from '../../components/PageContainer'
 import { useDashboard } from '../../context/DashboardProvider'
 import { Fields } from '../../components/Fields'
 import { useCreateItem } from '../../utils/useCreateItem'
@@ -33,13 +30,9 @@ function CancelButton({
   isDesktop?: boolean;
 }) {
   return (
-    <Button variant="outline" size="sm" className="text-xs" onClick={onCancel}>
-      <X className="size-3 shrink-0" />
-      {isDesktop ? (
-        'Cancel'
-      ) : (
-        <span className="hidden sm:inline">Cancel</span>
-      )}
+    <Button variant="outline" size="sm" aria-label="Cancel" onClick={onCancel} className={isDesktop ? undefined : 'max-sm:w-7 max-sm:px-0'}>
+      <X className="sm:hidden" />
+      <span className={isDesktop ? undefined : 'max-sm:hidden'}>Cancel</span>
     </Button>
   )
 }
@@ -74,119 +67,94 @@ export function CreatePageClient({ listKey, list }: CreatePageClientProps) {
     router.push(`${basePath}/${list.path}`)
   }, [router, basePath, list])
 
-  if (!list) {
-    return (
-      <div className="container mx-auto py-6">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            The requested list "{listKey}" was not found.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (!createItem) {
-    return (
-      <div className="container mx-auto py-6">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Failed to initialize creation form for {list.label}.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  // Breadcrumb items
-  const breadcrumbItems = [
-    { type: 'link' as const, label: 'Dashboard', href: '/' },
-    { type: 'link' as const, label: list.label, href: `/${list.path}` },
-    { type: 'page' as const, label: 'Create' }
-  ]
-
-  // Split fields by position for sidebar/main layout (same pattern as ItemPage)
+  // Keystone's createView.fieldPosition: 'sidebar' fields go in the right rail
   const fieldsSplit = useMemo(() => {
     const sidebarFields: Record<string, any> = {}
     const mainFields: Record<string, any> = {}
-    
-    Object.entries(enhancedFields).forEach(([key, field]) => {
-      // For now, put all fields in main - same as ItemPage logic
-      mainFields[key] = field
+    Object.entries(enhancedFields).forEach(([key, field]: [string, any]) => {
+      if (field.createView?.fieldPosition === 'sidebar') sidebarFields[key] = field
+      else mainFields[key] = field
     })
-    
     return { sidebarFields, mainFields }
   }, [enhancedFields])
 
+  // Cmd/Ctrl+S creates
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (createItem?.state !== 'loading') handleSave()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [createItem?.state, handleSave])
+
+  const breadcrumbItems = list
+    ? [
+        { type: 'link' as const, label: 'Dashboard', href: basePath },
+        { type: 'link' as const, label: list.label, href: `${basePath}/${list.path}` },
+        { type: 'page' as const, label: `New ${list.singular.toLowerCase()}` },
+      ]
+    : [{ type: 'page' as const, label: 'Not found' }]
+
+  if (!list || !createItem) {
+    return (
+      <PageContainer breadcrumbs={breadcrumbItems}>
+        <div className="mx-auto w-full max-w-[760px] px-4 pt-6 md:px-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{!list ? `No list “${listKey}”` : `Couldn't open the form for ${list.label}`}</AlertDescription>
+          </Alert>
+        </div>
+      </PageContainer>
+    )
+  }
+
+  const hasSidebar = Object.keys(fieldsSplit.sidebarFields).length > 0
+  const errorMessage =
+    createItem.error?.networkError?.message || createItem.error?.graphQLErrors?.[0]?.message || null
+
+  const actions = (
+    <div className="ks-track">
+      <CancelButton onCancel={handleCancel} isDesktop={false} />
+      <Button size="sm" onClick={handleSave} disabled={createItem.state === 'loading'} title="Create (⌘S)">
+        {createItem.state === 'loading' ? 'Creating' : 'Create'}
+      </Button>
+    </div>
+  )
+
   return (
-    <>
-      {/* Breadcrumbs */}
-      <PageBreadcrumbs 
-        items={breadcrumbItems} 
-        actions={
-          <Button
-            size="sm"
-            className="sm:text-sm text-xs"
-            onClick={handleSave}
-            disabled={createItem.state === 'loading'}
-          >
-            Create {list.singular}
-            <Check className="ml-1 stroke-[1.5px]" width="8" height="8" />
-          </Button>
-        }
-      />
-      
-      <div className="w-full max-w-5xl p-4 md:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(240px,2fr)_3fr] gap-6 gap-y-8">
-          {/* Sidebar */}
-          <aside className="lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7.5rem)] flex flex-col h-full">
-            <div className="space-y-6 flex-grow overflow-y-auto pb-2">
-              <div>
-                <h1
-                  className="text-lg font-semibold md:text-2xl"
-                  title={`Create ${list.singular}`}
-                >
-                  Create {list.singular}
-                </h1>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Add a new {list.singular.toLowerCase()} to {list.label.toLowerCase()}
-                </p>
-              </div>
+    <PageContainer breadcrumbs={breadcrumbItems} actions={actions}>
+      <div className={hasSidebar ? 'mx-auto w-full max-w-[1120px] px-4 pb-16 pt-5 md:px-6 md:pt-6' : 'mx-auto w-full max-w-[760px] px-4 pb-16 pt-5 md:px-6 md:pt-6'}>
+        <div className="mb-5 flex items-center gap-2.5">
+          <span className="ks-dot" data-tone="gray" aria-hidden="true" />
+          <h1 className="truncate text-[18px] font-semibold leading-7 tracking-[-0.01em] text-[var(--ks-ink)] md:text-[20px]">
+            New {list.singular.toLowerCase()}
+          </h1>
+        </div>
 
-              {/* Sidebar Fields (if any) */}
-              {Object.keys(fieldsSplit.sidebarFields).length > 0 && (
-                <Fields {...createItem.props} fields={fieldsSplit.sidebarFields} view="createView" groups={list.groups} />
-              )}
-            </div>
+        {errorMessage && (
+          <div role="alert" className="mb-4 flex items-start gap-2.5 rounded-[10px] bg-[color-mix(in_oklab,var(--ks-red)_10%,transparent)] px-3 py-2.5 text-[13px] text-[var(--ks-danger)] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--ks-red)_25%,transparent)]">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+            <p className="whitespace-pre-line break-words">{errorMessage}</p>
+          </div>
+        )}
 
-          </aside>
-
-
-          {/* Main content */}
-          <div className="space-y-6">
-            {/* GraphQL errors */}
-            {(createItem.error?.networkError || createItem.error?.graphQLErrors?.length) && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="whitespace-pre-line break-words">
-                  {createItem.error.networkError?.message || 
-                   createItem.error.graphQLErrors?.[0]?.message ||
-                   'An error occurred while creating the item'
-                  }
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Main Fields */}
+        <div className={hasSidebar ? 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]' : undefined}>
+          <div className="min-w-0">
             {Object.keys(fieldsSplit.mainFields).length > 0 && (
-              <Fields {...createItem.props} fields={fieldsSplit.mainFields} view="createView" groups={list.groups} />
+              <Fields {...createItem.props} fields={fieldsSplit.mainFields} view="createView" groups={list.groups} layout="cards" />
             )}
           </div>
+          {hasSidebar && (
+            <aside className="min-w-0 lg:sticky lg:top-16 lg:self-start">
+              <Fields {...createItem.props} fields={fieldsSplit.sidebarFields} view="createView" groups={[]} layout="cards" />
+            </aside>
+          )}
         </div>
       </div>
-    </>
+    </PageContainer>
   )
 }
 

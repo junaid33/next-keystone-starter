@@ -138,7 +138,7 @@ export function Field({
               ? formatTimestamp(dateValue, timeZone, mounted)
               : 'yyyy-mm-dd --:--:--'
           }
-          className="bg-muted cursor-default"
+          className="cursor-default"
           onFocus={(e) => e.target.blur()}
         />
       </FieldContainer>
@@ -147,7 +147,7 @@ export function Field({
 
   return (
     <FieldContainer>
-      <FieldLabel htmlFor={inputId} className={validationMessage ? "text-red-600" : ""}>
+      <FieldLabel htmlFor={inputId} className={validationMessage ? "text-[var(--ks-danger)]" : ""}>
         {field.label}
       </FieldLabel>
       {field.description && (
@@ -155,20 +155,20 @@ export function Field({
       )}
       <Popover>
         <PopoverTrigger asChild>
-          <Button
+          <button
+            type="button"
             id={inputId}
-            variant={"outline"}
+            aria-invalid={validationMessage ? true : undefined}
             className={cn(
-              "justify-start text-left font-normal",
-              !dateValue && "text-muted-foreground",
-              validationMessage && "border-red-500"
+              "ks-field flex h-8 w-full items-center gap-2 px-2.5 text-left text-[13px] tabular-nums focus-visible:outline-none disabled:opacity-60",
+              !dateValue && "text-[var(--ks-label)]"
             )}
             autoFocus={autoFocus}
             onBlur={() => setDirty(true)}
           >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateValue ? formatTimestamp(dateValue, timeZone, mounted) : <span>Pick a date and time</span>}
-          </Button>
+            <CalendarIcon className="size-3.5 shrink-0 text-[var(--ks-label)]" />
+            {dateValue ? formatTimestamp(dateValue, timeZone, mounted) : <span>Date and time</span>}
+          </button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
@@ -187,8 +187,8 @@ export function Field({
             initialFocus
           />
           {dateValue && (
-            <div className="p-3 border-t">
-              <Label className="text-sm">Time</Label>
+            <div className="flex items-center gap-2 border-t border-[var(--ks-line)] p-3">
+              <Label className="ks-label">Time</Label>
               <Input
                 type="time"
                 step="1"
@@ -204,14 +204,14 @@ export function Field({
                     }
                   }
                 }}
-                className="mt-1 shadow-xs"
+                className="flex-1"
               />
             </div>
           )}
         </PopoverContent>
       </Popover>
       {validationMessage && (
-        <div className="text-sm text-red-600" role="alert">{validationMessage}</div>
+        <div className="text-[12px] text-[var(--ks-danger)]" role="alert">{validationMessage}</div>
       )}
     </FieldContainer>
   )
@@ -222,8 +222,8 @@ export function Cell({ item, field }: CellProps) {
   const mounted = useIsMounted()
   const value = item[field.path]
   return (
-    <span className="text-sm">
-      {value ? formatTimestamp(new Date(value), timeZone, mounted) : <span className="text-muted-foreground">—</span>}
+    <span className="tabular-nums">
+      {value ? formatTimestamp(new Date(value), timeZone, mounted) : <span className="text-[var(--ks-label)]">—</span>}
     </span>
   )
 }
@@ -285,18 +285,18 @@ export function controller(config: FieldControllerConfig<TimestampFieldMeta>): F
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
+              <button
+                type="button"
                 className={cn(
-                  "justify-start text-left font-normal",
-                  !dateValue && "text-muted-foreground"
+                  "ks-field flex h-8 w-full items-center gap-2 px-2.5 text-left text-[13px] tabular-nums focus-visible:outline-none",
+                  !dateValue && "text-[var(--ks-label)]"
                 )}
                 autoFocus={autoFocus}
                 onBlur={() => setDirty(true)}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateValue ? formatTimestamp(dateValue, timeZone, mounted) : <span>Pick a date and time</span>}
-              </Button>
+                <CalendarIcon className="size-3.5 shrink-0 text-[var(--ks-label)]" />
+                {dateValue ? formatTimestamp(dateValue, timeZone, mounted) : <span>Date and time</span>}
+              </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
@@ -314,8 +314,8 @@ export function controller(config: FieldControllerConfig<TimestampFieldMeta>): F
                 initialFocus
               />
               {dateValue && (
-                <div className="p-3 border-t">
-                  <Label className="text-sm">Time</Label>
+                <div className="flex items-center gap-2 border-t border-[var(--ks-line)] p-3">
+                  <Label className="ks-label">Time</Label>
                   <Input
                     type="time"
                     step="1"
@@ -331,7 +331,7 @@ export function controller(config: FieldControllerConfig<TimestampFieldMeta>): F
                         }
                       }
                     }}
-                    className="mt-1 shadow-xs"
+                    className="flex-1"
                   />
                 </div>
               )}

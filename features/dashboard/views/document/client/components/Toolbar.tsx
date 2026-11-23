@@ -168,7 +168,7 @@ ToolbarButton.displayName = 'ToolbarButton'
 
 export function KeyboardInTooltip({ children }: { children: ReactNode }) {
   return (
-    <kbd className="ml-auto px-1 py-0 text-xs font-sans font-medium bg-muted text-foreground/80 rounded">
+    <kbd className="ks-kbd ml-auto">
       {children}
     </kbd>
   )
@@ -249,11 +249,11 @@ export function DocumentToolbar({ documentFeatures, viewState }: {
 
   return (
     <TooltipProvider>
-      <div className="sticky top-0 z-10 border-b">
-        <div className="flex flex-row justify-between items-center h-10">
-          <div className="flex items-center gap-2 pl-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="sticky top-0 z-10 border-b border-[var(--ks-line)] bg-[var(--ks-surface-2)]">
+        <div className="flex h-10 flex-row items-center justify-between">
+          <div className="flex items-center gap-1.5 overflow-x-auto pl-1.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {!!documentFeatures.formatting.headingLevels.length && (
-              <div className="flex [&>*]:rounded-none [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md [&>*]:border [&>*]:border-input [&>*:not(:first-child)]:-ml-px">
+              <div className="ks-tools">
                 <HeadingMenu
                   headingLevels={documentFeatures.formatting.headingLevels}
                 />
@@ -266,7 +266,7 @@ export function DocumentToolbar({ documentFeatures, viewState }: {
               documentFeatures.formatting.alignment.end ||
               documentFeatures.formatting.listTypes.unordered ||
               documentFeatures.formatting.listTypes.ordered) && (
-              <div className="flex [&>*]:rounded-none [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md [&>*]:border [&>*]:border-input [&>*:not(:first-child)]:-ml-px">
+              <div className="ks-tools">
                 {(documentFeatures.formatting.alignment.center ||
                   documentFeatures.formatting.alignment.end) && (
                   <AlignmentMenu alignment={documentFeatures.formatting.alignment} />
@@ -284,7 +284,7 @@ export function DocumentToolbar({ documentFeatures, viewState }: {
               </div>
             )}
 
-            <div className="flex [&>*]:rounded-none [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md [&>*]:border [&>*]:border-input [&>*:not(:first-child)]:-ml-px">
+            <div className="ks-tools">
               {documentFeatures.dividers && dividerButton}
               {documentFeatures.links && linkButton}
               {documentFeatures.formatting.blockTypes.blockquote &&
@@ -301,7 +301,7 @@ export function DocumentToolbar({ documentFeatures, viewState }: {
             const ExpandIcon = viewState?.expanded ? Minimize2 : Maximize2
             return (
               viewState && (
-                <div className="border-l pl-1 pr-1">
+                <div className="ks-tools mr-1.5">
                   <ToolbarButton
                     onMouseDown={(event) => {
                       event.preventDefault()
@@ -348,11 +348,11 @@ function AlignmentMenu({ alignment }: {
         <ToolbarButton
           isPressed={showMenu}
           isDisabled={isDisabled}
-          className="w-auto px-2 flex items-center gap-1"
+          className="!w-auto px-1.5 flex items-center gap-0.5"
           tooltip="Text alignment"
         >
           {alignmentIcons[selected as 'start' | 'center' | 'end']}
-          <ChevronDown size={16} />
+          <ChevronDown size={12} className="!size-3 opacity-60" />
         </ToolbarButton>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={4} className="p-1 w-auto">
@@ -387,7 +387,7 @@ function AlignmentMenu({ alignment }: {
 
 const HeadingIcon = ({ level }: { level: number }) => (
   <span className="font-semibold text-muted-foreground">
-    H<sub className="text-[0.65em]">{level}</sub>
+    H<span className="text-[12px]">{level}</span>
   </span>
 )
 
@@ -407,12 +407,12 @@ function HeadingMenu({ headingLevels }: { headingLevels: DocumentFeatures['forma
         <ToolbarButton
           isPressed={showMenu}
           isDisabled={isDisabled}
-          className="w-auto min-w-[120px] px-2 flex items-center gap-2"
+          className="!w-auto min-w-[112px] px-2 flex items-center gap-1.5"
           tooltip="Text style"
         >
           {ButtonIcon}
-          <span className="flex-1 text-left text-sm">{buttonLabel}</span>
-          <ChevronDown size={16} />
+          <span className="flex-1 text-left text-[12px] font-medium">{buttonLabel}</span>
+          <ChevronDown size={12} className="!size-3 opacity-60" />
         </ToolbarButton>
       </PopoverTrigger>
       <PopoverContent align="start" className="p-2 w-[180px]">
@@ -478,7 +478,7 @@ function HeadingMenu({ headingLevels }: { headingLevels: DocumentFeatures['forma
 
 function InlineMarks({ marks }: { marks: DocumentFeatures['formatting']['inlineMarks'] }) {
   return (
-    <div className="flex [&>*]:rounded-none [&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md [&>*]:border [&>*]:border-input [&>*:not(:first-child)]:-ml-px">
+    <div className="ks-tools">
       {marks.bold && (
         <MarkButton markType="bold" tooltip={`${modifierKeyText}+B`}>
           <Bold className="stroke-[3]" size={16} />
@@ -501,7 +501,7 @@ function InlineMarks({ marks }: { marks: DocumentFeatures['formatting']['inlineM
       )}
       {marks.code && (
         <MarkButton markType="code" tooltip="Code">
-          <span className="font-mono text-xs">{`</>`}</span>
+          <span className="font-mono text-[12px]">{`</>`}</span>
         </MarkButton>
       )}
     </div>
@@ -519,7 +519,7 @@ function InsertBlockMenu() {
           tooltip="Insert"
         >
           <Plus className="stroke-[3]" size={16} />
-          <ChevronDown size={16} />
+          <ChevronDown size={12} className="!size-3 opacity-60" />
         </ToolbarButton>
       </PopoverTrigger>
       <PopoverContent align="start" className="p-1">

@@ -9,6 +9,7 @@ import { Cards } from "./components/Cards";
 import { CreateItemDrawer } from "./components/CreateItemDrawer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ArrowUpRight, Plus, UserRound } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface FieldProps {
@@ -59,16 +60,20 @@ function LinkToRelatedItems({ itemId, value, list, refFieldKey }: any) {
   if (value?.kind === "many") {
     const query = constructQuery({ refFieldKey, value, itemId });
     return (
-      <Button variant="ghost">
-        <Link href={`/dashboard/${list?.path ?? ''}?${query}`}>View related {list?.plural ?? 'items'}</Link>
+      <Button variant="outline" size="sm" asChild>
+        <Link href={`/dashboard/${list?.path ?? ''}?${query}`}>
+          <ArrowUpRight />
+          {list?.plural ?? 'Items'}
+        </Link>
       </Button>
     );
   }
 
   return (
-    <Button variant="ghost">
+    <Button variant="outline" size="sm" asChild>
       <Link href={`/dashboard/${list?.path ?? ''}/${value?.value?.id ?? ''}`}>
-        View {list?.singular ?? 'item'} details
+        <ArrowUpRight />
+        Open
       </Link>
     </Button>
   );
@@ -114,8 +119,8 @@ export function ClientField({
   // Show loading state while lists are loading
   if (foreignListLoading || localListLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-10 w-full" />
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-8 w-full rounded-[8px]" />
       </div>
     );
   }
@@ -123,8 +128,8 @@ export function ClientField({
   // Show error state if lists failed to load
   if (foreignListError || localListError) {
     return (
-      <div className="text-red-500">
-        Error loading relationship data: {foreignListError?.message || localListError?.message}
+      <div role="alert" className="text-[12px] text-[var(--ks-danger)]">
+        {foreignListError?.message || localListError?.message}
       </div>
     );
   }
@@ -156,7 +161,7 @@ export function ClientField({
 
   if (value?.kind === "count") {
     return (
-      <div>
+      <div className="text-[13px] text-[var(--ks-ink-2)]">
         {foreignList && localList && (
           <Fragment>
             {value.count === 1
@@ -170,7 +175,7 @@ export function ClientField({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-2">
       <RelationshipSelect
         list={foreignList}
         labelField={field?.refLabelField ?? 'id'}
@@ -205,16 +210,19 @@ export function ClientField({
       />
 
       {!field?.hideButtons && (
-        <div className="flex gap-2 flex-wrap">
+        <div className="ks-track flex-wrap self-start empty:hidden">
           {foreignList && (
             <Fragment>
               {!field?.hideCreate && onChange !== undefined && (
                 <>
-                  <Button 
+                  <Button
+                    type="button"
                     variant="outline"
+                    size="sm"
                     onClick={() => setIsDrawerOpen(true)}
                   >
-                    Create related {foreignList.singular}
+                    <Plus />
+                    New {foreignList.singular.toLowerCase()}
                   </Button>
                   <CreateItemDrawer
                     listKey={foreignList.key}
@@ -249,6 +257,9 @@ export function ClientField({
                     ) === undefined
                   : value?.value?.id !== authenticatedItem.id) && (
                   <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       const val = {
                         label: authenticatedItem.label,
@@ -267,8 +278,8 @@ export function ClientField({
                       }
                     }}
                   >
-                    {value?.kind === "many" ? "Add " : "Set as "}
-                    {authenticatedItem.label}
+                    <UserRound />
+                    {value?.kind === "many" ? "Add me" : "Me"}
                   </Button>
                 )}
 

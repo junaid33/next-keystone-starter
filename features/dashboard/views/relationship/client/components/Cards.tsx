@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ExternalLink, Edit, Trash2 } from "lucide-react";
+import { Plus, ExternalLink, Edit, Trash2, Link2 } from "lucide-react";
 import { FieldContainer } from "@/components/ui/field-container";
 import { FieldLabel } from "@/components/ui/field-label";
 import { RelationshipSelect } from "./RelationshipSelect";
@@ -80,18 +80,12 @@ function CardContainer({
   mode = "view",
   className = "",
 }: CardContainerProps) {
-  const borderColor =
-    mode === "edit"
-      ? "border-l-blue-500"
-      : mode === "create"
-      ? "border-l-green-500"
-      : "border-l-gray-300";
+  const tone =
+    mode === "edit" ? "bg-[var(--ks-accent)]" : mode === "create" ? "bg-[var(--ks-green)]" : "bg-transparent";
 
   return (
-    <div className={`relative border p-4 rounded-xl ${className}`}>
-      <div
-        className={`absolute left-0 top-0 bottom-0 w-1 rounded ${borderColor}`}
-      />
+    <div className={`relative overflow-hidden rounded-[10px] bg-[var(--ks-surface-2)] p-3 shadow-[inset_0_0_0_1px_var(--ks-line)] ${className}`}>
+      <div aria-hidden="true" className={`absolute inset-y-0 left-0 w-0.5 ${tone}`} />
       {children}
     </div>
   );
@@ -292,10 +286,10 @@ export function Cards({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-2">
       {/* Existing Cards */}
       {currentIdsArrayWithFetchedItems.length > 0 && (
-        <ul className="space-y-4 list-none p-0 m-0">
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
           {currentIdsArrayWithFetchedItems.map(({ id, item }, index) => {
             const isEditMode = !isReadOnly && itemsBeingEdited.has(id);
 
@@ -317,7 +311,7 @@ export function Cards({
                       onCancel={() => handleCancelEdit(id)}
                     />
                   ) : (
-                    <div className="space-y-6">
+                    <div className="flex flex-col gap-3">
                       {/* Card Fields using Fields component */}
                       <Fields
                         list={foreignList}
@@ -335,12 +329,12 @@ export function Cards({
                       />
 
                       {/* Card Actions */}
-                      <div className="flex gap-2 flex-wrap bg-muted/40 border rounded-lg p-2 justify-end">
+                      <div className="ks-track flex-wrap self-end">
                         {displayOptions.linkToItem && (
-                          <Button size="sm" variant="ghost" asChild>
-                            <Link href={`/${foreignList.path}/${id}`}>
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              View {foreignList.singular} details
+                          <Button size="sm" variant="outline" asChild>
+                            <Link href={`/dashboard/${foreignList.path}/${id}`}>
+                              <ExternalLink />
+                              Open
                             </Link>
                           </Button>
                         )}
@@ -348,23 +342,26 @@ export function Cards({
                         {displayOptions.removeMode === "disconnect" &&
                           !isReadOnly && (
                             <Button
+                              type="button"
                               size="sm"
-                              variant="destructive"
+                              variant="outline"
+                              data-variant="danger"
                               onClick={() => handleRemoveItem(id)}
-                              title="This item will not be deleted. It will only be removed from this field."
+                              title="Unlink (the item is kept)"
                             >
-                              <Trash2 className="h-3 w-3 mr-1" />
+                              <Trash2 />
                               Remove
                             </Button>
                           )}
 
                         {displayOptions.inlineEdit && !isReadOnly && (
                           <Button
+                            type="button"
                             size="sm"
                             variant="outline"
                             onClick={() => handleEditItem(id)}
                           >
-                            <Edit className="h-3 w-3 mr-1" />
+                            <Edit />
                             Edit
                           </Button>
                         )}
@@ -412,9 +409,11 @@ export function Cards({
                 placeholder={`Select a ${foreignList.singular}`}
               />
             </div>
-            <Button size="sm" onClick={() => setShowConnectItems(false)}>
-              {hideConnectItemsLabel}
-            </Button>
+            <div className="ks-track">
+              <Button type="button" size="sm" variant="outline" onClick={() => setShowConnectItems(false)}>
+                {hideConnectItemsLabel}
+              </Button>
+            </div>
           </div>
         </CardContainer>
       ) : value.itemBeingCreated ? (
@@ -434,9 +433,10 @@ export function Cards({
         !isReadOnly ? (
         /* Create/Connect Actions */
         <CardContainer mode="create">
-          <div className="flex flex-wrap gap-2">
+          <div className="ks-track flex-wrap">
             {displayOptions.inlineCreate && (
               <Button
+                type="button"
                 size="sm"
                 variant="outline"
                 onClick={() => {
@@ -446,21 +446,23 @@ export function Cards({
                   });
                 }}
               >
-                <Plus className="h-3 w-3 mr-1" />
-                Create {foreignList.singular}
+                <Plus />
+                New {foreignList.singular.toLowerCase()}
               </Button>
             )}
 
             {displayOptions.inlineConnect && (
               <Button
+                type="button"
                 size="sm"
-                variant="ghost"
+                variant="outline"
                 onClick={() => {
                   setShowConnectItems(true);
                   setHideConnectItemsLabel("Cancel");
                 }}
               >
-                Link existing {foreignList.singular}
+                <Link2 />
+                Link existing
               </Button>
             )}
           </div>
@@ -469,7 +471,7 @@ export function Cards({
 
       {/* Validation Error */}
       {forceValidation && (
-        <p className="text-sm text-red-600">
+        <p className="text-[12px] text-[var(--ks-danger)]">
           You must finish creating and editing any related{" "}
           {foreignList.label?.toLowerCase() || "items"} before saving the{" "}
           {foreignList.singular?.toLowerCase() || "item"}

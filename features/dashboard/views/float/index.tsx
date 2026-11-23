@@ -109,10 +109,10 @@ export function Field({
           onChange({ ...value, value: inputValue })
         }}
         value={value.value ?? ''}
-        className={errorMessage ? 'border-red-500 shadow-xs' : 'shadow-xs'}
+        aria-invalid={!!errorMessage || undefined}
       />
       {errorMessage && (
-        <p className="text-sm text-red-600" role="alert">{errorMessage}</p>
+        <p className="text-[12px] text-[var(--ks-danger)]" role="alert">{errorMessage}</p>
       )}
     </FieldContainer>
   )

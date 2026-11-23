@@ -121,7 +121,7 @@ function NullableFieldWrapper({
     <div className="space-y-2">
       {children}
       {errorMessage && (
-        <div className="text-sm text-red-600" role="alert">
+        <div className="text-[12px] text-[var(--ks-danger)]" role="alert">
           {errorMessage}
         </div>
       )}
@@ -133,8 +133,8 @@ function NullableFieldWrapper({
             onCheckedChange={onChange}
             disabled={isReadOnly}
           />
-          <Label htmlFor={nullId} className="text-sm text-gray-600">
-            Set field as null
+          <Label htmlFor={nullId} className="text-[12px] font-normal text-[var(--ks-dim)]">
+            No value
           </Label>
         </div>
       )}
@@ -160,7 +160,7 @@ export function Field(props: FieldProps) {
 
   return (
     <FieldContainer>
-      <FieldLabel htmlFor={`field-${field.path}`} className={errorMessage ? "text-red-600" : ""}>
+      <FieldLabel htmlFor={`field-${field.path}`} className={errorMessage ? "text-[var(--ks-danger)]" : ""}>
         {field.label}
       </FieldLabel>
       {field.description && (
@@ -218,7 +218,7 @@ export function Cell({ item, field }: CellProps) {
   const value = item[field.path]
   return (
     <span className="text-sm">
-      {value || <span className="text-gray-400">—</span>}
+      {value || <span className="text-[var(--ks-label)]">—</span>}
     </span>
   )
 }
@@ -228,7 +228,7 @@ export function CardValue({ item, field }: CellProps) {
   return (
     <div>
       <div className="text-sm font-medium">{field.label}</div>
-      <div className="text-sm text-gray-600">{item[field.path] || '—'}</div>
+      <div className="text-[13px] text-[var(--ks-ink-2)]">{item[field.path] || '—'}</div>
     </div>
   )
 }

@@ -10,10 +10,11 @@ import {
 } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import { FieldLabel } from '@/components/ui/field-label'
+import { FieldDescription } from '@/components/ui/field-description'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { ImageIcon } from 'lucide-react'
+import { ImageIcon, Undo2, Upload } from 'lucide-react'
 
 import type { FieldProps } from '../../types'
 import { formatBytes } from './utils'
@@ -50,17 +51,11 @@ export function Field(props: FieldProps<typeof controller>) {
   )
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor={field.path}>
-        {field.label}
-        {field.description && (
-          <span className="text-sm text-muted-foreground block">
-            {field.description}
-          </span>
-        )}
-      </Label>
+    <div className="flex flex-col gap-1">
+      <FieldLabel htmlFor={field.path}>{field.label}</FieldLabel>
+      {field.description && <FieldDescription>{field.description}</FieldDescription>}
       {errorMessage && (
-        <div className="text-sm text-destructive">{errorMessage}</div>
+        <div className="text-[12px] text-[var(--ks-danger)]">{errorMessage}</div>
       )}
       <ImageView
         isInvalid={Boolean(errorMessage)}
@@ -95,11 +90,11 @@ function ImageView(props: {
   const imageData = useImageData(value)
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-2">
       {isInvalid || !imageData ? null : (
         <ImageDetails {...imageData}>
           {onChange && (
-            <div className="flex gap-2 items-center mt-auto">
+            <div className="ks-track mt-auto self-start">
               <Button type="button" size="sm" variant="outline" onClick={onFileTrigger}>
                 Change
               </Button>
@@ -132,25 +127,43 @@ function ImageView(props: {
         </ImageDetails>
       )}
 
-      {!imageData && (
-        <div className="flex gap-2 items-center">
-          <Button type="button" disabled={onChange === undefined} onClick={onFileTrigger}>
-            Upload
-          </Button>
+      {!imageData && onChange === undefined && (
+        <div className="flex h-10 items-center gap-2 rounded-[8px] bg-[var(--ks-surface-2)] px-2.5 text-[12px] text-[var(--ks-label)] shadow-[inset_0_0_0_1px_var(--ks-line)]">
+          <ImageIcon className="size-3.5" />
+          No image
+        </div>
+      )}
+      {!imageData && onChange !== undefined && (
+        <>
+        <button
+          type="button"
+          disabled={onChange === undefined}
+          onClick={onFileTrigger}
+          className="group flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-[10px] text-[12px] text-[var(--ks-dim)] shadow-[inset_0_0_0_1px_var(--ks-line-strong)] [background:repeating-linear-gradient(135deg,transparent_0_6px,var(--ks-surface-2)_6px_7px)] hover:text-[var(--ks-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span className="ks-raised grid size-8 place-items-center rounded-[8px]">
+            <Upload className="size-4" />
+          </span>
+          Upload image
+        </button>
+        <div className="flex gap-2 items-center empty:hidden">
           {value.kind === 'remove' && value.previous && (
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => {
                 if (value.previous !== undefined) {
                   onChange?.(value?.previous)
                 }
               }}
             >
-              Undo removal
+              <Undo2 />
+              Undo remove
             </Button>
           )}
         </div>
+        </>
       )}
     </div>
   )
@@ -175,7 +188,7 @@ function ImageDetails(props: PropsWithChildren<ImageData>) {
   return (
     <div
       className={cn(
-        "bg-background border rounded-md min-h-48 overflow-hidden flex transition-opacity",
+        "flex overflow-hidden rounded-[10px] bg-[var(--ks-surface-2)] shadow-[inset_0_0_0_1px_var(--ks-line)] transition-opacity",
         "max-sm:flex-col",
         isLoaded ? "opacity-100" : "opacity-0"
       )}
@@ -184,29 +197,29 @@ function ImageDetails(props: PropsWithChildren<ImageData>) {
         <img
           onLoad={props.onLoad}
           className={cn(
-            "max-h-48 max-w-full min-w-0 object-contain",
-            "sm:h-48 sm:w-48 sm:flex-shrink-0"
+            "max-h-40 max-w-full min-w-0 object-contain bg-[var(--ks-track)]",
+            "sm:h-32 sm:w-40 sm:flex-shrink-0"
           )}
           alt="preview of the upload"
           src={props.url}
         />
       ) : (
         <div className={cn(
-          "max-h-48 max-w-full min-w-0 flex items-center justify-center bg-muted",
-          "sm:h-48 sm:w-48 sm:flex-shrink-0"
+          "h-32 max-w-full min-w-0 flex items-center justify-center bg-[var(--ks-track)]",
+          "sm:w-40 sm:flex-shrink-0"
         )}>
-          <ImageIcon className="h-12 w-12 text-muted-foreground" />
+          <ImageIcon className="size-6 text-[var(--ks-label)]" />
         </div>
       )}
-      <div className="p-4 flex flex-col gap-3 flex-1 min-w-0">
+      <div className="p-3 flex flex-col gap-1 flex-1 min-w-0">
         {props.name ? (
-          <div className="text-sm font-medium truncate" title={props.name}>
+          <div className="truncate font-mono text-[12px] font-medium text-[var(--ks-ink)]" title={props.name}>
             {props.name}
           </div>
         ) : null}
         {props.filesize ? (
-          <div className="text-sm text-muted-foreground">
-            {formatBytes(props.filesize)} • {props.width}×{props.height}
+          <div className="font-mono text-[12px] text-[var(--ks-dim)]">
+            {formatBytes(props.filesize)} · {props.width}×{props.height}
           </div>
         ) : null}
 

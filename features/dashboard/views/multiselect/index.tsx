@@ -92,12 +92,10 @@ export function Field({ field, value, onChange, autoFocus }: MultiSelectFieldPro
         value={selectorValue}
         options={selectorOptions}
         onChange={handleChange}
-        placeholder="Select options..."
+        placeholder="Add…"
         disabled={isReadOnly}
         emptyIndicator={
-          <p className="text-center text-lg leading-10 text-gray-600 dark:text-gray-400">
-            No results found.
-          </p>
+          <p className="py-2 text-center text-[12px] text-[var(--ks-dim)]">No matches</p>
         }
         hideClearAllButton={false}
         className="w-full"
@@ -125,7 +123,7 @@ export function Cell({ item, field, linkTo }: CellProps) {
   if (labels.length === 0) {
     return (
       <span className="text-sm">
-        <span className="text-gray-400">—</span>
+        <span className="text-[var(--ks-label)]">—</span>
       </span>
     )
   }
@@ -165,7 +163,7 @@ export function CardValue({ item, field }: CellProps) {
     return (
       <div>
         <div className="text-sm font-medium">{field.label}</div>
-        <div className="text-sm text-gray-600">—</div>
+        <div className="text-[13px] text-[var(--ks-ink-2)]">—</div>
       </div>
     )
   }
@@ -176,7 +174,7 @@ export function CardValue({ item, field }: CellProps) {
   return (
     <div>
       <div className="text-sm font-medium">{field.label}</div>
-      <div className="text-sm text-gray-600">
+      <div className="text-[13px] text-[var(--ks-ink-2)]">
         {displayLabels.join(', ')}
         {overflow > 0 && (
           <span className="opacity-50 font-medium">

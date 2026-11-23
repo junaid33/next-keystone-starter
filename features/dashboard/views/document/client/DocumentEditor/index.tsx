@@ -197,9 +197,9 @@ export function DocumentEditor({
 
         <DocumentEditorEditable
           className={cn(
-            "focus-visible:outline-none rounded-inherit bg-background border-border",
-            "px-4 py-3 min-h-[120px] scrollbar-gutter-stable",
-            expanded ? "h-auto !important" : "h-56 resize-y",
+            "focus-visible:outline-none rounded-inherit bg-transparent text-[13px] leading-6",
+            "px-3.5 py-2.5 min-h-[120px] scrollbar-gutter-stable",
+            expanded ? "h-auto !important" : "h-48 resize-y",
             "overflow-y-auto"
           )}
           {...props}

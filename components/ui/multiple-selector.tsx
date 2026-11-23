@@ -431,7 +431,7 @@ const MultipleSelector = ({
     >
       <div
         className={cn(
-          "border-input focus-within:border-ring focus-within:ring-ring/50 has-aria-invalid:ring-destructive/20 dark:has-aria-invalid:ring-destructive/40 has-aria-invalid:border-destructive relative min-h-[38px] rounded-md border text-base transition-[color,box-shadow] outline-none focus-within:ring-[3px] has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-50 shadow-xs",
+          "ks-field relative min-h-8 text-[13px] has-disabled:pointer-events-none has-disabled:cursor-not-allowed has-disabled:opacity-60",
           {
             "p-1": selected.length !== 0,
             "cursor-text": !disabled && selected.length !== 0,
@@ -450,7 +450,7 @@ const MultipleSelector = ({
               <div
                 key={option.value}
                 className={cn(
-                  "animate-fadeIn bg-background text-secondary-foreground relative inline-flex h-7 cursor-default items-center rounded-md border ps-2 pe-7 text-xs font-medium transition-all disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 max-w-full",
+                  "animate-fadeIn ks-raised relative inline-flex h-6 max-w-full cursor-default items-center rounded-[6px] ps-2 pe-6 text-[12px] font-medium text-[var(--ks-ink)] transition-all disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
                   badgeClassName
                 )}
                 data-fixed={option.fixed}
@@ -459,7 +459,7 @@ const MultipleSelector = ({
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px]">{option.label}</span>
                 {!disabled && !option.fixed && (
                   <button
-                    className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute -inset-y-px -end-px flex size-7 items-center justify-center rounded-e-md border border-transparent p-0 outline-hidden transition-[color,box-shadow] outline-none focus-visible:ring-[3px]"
+                    className="absolute inset-y-0 end-0 flex w-6 items-center justify-center rounded-e-[6px] p-0 text-[var(--ks-label)] outline-none hover:text-[var(--ks-ink)] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)]"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         handleUnselect(option)
@@ -472,7 +472,7 @@ const MultipleSelector = ({
                     onClick={() => handleUnselect(option)}
                     aria-label="Remove"
                   >
-                    <XIcon size={14} aria-hidden="true" />
+                    <XIcon size={12} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -507,10 +507,10 @@ const MultipleSelector = ({
                 : placeholder
             }
             className={cn(
-              "placeholder:text-muted-foreground/70 flex-1 bg-transparent outline-hidden disabled:cursor-not-allowed",
+              "min-w-[80px] flex-1 bg-transparent text-[13px] outline-hidden placeholder:text-[var(--ks-label)] disabled:cursor-not-allowed",
               {
                 "w-full": hidePlaceholderWhenSelected,
-                "px-3 py-2": selected.length === 0,
+                "h-8 px-2.5": selected.length === 0,
                 "ml-1": selected.length !== 0,
               },
               inputProps?.className
@@ -523,7 +523,7 @@ const MultipleSelector = ({
               onChange?.(selected.filter((s) => s.fixed))
             }}
             className={cn(
-              "text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute end-0 top-0 flex size-9 items-center justify-center rounded-md border border-transparent transition-[color,box-shadow] outline-none focus-visible:ring-[3px]",
+              "absolute end-0 top-0 flex size-8 items-center justify-center rounded-[8px] text-[var(--ks-label)] outline-none hover:text-[var(--ks-ink)] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)]",
               (hideClearAllButton ||
                 disabled ||
                 selected.length < 1 ||
@@ -532,14 +532,14 @@ const MultipleSelector = ({
             )}
             aria-label="Clear all"
           >
-            <XIcon size={16} aria-hidden="true" />
+            <XIcon size={14} aria-hidden="true" />
           </button>
         </div>
       </div>
       <div className="relative">
         <div
           className={cn(
-            "border-input absolute top-2 z-10 w-full overflow-hidden rounded-md border",
+            "ks-pop absolute top-1.5 z-50 w-full overflow-hidden",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             !open && "hidden"
           )}
@@ -547,7 +547,7 @@ const MultipleSelector = ({
         >
           {open && (
             <CommandList
-              className="bg-popover text-popover-foreground shadow-lg outline-hidden"
+              className="p-1 text-[13px] outline-hidden"
               onMouseLeave={() => {
                 setOnScrollbar(false)
               }}

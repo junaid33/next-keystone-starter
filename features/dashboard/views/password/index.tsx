@@ -168,7 +168,7 @@ export function Field({
             disabled
             className="opacity-50"
           />
-          <Label className="text-sm text-muted-foreground">
+          <Label className="text-[12px] font-normal text-[var(--ks-dim)]">
             {isIndeterminate ? 'Access denied' : 'Value is set'}
           </Label>
         </div>
@@ -212,7 +212,7 @@ export function Field({
         <FieldDescription>{field.description}</FieldDescription>
       )}
       
-      <div className="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col gap-2 md:flex-row">
         <div className="flex-1">
           <Input
             id={`field-${field.path}`}
@@ -221,7 +221,7 @@ export function Field({
             type={secureTextEntry ? 'password' : 'text'}
             value={value.value}
             required={isRequired}
-            className={validationMessage ? 'border-red-500 shadow-xs' : 'shadow-xs'}
+            aria-invalid={!!validationMessage || undefined}
             onBlur={() => setTouched({ ...touched, value: true })}
             onChange={(e) => onChange?.({ ...value, value: e.target.value })}
             onKeyDown={onEscape}
@@ -233,27 +233,29 @@ export function Field({
             placeholder="Confirm password"
             type={secureTextEntry ? 'password' : 'text'}
             value={value.confirm}
-            className={validationMessage ? 'border-red-500 shadow-xs' : 'shadow-xs'}
+            aria-invalid={!!validationMessage || undefined}
             onBlur={() => setTouched({ ...touched, confirm: true })}
             onChange={(e) => onChange?.({ ...value, confirm: e.target.value })}
             onKeyDown={onEscape}
           />
         </div>
         
-        <div className="flex gap-2">
+        <div className="ks-track self-start">
           <Button
             type="button"
             variant="outline"
-            className="size-10.5"
+            size="sm"
+            className="w-7 px-0"
             onClick={() => setSecureTextEntry(bool => !bool)}
             title={secureTextEntry ? 'Show password' : 'Hide password'}
+            aria-label={secureTextEntry ? 'Show password' : 'Hide password'}
           >
-            {secureTextEntry ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+            {secureTextEntry ? <Eye /> : <EyeOff />}
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-10.5"
+            size="sm"
             onClick={cancelEditing}
           >
             Cancel
@@ -262,7 +264,7 @@ export function Field({
       </div>
       
       {validationMessage && (
-        <p className="text-sm text-red-600" role="alert">{validationMessage}</p>
+        <p className="text-[12px] text-[var(--ks-danger)]" role="alert">{validationMessage}</p>
       )}
     </FieldContainer>
   )

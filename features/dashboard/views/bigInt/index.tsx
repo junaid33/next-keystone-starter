@@ -126,7 +126,7 @@ export function controller(
             />
             {(forceValidation || isDirty) &&
               !validate({ kind: 'update', initial: null, value }, { isRequired: true }) && (
-                <p className="text-sm text-destructive">Required</p>
+                <p className="text-[12px] text-[var(--ks-danger)]">Required</p>
               )}
           </div>
         )
@@ -228,9 +228,8 @@ export function Field({
           autoFocus={autoFocus}
           readOnly
           defaultValue="--"
-          className="bg-muted shadow-xs"
         />
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="mt-1 text-[12px] text-[var(--ks-label)]">
           This field is set to auto increment. It will default to the next available number.
         </p>
       </FieldContainer>
@@ -264,13 +263,13 @@ export function Field({
         autoFocus={autoFocus}
         readOnly={isReadOnly}
         inputMode="numeric"
-        className={errorMessage ? 'border-destructive shadow-xs' : 'shadow-xs'}
+        aria-invalid={!!errorMessage || undefined}
         onBlur={() => setDirty(true)}
         onChange={e => onChange?.({ ...value, value: e.target.value === '' ? null : e.target.value })}
         value={value.value ?? ''}
       />
       {errorMessage && (
-        <p className="text-sm text-destructive mt-1">{errorMessage}</p>
+        <p className="text-[12px] text-[var(--ks-danger)] mt-1">{errorMessage}</p>
       )}
     </FieldContainer>
   )

@@ -38,7 +38,7 @@ export function Field(props: FieldProps<typeof controller>) {
         readOnly={true}
         tabIndex={-1}
         value={stringify(value)}
-        className="bg-muted cursor-default"
+        className="cursor-default"
         onFocus={(e) => e.target.blur()}
       />
     </FieldContainer>

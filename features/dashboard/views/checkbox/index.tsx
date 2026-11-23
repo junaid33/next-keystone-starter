@@ -36,23 +36,24 @@ export function Field({ field, value, onChange, autoFocus }: CheckboxFieldProps)
 
   return (
     <FieldContainer>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-start gap-2.5">
         <Checkbox
           id={field.path}
           checked={value}
           onCheckedChange={onChange}
           disabled={isReadOnly}
           autoFocus={autoFocus}
+          className="mt-0.5"
         />
-        <div className="grid gap-1.5 leading-none">
+        <div className="flex min-w-0 flex-col gap-0.5">
           <Label
             htmlFor={field.path}
-            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="text-[13px] font-medium leading-5 text-[var(--ks-ink)] peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             {field.label}
           </Label>
           {field.description && (
-            <FieldDescription className="text-xs">
+            <FieldDescription>
               {field.description}
             </FieldDescription>
           )}
