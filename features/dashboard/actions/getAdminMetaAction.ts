@@ -25,7 +25,6 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
                 field
                 direction
               }
-              initialFilter
               path
               label
               singular
@@ -37,7 +36,6 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
               labelField
               isSingleton
               isHidden
-              hideNavigation
               hideCreate
               hideDelete
 
@@ -56,17 +54,13 @@ const getCachedAdminMeta = cache(async (): Promise<KeystoneResponse<any>> => {
                 isNonNull
                 createView {
                   fieldMode
-                  fieldPosition
-                  isRequired
                 }
                 itemView {
                   fieldMode
                   fieldPosition
-                  isRequired
                 }
                 listView {
                   fieldMode
-                  fieldPosition
                 }
               }
 
