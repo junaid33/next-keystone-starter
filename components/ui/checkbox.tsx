@@ -10,7 +10,7 @@ function Checkbox({ className, ...props }: React.ComponentProps<typeof CheckboxP
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer size-4 shrink-0 rounded-[5px] bg-[var(--ks-field)] shadow-[var(--ks-field-shadow)] outline-none transition-[background,box-shadow] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] data-[state=checked]:bg-[var(--ks-accent)] data-[state=checked]:text-white data-[state=checked]:shadow-[inset_0_0_0_1px_rgb(0_0_0/.12)] data-[state=indeterminate]:bg-[var(--ks-accent)] data-[state=indeterminate]:text-white aria-invalid:shadow-[inset_0_0_0_1px_var(--ks-danger)] disabled:cursor-not-allowed disabled:opacity-60",
+        "peer inline-grid size-4 shrink-0 place-content-center align-middle rounded-[5px] bg-[var(--ks-field)] shadow-[var(--ks-field-shadow)] outline-none transition-[background,box-shadow] focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] data-[state=checked]:bg-[var(--ks-accent)] data-[state=checked]:text-white data-[state=checked]:shadow-[inset_0_0_0_1px_rgb(0_0_0/.12)] data-[state=indeterminate]:bg-[var(--ks-accent)] data-[state=indeterminate]:text-white aria-invalid:shadow-[inset_0_0_0_1px_var(--ks-danger)] disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       {...props}

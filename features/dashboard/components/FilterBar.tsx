@@ -1,24 +1,13 @@
 'use client'
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Search,
-  SlidersHorizontal,
-  ArrowUpDown,
-  Columns3,
-  CirclePlus,
-} from "lucide-react"
+import { Search, SlidersHorizontal, ArrowUpDown, Columns3, X } from "lucide-react"
 import { FilterAdd } from "./FilterAdd"
 import { FilterList } from "./FilterList"
 import { SortSelection } from "./SortSelection"
 import { FieldSelection } from "./FieldSelection"
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
-import Link from "next/link"
-import { useDashboard } from '../context/DashboardProvider'
 import { enhanceFields } from '../utils/enhanceFields'
 
 interface FilterBarProps {
@@ -26,137 +15,121 @@ interface FilterBarProps {
   selectedFields?: Set<string>
 }
 
+/**
+ * Find-a-record toolbar: search on the left, Filter / Sort / Columns pills in one track on the right,
+ * active filter chips below. All state stays in the URL (search, page, sortBy, fields, !field_type).
+ */
 export function FilterBar({ list, selectedFields = new Set() }: FilterBarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { basePath } = useDashboard()
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const [searchString, setSearchString] = useState(
-    searchParams?.get("search") || ""
-  )
+  const [searchString, setSearchString] = useState(searchParams?.get("search") || "")
 
-  // Get enhanced fields using dashboard's pattern
-  const enhancedFields = useMemo(() => {
-    return enhanceFields(list.fields, list.key)
-  }, [list.fields, list.key])
+  const enhancedFields = useMemo(() => enhanceFields(list.fields, list.key), [list.fields, list.key])
 
-  // Create a new URLSearchParams instance to manipulate
-  const createQueryString = (
-    params: Record<string, string | number | null | undefined>
-  ) => {
+  const createQueryString = (params: Record<string, string | number | null | undefined>) => {
     const newSearchParams = new URLSearchParams(searchParams?.toString() || "")
-
-    // Update or delete parameters based on the provided object
     Object.entries(params).forEach(([key, value]) => {
-      if (value === null || value === undefined || value === "") {
-        newSearchParams.delete(key)
-      } else {
-        newSearchParams.set(key, String(value))
-      }
+      if (value === null || value === undefined || value === "") newSearchParams.delete(key)
+      else newSearchParams.set(key, String(value))
     })
-
     return newSearchParams.toString()
   }
 
-  // Handle search submission
   const updateSearch = (value: string) => {
-    const query = createQueryString({
-      search: value.trim() || null,
-      page: 1, // Reset to first page when search changes
-    })
+    const query = createQueryString({ search: value.trim() || null, page: null })
     router.push(`${pathname}?${query}`)
   }
 
-  // Update search string when URL changes
   useEffect(() => {
     setSearchString(searchParams?.get("search") || "")
   }, [searchParams])
 
-  // Get searchable field labels for placeholder
-  const searchableFields = Object.values(enhancedFields).filter((field: any) => 
-    field.controller?.filter && Object.keys(field.controller.filter.types || {}).length > 0
-  )
-  const searchLabels = searchableFields.map((field: any) => field.label)
+  // "/" focuses search, like Linear and GitHub
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || t.closest("input,textarea,[contenteditable=true]")) return
+      e.preventDefault()
+      inputRef.current?.focus()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+
+  const searchLabels = (list.initialSearchFields || [])
+    .map((path: string) => enhancedFields[path]?.label)
+    .filter(Boolean) as string[]
+  const placeholder = `Search ${searchLabels.length ? searchLabels.join(", ").toLowerCase() : "by ID"}`
+
+  const hasSort = !!searchParams?.get("sortBy")
+  const hasFields = !!searchParams?.get("fields")
 
   return (
-    <div>
-      {/* Controls Row */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        {/* Search */}
-        <div className="relative flex-1 min-w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              updateSearch(searchString)
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <form
+          role="search"
+          className="ks-field relative flex h-8 min-w-0 flex-1 items-center md:max-w-[420px]"
+          onSubmit={(e) => {
+            e.preventDefault()
+            updateSearch(searchString)
+          }}
+        >
+          <Search className="pointer-events-none absolute left-2.5 size-3.5 text-[var(--ks-label)]" />
+          <input
+            ref={inputRef}
+            type="search"
+            aria-label="Search"
+            className="h-full w-full min-w-0 bg-transparent pl-8 pr-8 text-[13px] text-[var(--ks-ink)] outline-none placeholder:text-[var(--ks-label)] [&::-webkit-search-cancel-button]:hidden"
+            value={searchString}
+            onChange={(e) => setSearchString(e.target.value)}
+            onBlur={() => {
+              if ((searchParams?.get("search") || "") !== searchString.trim()) updateSearch(searchString)
             }}
-          >
-            <Input
-              type="search"
-              className="pl-9 w-full h-10 rounded-lg placeholder:text-muted-foreground/80"
-              value={searchString}
-              onChange={(e) => setSearchString(e.target.value)}
-              placeholder={`Search by ${
-                searchLabels.length
-                  ? searchLabels.join(", ").toLowerCase()
-                  : "ID"
-              }`}
-            />
-          </form>
-        </div>
-
-        {/* Right Side Controls */}
-        <div className="flex items-center gap-2">
-          <FilterAdd list={list}>
-            <Button
-              variant="outline"
-              size="icon"
-              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
+            placeholder={placeholder}
+          />
+          {searchString ? (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => {
+                setSearchString("")
+                updateSearch("")
+              }}
+              className="absolute right-1.5 grid size-5 place-items-center rounded-[5px] text-[var(--ks-label)] hover:text-[var(--ks-ink)]"
             >
-              <SlidersHorizontal className="stroke-muted-foreground" />
-              <span className="hidden lg:inline">Filter</span>
+              <X className="size-3.5" />
+            </button>
+          ) : (
+            <span className="ks-kbd pointer-events-none absolute right-1.5 h-5 max-md:hidden">/</span>
+          )}
+        </form>
+
+        <div className="ks-track ml-auto shrink-0">
+          <FilterAdd list={list}>
+            <Button variant="outline" size="sm" aria-label="Filter" className="max-sm:w-7 max-sm:px-0">
+              <SlidersHorizontal />
+              <span className="max-sm:hidden">Filter</span>
             </Button>
           </FilterAdd>
-
           <SortSelection listMeta={list}>
-            <Button
-              variant="outline"
-              size="icon"
-              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
-            >
-              <ArrowUpDown className="stroke-muted-foreground" />
-              <span className="hidden lg:inline">Sort</span>
+            <Button variant="outline" size="sm" aria-label="Sort" className="max-sm:w-7 max-sm:px-0">
+              <ArrowUpDown className={hasSort ? "!text-[var(--ks-accent)]" : undefined} />
+              <span className="max-sm:hidden">Sort</span>
             </Button>
           </SortSelection>
-
           <FieldSelection listMeta={list} selectedFields={selectedFields}>
-            <Button
-              variant="outline"
-              size="icon"
-              className="lg:px-4 lg:py-2 lg:w-auto rounded-lg"
-            >
-              <Columns3 className="stroke-muted-foreground" />
-              <span className="hidden lg:inline">Display</span>
+            <Button variant="outline" size="sm" aria-label="Columns" className="max-sm:w-7 max-sm:px-0">
+              <Columns3 className={hasFields ? "!text-[var(--ks-accent)]" : undefined} />
+              <span className="max-sm:hidden">Columns</span>
             </Button>
           </FieldSelection>
-
-          {!list.hideCreate && (
-            <Link
-              href={`${basePath}/${list.path}/create`}
-              className={cn(
-                buttonVariants({ size: "icon" }),
-                "lg:px-4 lg:py-2 lg:w-auto rounded-lg"
-              )}
-            >
-              <CirclePlus />
-              <span className="hidden lg:inline">Create {list.singular}</span>
-            </Link>
-          )}
         </div>
       </div>
 
-      {/* Active Filters */}
       <FilterList list={list} />
     </div>
   )

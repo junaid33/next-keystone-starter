@@ -16,7 +16,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
 import { enhanceFields } from '../utils/enhanceFields'
 
 interface FilterState {
@@ -89,29 +88,29 @@ export function FilterAdd({ list, children }: FilterAddProps) {
         {children}
       </PopoverTrigger>
       {isOpen && (
-        <PopoverContent align="start" className="w-[240px] p-0">
+        <PopoverContent align="end" className="w-[280px] p-0">
           <form onSubmit={handleSubmit}>
-            <div className="flex justify-between items-center px-2 py-2">
+            <div className="flex h-9 items-center gap-1 border-b border-[var(--ks-line)] px-2">
               {state.kind !== "selecting-field" && (
                 <Button
+                  type="button"
                   onClick={() => setState({ kind: "selecting-field", fieldPath: state.fieldPath, filterType: null, filterValue: null })}
                   variant="ghost"
-                  size="icon"
-                  className="[&_svg]:size-3 w-6 h-6"
+                  size="icon-sm"
+                  aria-label="Back"
+                  className="size-6"
                 >
-                  <div className="sr-only">Back</div>
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft />
                 </Button>
               )}
-              <div className="text-sm font-medium">
+              <div className="ks-label px-1">
                 {state.kind === "selecting-field"
                   ? "Filter"
                   : state.fieldPath ? enhancedFields[state.fieldPath]?.label : ""}
               </div>
             </div>
-            <Separator />
 
-            <div className="p-2">
+            <div className="flex flex-col gap-2 p-3">
               {state.kind === "selecting-field" && (
                 <Select
                   value={state.fieldPath || undefined}
@@ -129,7 +128,7 @@ export function FilterAdd({ list, children }: FilterAddProps) {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue className="text-sm" placeholder="Select a field" />
+                    <SelectValue placeholder="Choose a field" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(filterableFields).map(([fieldPath, field]) => (
@@ -154,7 +153,7 @@ export function FilterAdd({ list, children }: FilterAddProps) {
                       })
                     }}
                   >
-                    <SelectTrigger className="mb-2">
+                    <SelectTrigger>
                       <SelectValue>
                         {state.filterType ? filterableFields[state.fieldPath].controller.filter.types[state.filterType].label : 'Select filter type'}
                       </SelectValue>
@@ -169,7 +168,7 @@ export function FilterAdd({ list, children }: FilterAddProps) {
                   </Select>
 
                   {state.filterType && (
-                    <div className="pb-3">
+                    <div>
                       {(() => {
                         const field = filterableFields[state.fieldPath!]
                         const Filter = field.controller.filter.Filter
@@ -194,17 +193,16 @@ export function FilterAdd({ list, children }: FilterAddProps) {
             </div>
 
             {state.kind === "filter-value" && (
-              <>
-                <Separator />
-                <div className="flex justify-between p-2">
-                  <Button onClick={() => setIsOpen(false)} variant="outline" size="sm">
+              <div className="flex justify-end border-t border-[var(--ks-line)] p-2">
+                <div className="ks-track">
+                  <Button type="button" onClick={() => setIsOpen(false)} variant="outline" size="sm">
                     Cancel
                   </Button>
                   <Button type="submit" size="sm">
                     Apply
                   </Button>
                 </div>
-              </>
+              </div>
             )}
           </form>
         </PopoverContent>

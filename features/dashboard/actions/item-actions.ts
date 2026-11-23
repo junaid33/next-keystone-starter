@@ -165,3 +165,47 @@ export async function deleteManyItemsAction(
     }
   }
 }
+/**
+ * Set the same field values on many items through Keystone's generated updateMany
+ * mutation (`update<Plural>(data: [<List>UpdateArgs!]!)`). Mirrors deleteManyItemsAction:
+ * access control and hooks run inside Keystone per item, exactly as single updates do.
+ */
+export async function updateManyItemsAction(
+  listKey: string,
+  ids: string[],
+  data: Record<string, unknown>,
+  gqlNames: { updateManyMutationName: string; updateManyInputName: string }
+) {
+  try {
+    const mutation = `
+      mutation ($data: [${gqlNames.updateManyInputName}!]!) {
+        items: ${gqlNames.updateManyMutationName}(data: $data) {
+          id
+        }
+      }
+    `
+
+    const response = await keystoneClient(mutation, {
+      data: ids.map((id) => ({ where: { id }, data }))
+    })
+
+    if (!response.success) {
+      return {
+        errors: response.errors || [{ message: response.error || 'Bulk update failed', path: undefined }],
+        data: response.data || null
+      }
+    }
+
+    revalidatePath(`/dashboard/(admin)/${listKey}`)
+
+    return {
+      errors: [] as Array<{ message: string; path?: (string | number)[] }>,
+      data: response.data
+    }
+  } catch (error) {
+    return {
+      errors: [{ message: PUBLIC_REQUEST_ERROR, path: undefined }],
+      data: null
+    }
+  }
+}

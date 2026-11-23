@@ -77,9 +77,10 @@ function FieldSelectionContent({
 
   return (
     <>
-      <DropdownMenuLabel>Display columns</DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      <div className="max-h-72 overflow-y-auto">
+      <div className="flex h-9 items-center border-b border-[var(--ks-line)] px-3">
+        <DropdownMenuLabel className="p-0">Columns</DropdownMenuLabel>
+      </div>
+      <div className="max-h-72 overflow-y-auto p-1">
         {fields.map((field) => (
           <DropdownMenuCheckboxItem
             key={field.value}
@@ -110,13 +111,9 @@ export function FieldSelection({ listMeta, selectedFields, children }: FieldSele
   const [isOpen, setIsOpen] = useState(false)
 
   const DefaultTrigger = () => (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex gap-1.5 px-3 text-xs font-medium"
-    >
-      <Columns3 className="h-3 w-3" />
-      COLUMNS
+    <Button variant="outline" size="sm">
+      <Columns3 />
+      Columns
     </Button>
   )
 
@@ -125,7 +122,7 @@ export function FieldSelection({ listMeta, selectedFields, children }: FieldSele
       <DropdownMenuTrigger asChild>
         {children || <DefaultTrigger />}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
+      <DropdownMenuContent align="end" className="w-[220px] p-0">
         {isOpen && (
           <FieldSelectionContent
             listMeta={listMeta}

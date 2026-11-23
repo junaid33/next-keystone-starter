@@ -21,17 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Plus,
-  Minus,
-  X,
-} from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Check, ChevronLeft, ChevronRight, ChevronDown, PencilLine, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface ListInfo {
   singular: string;
@@ -46,12 +37,15 @@ interface PaginationProps {
   selectedItems?: Set<string>;
   onResetSelection?: () => void;
   onDelete?: () => void;
+  onEdit?: () => void;
   isDeleteLoading?: boolean;
 }
 
+const PAGE_SIZES = [10, 25, 50, 100];
+
 /**
- * Pagination component that combines pagination and item deletion functionality
- * Adapted from Dashboard 1 for Dashboard 2
+ * List footer. Sticky at the bottom of the page: range + pager + page size.
+ * With rows selected it becomes the bulk-action bar (count, edit, delete, clear).
  */
 export function Pagination({
   currentPage = 1,
@@ -61,12 +55,11 @@ export function Pagination({
   selectedItems = new Set<string>(),
   onResetSelection,
   onDelete,
+  onEdit,
   isDeleteLoading = false,
 }: PaginationProps) {
-  const [currentPageInput, setCurrentPageInput] = useState(
-    currentPage.toString()
-  );
-  const [, setIsOpen] = useState(false);
+  const [currentPageInput, setCurrentPageInput] = useState(currentPage.toString());
+  const [customSize, setCustomSize] = useState("");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -78,49 +71,12 @@ export function Pagination({
     }
   }
 
-  // Total pages calculation
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
-  // Update input field when currentPage changes
   useEffect(() => {
     setCurrentPageInput(currentPage.toString());
   }, [currentPage]);
 
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    const page = Math.max(1, Math.min(totalPages, Number(newPage)));
-    if (page !== currentPage) {
-      const newQuery = getQueryString({ page });
-      router.push(`${pathname}?${newQuery}`);
-    }
-  };
-
-  // Handle page input change
-  const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value === "" || /^\d+$/.test(value)) {
-      setCurrentPageInput(value);
-    }
-  };
-
-  // Handle page input blur
-  const handlePageInputBlur = () => {
-    if (currentPageInput === "") {
-      setCurrentPageInput(currentPage.toString());
-    } else {
-      handlePageChange(Number(currentPageInput));
-    }
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (newSize: number) => {
-    const size = Math.max(1, Number(newSize));
-    // Reset to page 1 when changing page size
-    const newQuery = getQueryString({ pageSize: size, page: 1 });
-    router.push(`${pathname}?${newQuery}`);
-  };
-
-  // Helper function to get query string
   const getQueryString = (newParams: Record<string, number>) => {
     const allParams = new URLSearchParams(query);
     Object.keys(newParams).forEach((key) => {
@@ -129,250 +85,152 @@ export function Pagination({
     return allParams.toString();
   };
 
-  // Generate stats message
-  const getStatsMessage = () => {
-    if (total > pageSize) {
-      const start = pageSize * (currentPage - 1) + 1;
-      const end = Math.min(start + pageSize - 1, total);
-      return (
-        <div className="flex items-center gap-x-1 text-xs sm:text-sm">
-          <span>{start}</span>
-          {start !== end ? (
-            <>
-              <span className="text-muted-foreground/70">-</span>
-              <span>{end}</span>
-            </>
-          ) : (
-            ""
-          )}
-          <span className="text-muted-foreground/70 uppercase tracking-wide text-xs sm:text-sm">
-            of
-          </span>
-          <span>{total}</span>
-          <span className="text-muted-foreground/70 uppercase tracking-wide text-xs sm:text-sm hidden sm:inline truncate">
-            {list.plural.toLowerCase()}
-          </span>
-        </div>
-      );
-    } else {
-      if (total > 1 && list.plural) {
-        return (
-          <div className="flex items-center gap-x-1 text-xs sm:text-sm">
-            <span>{total}</span>
-            <span className="text-muted-foreground/70 uppercase tracking-wide text-xs sm:text-sm hidden sm:inline truncate">
-              {list.plural.toLowerCase()}
-            </span>
-          </div>
-        );
-      } else if (total === 1 && list.singular) {
-        return (
-          <div className="flex items-center gap-x-1 text-xs sm:text-sm">
-            <span>{total}</span>
-            <span className="text-muted-foreground/70 uppercase tracking-wide text-xs sm:text-sm hidden sm:inline truncate">
-              {list.singular.toLowerCase()}
-            </span>
-          </div>
-        );
-      } else {
-        return (
-          <div className="flex items-center gap-x-1 text-xs sm:text-sm">
-            <span>0</span>
-            <span className="text-muted-foreground/70 uppercase tracking-wide text-xs sm:text-sm hidden sm:inline truncate">
-              {list.plural.toLowerCase()}
-            </span>
-          </div>
-        );
-      }
+  const handlePageChange = (newPage: number) => {
+    const page = Math.max(1, Math.min(totalPages, Number(newPage) || 1));
+    setCurrentPageInput(page.toString());
+    if (page !== currentPage) {
+      router.push(`${pathname}?${getQueryString({ page })}`);
     }
   };
 
-  // Selection mode UI
+  const handlePageSizeChange = (newSize: number) => {
+    const size = Math.max(1, Math.floor(Number(newSize)));
+    if (!Number.isFinite(size)) return;
+    router.push(`${pathname}?${getQueryString({ pageSize: size, page: 1 })}`);
+  };
+
+  const start = total === 0 ? 0 : pageSize * (currentPage - 1) + 1;
+  const end = Math.min(pageSize * currentPage, total);
+  const noun = (n: number) => (n === 1 ? list.singular : list.plural);
+
+  const bar = "sticky bottom-0 z-20 flex h-12 items-center gap-2 border-t border-[var(--ks-line)] bg-[color-mix(in_oklab,var(--ks-surface)_90%,transparent)] px-3 backdrop-blur-md md:px-6 md:rounded-b-[12px]";
+
   if (selectedItems.size > 0) {
+    const n = selectedItems.size;
     return (
-      <div className="z-10 fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
-        <div className="bg-zinc-100 dark:bg-zinc-900 border shadow border-transparent ring-1 ring-foreground/5 border-foreground.5 flex items-center gap-x-1 rounded-full p-1 text-sm shadow-black/20">
-          <Button
-            onClick={onResetSelection}
-            variant="outline"
-            className="font-semibold rounded-l-[20px] rounded-r-md"
-          >
-            <X className="size-2.5 sm:size-3.5 shrink-0" />
-            <span className="uppercase tracking-wide">Cancel</span>
+      <div className={bar} role="toolbar" aria-label="Selection">
+        <span className="flex min-w-0 items-center gap-2 text-[13px]">
+          <span className="grid h-5 min-w-5 place-items-center rounded-[6px] bg-[var(--ks-accent)] px-1 font-mono text-[12px] font-medium text-white">{n}</span>
+          <span className="truncate text-[var(--ks-ink-2)]">selected</span>
+        </span>
+        <div className="ml-auto ks-track">
+          {onEdit && (
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <PencilLine />
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" data-variant="danger" disabled={isDeleteLoading}>
+                  <Trash2 />
+                  {isDeleteLoading ? "Deleting" : "Delete"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Delete {n} {noun(n)}
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <div className="ks-track">
+                    <AlertDialogCancel className="h-7 px-2.5 text-[12px]">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      data-variant="danger-fill"
+                      className="h-7 px-2.5 text-[12px]"
+                      onClick={() => onDelete?.()}
+                      disabled={isDeleteLoading}
+                    >
+                      Delete {n}
+                    </AlertDialogAction>
+                  </div>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          <Button variant="outline" size="icon-sm" aria-label="Clear selection" title="Clear (Esc)" onClick={onResetSelection}>
+            <X />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="destructive"
-                onClick={() => setIsOpen(true)}
-                className="font-semibold rounded-r-[20px] rounded-l-md gap-3"
-                disabled={isDeleteLoading}
-              >
-                <span className="truncate uppercase tracking-wide">
-                  Delete {selectedItems.size}{" "}
-                  {selectedItems.size === 1 ? list.singular : list.plural}
-                </span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Confirmation</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete {selectedItems.size}{" "}
-                  {selectedItems.size === 1 ? list.singular : list.plural}?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setIsOpen(false)}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    onDelete?.();
-                    setIsOpen(false);
-                  }}
-                  disabled={isDeleteLoading}
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="z-10 fixed bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300">
-        <div className="bg-zinc-100 dark:bg-zinc-900 border shadow border-transparent ring-1 ring-foreground/5 border-foreground.5 flex items-center gap-x-1 rounded-full p-1 text-sm shadow-black/20">
-        {/* Pagination UI */}
-        <>
-          {/* Previous Page Button */}
-          <Button
-            variant="outline"
-            className="rounded-l-[20px] rounded-r-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage <= 1}
-          >
-            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-          </Button>
+    <div className={bar}>
+      <span className="min-w-0 truncate text-[12px] text-[var(--ks-dim)]">
+        <span className="font-mono text-[var(--ks-ink-2)]">{total > pageSize ? `${start}–${end}` : total}</span>
+        {total > pageSize && (
+          <>
+            {" of "}
+            <span className="font-mono text-[var(--ks-ink-2)]">{total}</span>
+          </>
+        )}{" "}
+        <span className="max-sm:hidden">{noun(total).toLowerCase()}</span>
+      </span>
 
-          {/* Page Navigation */}
-          <div className="flex items-center gap-x-1 rounded-md bg-background py-1.5 sm:py-2 pr-2 pl-1 font-semibold dark:text-zinc-50 ring-1 ring-inset dark:ring-input ring-zinc-300 h-8 sm:h-9">
-            <div className="flex items-center gap-x-1.5 px-2">
+      <div className="ml-auto flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-1 px-2 text-[12px]">
+              <span className="font-mono text-[var(--ks-ink-2)]">{pageSize}</span>
+              <span className="max-sm:hidden">per page</span>
+              <ChevronDown className="!size-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel>Page size</DropdownMenuLabel>
+            {PAGE_SIZES.map((size) => (
+              <DropdownMenuItem key={size} onClick={() => handlePageSizeChange(size)} className="justify-between">
+                <span className="font-mono">{size}</span>
+                {size === pageSize && <Check className="size-3.5 text-[var(--ks-accent)]" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <form
+              className="p-1"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (customSize) handlePageSizeChange(Number(customSize));
+              }}
+            >
               <input
-                className="w-5 sm:w-6 bg-transparent border-0 p-0 text-center text-xs sm:text-sm font-semibold focus:ring-0 h-full"
-                type="text"
-                value={currentPageInput}
-                onChange={handlePageInputChange}
-                onBlur={handlePageInputBlur}
-                onKeyDown={(e: React.KeyboardEvent) => {
-                  if (e.key === "Enter") {
-                    handlePageChange(Number(currentPageInput));
-                  }
-                }}
+                inputMode="numeric"
+                aria-label="Custom page size"
+                placeholder="Custom"
+                value={customSize}
+                onKeyDown={(e) => e.stopPropagation()}
+                onChange={(e) => /^\d*$/.test(e.target.value) && setCustomSize(e.target.value)}
+                className="ks-field h-7 w-full px-2 font-mono text-[12px]"
               />
-              <span className="text-muted-foreground/70 font-semibold text-xs sm:text-sm">
-                /
-              </span>
-              <span className="text-muted-foreground/70 font-semibold text-xs sm:text-sm">
-                {totalPages}
-              </span>
-            </div>
-          </div>
+            </form>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          {/* Stats */}
-          <div className="flex items-center gap-x-2 whitespace-nowrap rounded-md bg-background py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9">
-            {getStatsMessage()}
-          </div>
-
-          {/* Items Per Page Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex gap-2 items-center whitespace-nowrap rounded-md bg-background py-1.5 sm:py-2 px-3 sm:px-4 font-semibold dark:text-zinc-50 ring-1 ring-inset ring-zinc-300 dark:ring-input h-8 sm:h-9 text-xs sm:text-sm">
-                {pageSize}
-                <span className="text-muted-foreground/70 uppercase tracking-wide hidden sm:inline">
-                  per page
-                </span>
-                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-0.5 sm:ml-1 opacity-50" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
-              <DropdownMenuLabel className="text-xs sm:text-sm">
-                Page Size
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <ScrollArea className="max-h-72">
-                {[5, 10, 25, 50, 100].map((size) => (
-                  <DropdownMenuItem
-                    key={size}
-                    onClick={() => handlePageSizeChange(size)}
-                    className="flex justify-between items-center gap-2 text-xs sm:text-sm"
-                  >
-                    <span className="font-medium">{size}</span>
-                    <span className="text-muted-foreground/70 uppercase tracking-wide text-xs">
-                      per page
-                    </span>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-
-                <div className="flex gap-1 items-center justify-between p-2">
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => {
-                      const newSize = Math.max(1, pageSize - 5);
-                      handlePageSizeChange(newSize);
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={pageSize}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const value = parseInt(e.target.value, 10);
-                      if (!isNaN(value) && value > 0) {
-                        handlePageSizeChange(value);
-                      } else if (e.target.value === "") {
-                        // Allow empty input temporarily while typing
-                        e.target.value = "";
-                      } else {
-                        // Reset to 1 if invalid input
-                        handlePageSizeChange(1);
-                      }
-                    }}
-                    className="h-8 rounded-md w-24"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => {
-                      const newSize = pageSize + 5;
-                      handlePageSizeChange(newSize);
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </ScrollArea>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Next Page Button */}
-          <Button
-            variant="outline"
-            className="rounded-r-[20px] rounded-l-md p-1.5 sm:p-2 font-semibold text-xs sm:text-sm h-8 sm:h-9 w-9 sm:w-auto"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-          >
-            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+        <div className="ks-track">
+          <Button variant="outline" size="icon-sm" aria-label="Previous page" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1}>
+            <ChevronLeft />
           </Button>
-        </>
+          <label className="flex h-7 items-center gap-1 px-1.5 font-mono text-[12px] text-[var(--ks-dim)]">
+            <span className="sr-only">Page</span>
+            <input
+              className="w-6 bg-transparent text-center text-[var(--ks-ink)] outline-none"
+              inputMode="numeric"
+              value={currentPageInput}
+              onChange={(e) => /^\d*$/.test(e.target.value) && setCurrentPageInput(e.target.value)}
+              onBlur={() => (currentPageInput === "" ? setCurrentPageInput(currentPage.toString()) : handlePageChange(Number(currentPageInput)))}
+              onKeyDown={(e) => e.key === "Enter" && handlePageChange(Number(currentPageInput))}
+            />
+            <span>/</span>
+            <span>{totalPages}</span>
+          </label>
+          <Button variant="outline" size="icon-sm" aria-label="Next page" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages}>
+            <ChevronRight />
+          </Button>
+        </div>
       </div>
     </div>
   );

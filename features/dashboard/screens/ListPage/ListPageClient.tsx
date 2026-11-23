@@ -1,22 +1,16 @@
 /**
  * ListPageClient - Client Component
- * Based on Keystone's ListPage implementation but using ShadCN components
- * Now using React Query for data fetching with SSR hydration
+ * Find a record: title + count, search/filter/sort/columns, a dense table (cards on phones),
+ * a sticky footer that turns into the bulk-action bar on selection.
+ * Data comes from React Query with the server result as placeholder; all state is in the URL.
  */
 
 'use client'
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {
-  SearchX,
-  Table as TableIcon,
-  Triangle,
-  Square,
-  Circle,
-  Search
-} from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Plus, SearchX, RotateCw, TriangleAlert } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '../../components/PageContainer'
@@ -28,6 +22,8 @@ import { useSort } from '../../hooks/useSort'
 import { useListItemsQuery } from '../../hooks/useListItems.query'
 import { buildOrderByClause } from '../../lib/buildOrderByClause'
 import { buildWhereClause } from '../../lib/buildWhereClause'
+import { listQueryFields } from '../../lib/listQueryFields'
+import { listIcon } from '../../components/listIcons'
 
 interface ListPageClientProps {
   list: any
@@ -40,31 +36,6 @@ interface ListPageClientProps {
   }
 }
 
-function EmptyStateDefault({ list }: { list: any }) {
-  return (
-    <EmptyState
-      title={`No ${list.label} Created`}
-      description={`You can create a new ${list.singular.toLowerCase()} to get started.`}
-      icons={[Triangle, Square, Circle]}
-    />
-  )
-}
-
-function EmptyStateSearch({ onResetFilters }: { onResetFilters: () => void }) {
-  return (
-    <EmptyState
-      title="No Results Found"
-      description="Try adjusting your search filters."
-      icons={[Search]}
-      action={{
-        label: "Reset Filters",
-        onClick: onResetFilters
-      }}
-    />
-  )
-}
-
-
 export function ListPageClient({
   list,
   initialData,
@@ -75,11 +46,9 @@ export function ListPageClient({
   const searchParams = useSearchParams()
   const { basePath } = useDashboard()
 
-  // Hooks for sorting and field selection
   const selectedFields = useSelectedFields(list)
-  const sort = useSort(list)
+  useSort(list)
 
-  // Extract current search params (reactive to URL changes)
   const currentSearchParams = useMemo(() => {
     const params: Record<string, string> = {}
     searchParams?.forEach((value, key) => {
@@ -92,104 +61,62 @@ export function ListPageClient({
   const pageSize = parseInt(currentSearchParams.pageSize || list.pageSize?.toString() || '50', 10)
   const searchString = currentSearchParams.search || ''
 
-  // Build query variables from current search params
   const variables = useMemo(() => {
     const orderBy = buildOrderByClause(list, currentSearchParams)
     const filterWhere = buildWhereClause(list, currentSearchParams)
-    const searchParameters = searchString ? { search: searchString } : {}
-    const searchWhere = buildWhereClause(list, searchParameters)
+    const searchWhere = buildWhereClause(list, searchString ? { search: searchString } : {})
 
-    // Combine search and filters
     const whereConditions = []
-    if (Object.keys(searchWhere).length > 0) {
-      whereConditions.push(searchWhere)
-    }
-    if (Object.keys(filterWhere).length > 0) {
-      whereConditions.push(filterWhere)
-    }
-
-    const where = whereConditions.length > 0 ? { AND: whereConditions } : {}
+    if (Object.keys(searchWhere).length > 0) whereConditions.push(searchWhere)
+    if (Object.keys(filterWhere).length > 0) whereConditions.push(filterWhere)
 
     return {
-      where,
+      where: whereConditions.length > 0 ? { AND: whereConditions } : {},
       take: pageSize,
       skip: (currentPage - 1) * pageSize,
       orderBy
     }
   }, [list, currentSearchParams, currentPage, pageSize, searchString])
 
-  // Build selected fields from URL or defaults
-  const querySelectedFields = useMemo(() => {
-    let fields = ['id']
+  const querySelectedFields = useMemo(
+    () => listQueryFields(list, currentSearchParams.fields),
+    [list, currentSearchParams.fields]
+  )
 
-    if (currentSearchParams.fields) {
-      const fieldsFromUrl = currentSearchParams.fields.split(',').filter(field => {
-        return field in (list.fields || {})
-      })
-      fields = [...fields, ...fieldsFromUrl]
-    } else {
-      if (list.initialColumns && list.initialColumns.length > 0) {
-        fields = [...fields, ...list.initialColumns]
-      } else if (list.fields) {
-        Object.keys(list.fields).forEach(fieldKey => {
-          if (['name', 'title', 'label', 'createdAt', 'updatedAt'].includes(fieldKey)) {
-            fields.push(fieldKey)
-          }
-        })
-      }
-    }
-
-    return [...new Set(fields)]
-  }, [currentSearchParams.fields, list.fields, list.initialColumns])
-
-  // Use React Query hook with server-side initial data
-  // IMPORTANT: Using placeholderData instead of initialData so invalidation works properly
-  const { data: queryData, error: queryError, isLoading, isFetching } = useListItemsQuery(
+  // placeholderData (not initialData) so invalidation after edits refetches
+  const { data: queryData, error: queryError, isFetching, refetch } = useListItemsQuery(
     {
       listKey: list.key,
       variables,
       selectedFields: querySelectedFields
     },
     {
-      // Use placeholderData to show server data immediately, but still allow refetching
       placeholderData: initialError ? undefined : initialData,
     }
   )
 
-  // Use query data, fallback to initial data
   const data = queryData || initialData
   const error = queryError ? queryError.message : initialError
 
-  // Handle page change - simplified since FilterBar handles search/filters
-  const handlePageChange = useCallback((newPage: number) => {
-    const params = new URLSearchParams(window.location.search)
-
-    if (newPage && newPage > 1) {
-      params.set('page', newPage.toString())
-    } else {
-      params.delete('page')
-    }
-
-    const newUrl = params.toString() ? `?${params.toString()}` : ''
-    router.push(newUrl)
-  }, [router])
-
-  // Handle reset filters
   const handleResetFilters = useCallback(() => {
     router.push(window.location.pathname)
   }, [router])
 
-  if (!list) {
-    return (
-      <PageContainer title="List not found">
-        <Alert variant="destructive">
-          <AlertDescription>
-            The requested list was not found.
-          </AlertDescription>
-        </Alert>
-      </PageContainer>
-    )
-  }
+  const hasFilterParams = Object.keys(currentSearchParams).some((k) => k.startsWith('!'))
+  const isFiltered = !!searchString || hasFilterParams
+  const isEmpty = data?.count === 0 && !isFiltered
+  const Icon = listIcon(list.key)
+
+  const createHref = `${basePath}/${list.path}/create`
+  const createAction = !list.hideCreate ? (
+    <Button asChild size="sm">
+      <Link href={createHref}>
+        <Plus />
+        <span className="max-sm:hidden">New {list.singular.toLowerCase()}</span>
+        <span className="sm:hidden">New</span>
+      </Link>
+    </Button>
+  ) : null
 
   const breadcrumbs = [
     { type: 'link' as const, label: 'Dashboard', href: basePath },
@@ -197,54 +124,65 @@ export function ListPageClient({
   ]
 
   const header = (
-    <div>
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+    <div className="flex items-center gap-2.5">
+      <h1 className="text-[18px] font-semibold leading-7 tracking-[-0.01em] text-[var(--ks-ink)] md:text-[20px]">
         {list.label}
       </h1>
-      <p className="text-muted-foreground">
-        {list.description || `Create and manage ${list.label.toLowerCase()}`}
-      </p>
+      {!error && (
+        <span className="font-mono text-[12px] text-[var(--ks-dim)]" aria-label={`${data?.count ?? 0} total`}>
+          {data?.count ?? 0}
+        </span>
+      )}
     </div>
   )
 
-  // Check if we have any active filters (search or actual filters)
-  const hasFilters = !!searchString
-  const isFiltered = hasFilters
-  const isEmpty = data?.count === 0 && !isFiltered
-
   return (
-    <PageContainer title={list.label} header={header} breadcrumbs={breadcrumbs}>
-      {/* Filter Bar - includes search, filters, sorting, field selection, and create button */}
-      <div className="px-4 md:px-6">
+    <PageContainer title={list.label} header={header} breadcrumbs={breadcrumbs} actions={createAction}>
+      <div className="px-4 pb-3 pt-4 md:px-6">
         <FilterBar list={list} selectedFields={selectedFields} />
       </div>
 
-      {/* Data table - full width */}
-      {error ? (
-        <div className="px-4 md:px-6">
-          <Alert variant="destructive">
-            <AlertDescription>
-              Failed to load items: {error}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : isEmpty ? (
-        <div className="px-4 md:px-6">
-          <EmptyStateDefault list={list} />
-        </div>
-      ) : data?.count === 0 ? (
-        <div className="px-4 md:px-6">
-          <EmptyStateSearch onResetFilters={handleResetFilters} />
-        </div>
-      ) : (
-        <ListTable
-          data={data}
-          list={list}
-          selectedFields={selectedFields}
-          currentPage={currentPage}
-          pageSize={pageSize}
-        />
-      )}
+      <div className="border-y border-[var(--ks-line)] md:mx-6 md:mb-6 md:rounded-[12px] md:border md:bg-[var(--ks-surface)] md:shadow-[var(--ks-card-shadow)]">
+        {error ? (
+          <EmptyState
+            title={`Couldn't load ${list.label.toLowerCase()}`}
+            description={error}
+            icons={[TriangleAlert]}
+          >
+            <Button size="sm" variant="outline" onClick={() => refetch()}>
+              <RotateCw />
+              Retry
+            </Button>
+          </EmptyState>
+        ) : isEmpty ? (
+          <EmptyState title={`No ${list.plural.toLowerCase()}`} icons={[Icon]}>
+            {!list.hideCreate && (
+              <Button asChild size="sm">
+                <Link href={createHref}>
+                  <Plus />
+                  New {list.singular.toLowerCase()}
+                </Link>
+              </Button>
+            )}
+          </EmptyState>
+        ) : data?.count === 0 ? (
+          <EmptyState
+            title="No matches"
+            description={searchString ? `Nothing matches “${searchString}”` : undefined}
+            icons={[SearchX]}
+            action={{ label: 'Clear search and filters', onClick: handleResetFilters }}
+          />
+        ) : (
+          <ListTable
+            data={data}
+            list={list}
+            selectedFields={selectedFields}
+            currentPage={currentPage || initialSearchParams.page}
+            pageSize={pageSize}
+            isFetching={isFetching && !!queryData}
+          />
+        )}
+      </div>
     </PageContainer>
   )
 }

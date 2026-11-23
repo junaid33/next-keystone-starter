@@ -61,118 +61,66 @@ export function SortSelection({ listMeta, children }: SortSelectionProps) {
     setIsOpen(false)
   }
 
-  const DefaultTrigger = () => (
-    <Button
-      variant="outline"
-      size="sm"
-      className="flex gap-1.5 px-3 text-xs font-medium"
-    >
-      <ArrowUpDown className="h-3 w-3" />
-      SORT
-    </Button>
-  )
-
-  // If no sort is active, render the default button
-  if (!searchParams?.get('sortBy')) {
-    return (
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          {children || <DefaultTrigger />}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[200px]">
-          <DropdownMenuLabel className="py-1.5">Sort by</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div className="max-h-72 overflow-y-auto">
-            {Object.entries(listMeta.fields)
-              .filter(([, field]) => field.isOrderable)
-              .map(([fieldPath, field]) => (
-                <DropdownMenuItem
-                  key={fieldPath}
-                  onSelect={() => handleSortChange(fieldPath)}
-                >
-                  <span className="flex items-center justify-between w-full">
-                    {field.label}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
-
-  const sortBy = searchParams.get('sortBy') || ''
+  const sortBy = searchParams?.get('sortBy') || ''
   const field = sortBy.startsWith('-') ? sortBy.slice(1) : sortBy
   const direction = sortBy.startsWith('-') ? 'DESC' : 'ASC'
 
+  const setSort = (fieldPath: string, dir: 'ASC' | 'DESC') => {
+    const newQueryParams = new URLSearchParams(query)
+    newQueryParams.set('sortBy', dir === 'DESC' ? `-${fieldPath}` : fieldPath)
+    router.push(`${pathname}?${newQueryParams.toString()}`)
+  }
+
+  const DefaultTrigger = () => (
+    <Button variant="outline" size="sm">
+      <ArrowUpDown />
+      Sort
+    </Button>
+  )
+
   return (
-    <div className="inline-flex divide-x rounded-lg border">
-      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            className="rounded-r-none px-3"
-          >
-            <ArrowUpDown className="h-3 w-3 stroke-muted-foreground" />
-            {listMeta.fields[field]?.label}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[200px]">
-          <div className="flex items-center justify-between py-1.5">
-            <DropdownMenuLabel className="py-0">Sort by</DropdownMenuLabel>
-            <button
-              type="button"
-              onClick={resetSort}
-              className="mr-1 rounded-[6px] px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              Clear
-            </button>
-          </div>
-          <DropdownMenuSeparator />
-          <div className="max-h-72 overflow-y-auto">
-            {Object.entries(listMeta.fields)
-              .filter(([, field]) => field.isOrderable)
-              .map(([fieldPath, fieldMeta]) => (
-                <DropdownMenuItem
-                  key={fieldPath}
-                  onSelect={() => handleSortChange(fieldPath)}
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>{children || <DefaultTrigger />}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[220px] p-0">
+        <div className="flex h-9 items-center justify-between border-b border-[var(--ks-line)] pl-3 pr-1.5">
+          <DropdownMenuLabel className="p-0">Sort by</DropdownMenuLabel>
+          {field && (
+            <div className="ks-seg" role="group" aria-label="Direction">
+              {(['ASC', 'DESC'] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={direction === d}
+                  aria-label={d === 'ASC' ? 'Ascending' : 'Descending'}
+                  onClick={() => setSort(field, d)}
                 >
-                  <span className="flex items-center justify-between w-full">
-                    {fieldMeta.label}
-                    {fieldPath === field && (
-                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {direction}
-                      </span>
-                    )}
-                  </span>
-                </DropdownMenuItem>
+                  {d === 'ASC' ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                </button>
               ))}
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Button
-        variant="outline"
-        className="rounded-l-none pl-3 pr-2"
-        onClick={() => handleSortChange(field)}
-      >
-        <span className="text-xs tracking-wide font-semibold uppercase">
-          {direction}
-        </span>
-        <div className="-space-y-2">
-          <ChevronUp
-            className={cn(
-              'size-3.5',
-              direction === 'ASC' ? 'text-blue-500' : 'opacity-30'
-            )}
-          />
-          <ChevronDown
-            className={cn(
-              'size-3.5',
-              direction === 'DESC' ? 'text-blue-500' : 'opacity-30'
-            )}
-          />
+            </div>
+          )}
         </div>
-      </Button>
-    </div>
+        <div className="max-h-72 overflow-y-auto p-1">
+          {Object.entries(listMeta.fields)
+            .filter(([, f]) => f.isOrderable)
+            .map(([fieldPath, fieldMeta]) => (
+              <DropdownMenuItem key={fieldPath} onSelect={() => handleSortChange(fieldPath)} className="justify-between">
+                <span className={cn(fieldPath === field && 'font-medium text-[var(--ks-ink)]')}>{fieldMeta.label}</span>
+                {fieldPath === field && (
+                  <span className="font-mono text-[12px] text-[var(--ks-accent)]">{direction === 'ASC' ? 'A→Z' : 'Z→A'}</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+        </div>
+        {field && (
+          <>
+            <DropdownMenuSeparator className="m-0" />
+            <div className="p-1">
+              <DropdownMenuItem onSelect={resetSort}>Default order</DropdownMenuItem>
+            </div>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

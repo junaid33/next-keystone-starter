@@ -10,6 +10,7 @@ import { getListByPath } from '../../actions/getListByPath'
 import { getAdminMetaAction } from '../../actions'
 import { buildOrderByClause } from '../../lib/buildOrderByClause'
 import { buildWhereClause } from '../../lib/buildWhereClause'
+import { listQueryFields } from '../../lib/listQueryFields'
 import { notFound } from 'next/navigation'
 import { ListPageClient } from './ListPageClient'
 
@@ -70,31 +71,8 @@ export async function ListPage({ params, searchParams }: PageProps) {
     orderBy
   }
 
-  // Build selected fields set from URL params or default to initial columns
-  let selectedFields = ['id'] // Always include ID
-  
-  if (searchParamsObj.fields) {
-    // Use fields from URL params
-    const fieldsFromUrl = searchParamsObj.fields.toString().split(',').filter(field => {
-      return field in (list.fields || {})
-    })
-    selectedFields = [...selectedFields, ...fieldsFromUrl]
-  } else {
-    // Use initial columns or fallback to basic fields
-    if (list.initialColumns && list.initialColumns.length > 0) {
-      selectedFields = [...selectedFields, ...list.initialColumns]
-    } else if (list.fields) {
-      // Fallback for lists without initialColumns
-      Object.keys(list.fields).forEach(fieldKey => {
-        if (['name', 'title', 'label', 'createdAt', 'updatedAt'].includes(fieldKey)) {
-          selectedFields.push(fieldKey)
-        }
-      })
-    }
-  }
-  
-  // Remove duplicates
-  selectedFields = [...new Set(selectedFields)]
+  // id + visible columns + the row title (label field) + the status field for the title-line dot
+  const selectedFields = listQueryFields(list, searchParamsObj.fields?.toString())
 
   // Fetch list items data with cache options
   const cacheOptions = {

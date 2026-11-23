@@ -3,13 +3,12 @@
 import { useState, useMemo } from "react"
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Button } from "@/components/ui/button"
-import { X as XIcon, Filter as FilterIcon, ChevronDownIcon, ChevronRightIcon } from "lucide-react"
+import { X as XIcon, ChevronDownIcon } from "lucide-react"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
 import { enhanceFields } from '../utils/enhanceFields'
 
 interface FilterListProps {
@@ -120,27 +119,37 @@ export function FilterList({ list }: FilterListProps) {
   if (activeFilters.length === 0) return null
 
   return (
-    <div className="flex gap-1.5 border-t bg-muted/40 py-2 -mx-4 md:-mx-6 px-4 md:px-6 items-center">
-      <div className="flex items-center gap-1.5 border-r border-muted-foreground/30 pr-2 mr-1.5">
-        <FilterIcon
-          className="stroke-muted-foreground/50 size-4"
-          strokeWidth={1.5}
+    <div className="flex flex-wrap items-center gap-1.5">
+      {activeFilters.map((filter) => (
+        <FilterPill
+          key={filter.id}
+          filter={{
+            field: filter.fieldPath,
+            type: filter.filterType,
+            value: filter.value
+          }}
+          field={filter.field}
         />
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {activeFilters.map((filter) => (
-          <FilterPill
-            key={filter.id}
-            filter={{
-              field: filter.fieldPath,
-              type: filter.filterType,
-              value: filter.value
-            }}
-            field={filter.field}
-          />
-        ))}
-      </div>
+      ))}
+      <ClearFilters />
     </div>
+  )
+}
+
+function ClearFilters() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const clear = () => {
+    const next = new URLSearchParams(searchParams?.toString() ?? '')
+    for (const key of [...next.keys()]) if (key.startsWith('!')) next.delete(key)
+    next.delete('page')
+    router.push(`${pathname}?${next.toString()}`)
+  }
+  return (
+    <button type="button" onClick={clear} className="h-6 rounded-[6px] px-1.5 text-[12px] text-[var(--ks-dim)] hover:text-[var(--ks-ink)]">
+      Clear
+    </button>
   )
 }
 
@@ -172,34 +181,24 @@ function FilterPill({ filter, field }: FilterPillProps) {
 
   return (
     <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-      <PopoverTrigger asChild>
-        <div className="inline-flex">
-          <Button
-            className="h-7 rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-950"
-            variant="outline"
-            size="icon"
-            onClick={(e) => {
-              e.stopPropagation()
-              onRemove()
-            }}
-          >
-            <XIcon size={16} aria-hidden="true" />
-          </Button>
-          <Button
-            className="h-7 rounded-none shadow-none first:rounded-s-md last:rounded-e-md focus-visible:z-10 justify-start uppercase text-xs max-w-64"
-            variant="outline"
-            size="sm"
-          >
-            <span className="opacity-75 mr-1">{field.label}</span>
-            <ChevronRightIcon className="shrink-0 mx-0.5" size={14} />
-            <span className="font-semibold truncate">
-              {filterLabel}
-            </span>
-            <ChevronDownIcon className="shrink-0 ml-1" size={14} />
-          </Button>
-        </div>
-      </PopoverTrigger>
-      <PopoverContent className="p-0">
+      <div className="inline-flex h-6 max-w-full items-center rounded-[7px] bg-[var(--ks-selected)] text-[12px] shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--ks-accent)_22%,transparent)]">
+        <PopoverTrigger asChild>
+          <button type="button" className="flex min-w-0 items-center gap-1 pl-2 pr-1 outline-none focus-visible:underline">
+            <span className="shrink-0 text-[var(--ks-dim)]">{field.label}</span>
+            <span className="truncate font-medium text-[var(--ks-ink)]">{filterLabel}</span>
+            <ChevronDownIcon className="size-3 shrink-0 text-[var(--ks-label)]" />
+          </button>
+        </PopoverTrigger>
+        <button
+          type="button"
+          aria-label={`Remove ${field.label} filter`}
+          onClick={onRemove}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-r-[7px] text-[var(--ks-label)] hover:text-[var(--ks-danger)]"
+        >
+          <XIcon className="size-3" aria-hidden="true" />
+        </button>
+      </div>
+      <PopoverContent align="start" className="w-[260px] p-0">
         <EditDialog
           filter={filter}
           field={field}
@@ -255,8 +254,9 @@ function EditDialog({ filter, field, onClose }: EditDialogProps) {
   }
 
   return (
-    <form className="space-y-2" onSubmit={handleSubmit}>
-      <div className="px-2 pt-3 pb-1">
+    <form onSubmit={handleSubmit}>
+      <div className="ks-label border-b border-[var(--ks-line)] px-3 py-2">{field.label}</div>
+      <div className="p-3">
         <FilterWrapper
           field={field}
           operator={filter.type}
@@ -264,14 +264,15 @@ function EditDialog({ filter, field, onClose }: EditDialogProps) {
           onChange={setValue}
         />
       </div>
-      <Separator />
-      <div className="flex justify-between gap-2 px-2 pb-2">
-        <Button variant="outline" size="sm" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button size="sm" type="submit">
-          Save
-        </Button>
+      <div className="flex justify-end border-t border-[var(--ks-line)] p-2">
+        <div className="ks-track">
+          <Button type="button" variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" type="submit">
+            Apply
+          </Button>
+        </div>
       </div>
     </form>
   )
