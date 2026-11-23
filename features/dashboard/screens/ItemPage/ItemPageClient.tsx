@@ -47,6 +47,10 @@ interface ItemPageClientProps {
   list: any
   item: Record<string, unknown>
   itemId: string
+  /** Optional trail override (the account page shows "Account" instead of List / record). */
+  crumbs?: { type: 'link' | 'page'; label: string; href?: string }[]
+  /** Optional block rendered after the fields (the account page adds appearance and session). */
+  footer?: React.ReactNode
 }
 
 // Hook for event callbacks (from Keystone)
@@ -235,7 +239,7 @@ function deserializeItemToValue(
 }
 
 // Main ItemPageClient component
-export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
+export function ItemPageClient({ list, item, itemId, crumbs, footer }: ItemPageClientProps) {
   const router = useRouter()
   const queryClient = useQueryClient()
 
@@ -402,8 +406,8 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
     return { tone: statusTone(raw), label: option?.label ?? (raw == null ? 'None' : String(raw)) }
   }, [statusField, value, item])
 
-  const breadcrumbItems = [
-    { type: 'link' as const, label: 'Dashboard', href: basePath },
+  const breadcrumbItems = crumbs ?? [
+    { type: 'link' as const, label: 'Overview', href: basePath },
     { type: 'link' as const, label: list.label, href: `${basePath}/${list.path}` },
     { type: 'page' as const, label: pageTitle }
   ]
@@ -529,6 +533,7 @@ export function ItemPageClient({ list, item, itemId }: ItemPageClientProps) {
             </aside>
           )}
         </div>
+        {footer}
       </div>
 
       {/* Error Dialog */}

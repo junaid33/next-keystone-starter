@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import { useActionState } from "react";
-import { RiLoader2Fill } from "@remixicon/react";
-import { Eye, EyeOff } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { resetPassword } from "@/features/dashboard/actions";
+import { AuthField, AuthMessage } from "@/features/dashboard/components/AuthShell";
+import { PasswordInput } from "@/features/dashboard/components/PasswordInput";
 
 type ResetFormProps = {
   mode: "reset" | "request";
@@ -35,18 +33,12 @@ const initialState: ActionState = {
 
 function SubmitButton({ mode }: { mode: "reset" | "request" }) {
   const { pending } = useFormStatus();
+  const label = mode === "reset" ? "Set password" : "Send reset link";
 
   return (
-    <Button
-      type="submit"
-      className="w-full py-2 font-medium"
-      disabled={pending}
-    >
-      {pending ? (
-        <RiLoader2Fill className="size-4 shrink-0 animate-spin" />
-      ) : (
-        mode === "reset" ? "Reset password" : "Send reset link"
-      )}
+    <Button type="submit" className="h-9 w-full text-[13px]" disabled={pending}>
+      {pending ? <Loader2 className="animate-spin" /> : null}
+      {pending ? (mode === "reset" ? "Saving" : "Sending") : label}
     </Button>
   );
 }
@@ -61,6 +53,7 @@ async function formAction(
   if (mode === 'reset' && token) {
     formData.append('token', token);
   }
+
   const result = await resetPassword(prevState ?? initialState, formData, mode);
 
   // Convert the result to match ActionState shape
@@ -72,7 +65,6 @@ async function formAction(
 }
 
 export function ResetForm({ mode, token }: ResetFormProps) {
-  const [showPassword, setShowPassword] = useState(false);
   const [state, dispatch] = useActionState(
     (prevState: ActionState | null, formData: FormData) => formAction(prevState, formData, mode, token),
     initialState
@@ -80,76 +72,33 @@ export function ResetForm({ mode, token }: ResetFormProps) {
 
   return (
     <>
-      <form action={dispatch} className="mt-8 space-y-4">
-        <div>
-          <Label
-            htmlFor="email"
-            className="text-sm font-medium text-foreground dark:text-foreground"
-          >
-            Email
-          </Label>
+      <form action={dispatch} className="flex flex-col gap-4">
+        <AuthField id="email" label="Email">
           <Input
             type="email"
             id="email"
             name="email"
             autoComplete="email"
-            placeholder="you@example.com"
-            className="mt-2 bg-muted/40"
+            placeholder="you@company.com"
+            className="h-9"
             defaultValue={state.formData.email}
             required
           />
-        </div>
+        </AuthField>
+
         {mode === "reset" && (
-          <div>
-            <Label
-              htmlFor="password"
-              className="text-sm font-medium text-foreground dark:text-foreground"
-            >
-              New Password
-            </Label>
-            <div className="relative mt-2">
-              <Input
-                type={showPassword ? "text" : "password"}
-                id="password"
-                name="password"
-                autoComplete="new-password"
-                placeholder="••••••••"
-                className="pr-10 bg-muted/40"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-500"
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-          </div>
+          <AuthField id="password" label="New password">
+            <PasswordInput id="password" name="password" autoComplete="new-password" required />
+          </AuthField>
         )}
-        <SubmitButton mode={mode} />
+
+        <div className="ks-track mt-1 flex w-full">
+          <SubmitButton mode={mode} />
+        </div>
       </form>
 
-      {state.message && (
-        <Badge variant="destructive" className="hover:bg-destructive/10 bg-destructive/5 flex text-base items-start gap-2 border border-destructive/50 p-4 rounded-sm mt-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="uppercase tracking-wider font-semibold text-sm">Error</h2>
-            <span className="break-all text-sm opacity-75 font-normal">{state.message}</span>
-          </div>
-        </Badge>
-      )}
-      {state.success && (
-        <Badge color="emerald" className="flex text-base items-start gap-2 p-4 rounded-sm mt-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="uppercase tracking-wider font-semibold text-sm">Success</h2>
-            <span className="break-all text-sm opacity-75 font-normal">{state.success}</span>
-          </div>
-        </Badge>
-      )}
+      {state.message && <AuthMessage>{state.message}</AuthMessage>}
+      {state.success && <AuthMessage tone="success">{state.success}</AuthMessage>}
     </>
   );
 }

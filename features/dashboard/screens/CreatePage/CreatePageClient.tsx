@@ -92,7 +92,7 @@ export function CreatePageClient({ listKey, list }: CreatePageClientProps) {
 
   const breadcrumbItems = list
     ? [
-        { type: 'link' as const, label: 'Dashboard', href: basePath },
+        { type: 'link' as const, label: 'Overview', href: basePath },
         { type: 'link' as const, label: list.label, href: `${basePath}/${list.path}` },
         { type: 'page' as const, label: `New ${list.singular.toLowerCase()}` },
       ]

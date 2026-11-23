@@ -7,9 +7,8 @@
 
 import { safeErrorSummary } from '@/features/dashboard/lib/security';
 import React, { Component, ErrorInfo, ReactNode } from 'react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 
 // notFound() and redirect() signal Next through errors tagged with a digest. They are control
 // flow, not failures, and must reach Next's own boundaries (public, documented digests).
@@ -50,32 +49,21 @@ export class ErrorBoundary extends Component<Props, State> {
     }
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Something went wrong</AlertTitle>
-              <AlertDescription className="mt-2">
-                An unexpected error occurred in the dashboard. Please try refreshing the page.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="mt-4 flex gap-2">
-              <Button 
-                onClick={() => window.location.reload()}
-                variant="outline"
-              >
-                Refresh Page
+        <div className="flex min-h-svh w-full items-center justify-center bg-[var(--ks-page)] p-4">
+          <div className="ks-card w-full max-w-[360px] p-5">
+            <div className="flex items-center gap-2.5">
+              <span className="ks-dot" data-tone="red" aria-hidden="true" />
+              <h1 className="text-[14px] font-semibold text-[var(--ks-ink)]">Something went wrong</h1>
+            </div>
+            <div className="ks-track mt-5 flex w-full">
+              <Button size="sm" variant="outline" className="h-8 flex-1" onClick={() => window.location.reload()}>
+                <RotateCw />
+                Reload
               </Button>
-              <Button 
-                onClick={() => this.setState({ hasError: false, error: undefined })}
-                variant="default"
-              >
-                Try Again
+              <Button size="sm" className="h-8 flex-1" onClick={() => this.setState({ hasError: false, error: undefined })}>
+                Try again
               </Button>
             </div>
-            
-            
           </div>
         </div>
       )
