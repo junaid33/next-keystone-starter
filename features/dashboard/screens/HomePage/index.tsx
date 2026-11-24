@@ -1,12 +1,13 @@
 /**
  * HomePage - Server Component
- * The overview: find a record, then every list with its live count and a create pill.
+ * The overview: find a record, then every list with a create pill and a track holding its live count
+ * and an open button (the same track + pill group as the list pager).
  */
 
 import { PUBLIC_REQUEST_ERROR } from '@/features/dashboard/lib/security';
 import React from 'react'
 import Link from 'next/link'
-import { ChevronRight, Database, Plus } from 'lucide-react'
+import { ArrowUpRight, Database, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageContainer } from '../../components/PageContainer'
@@ -32,16 +33,12 @@ function ListRow({ list, count, singletonItemId = null, hideCreate = false }: Li
       ? '—'
       : count.toLocaleString('en-US')
 
-  const body = (
-    <>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ks-ink)]">{list.label}</span>
-      <span className="shrink-0 font-mono text-[12px] tabular-nums text-[var(--ks-dim)]">{meta}</span>
-    </>
-  )
+  const canOpen = !(singletonIsMissing && hideCreate)
+  const body = <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ks-ink)]">{list.label}</span>
 
   return (
-    <li className="group relative flex items-center gap-3 px-3 py-2 md:px-4">
-      {singletonIsMissing && hideCreate ? (
+    <li className="group relative flex items-center gap-3 px-3 py-[5px] md:px-4">
+      {!canOpen ? (
         <div className="flex min-w-0 flex-1 items-center gap-3">{body}</div>
       ) : (
         <Link
@@ -51,16 +48,28 @@ function ListRow({ list, count, singletonItemId = null, hideCreate = false }: Li
           {body}
         </Link>
       )}
-      <div className="relative z-10 flex shrink-0 items-center justify-end gap-1 sm:w-[76px]">
+      {/* Only the two buttons take clicks; the count and the gaps fall through to the row link. */}
+      <div className="pointer-events-none relative z-10 flex shrink-0 items-center justify-end gap-2">
         {!hideCreate && !isSingleton ? (
-          <Button asChild size="sm" variant="outline" className="max-sm:w-7 max-sm:px-0">
+          <Button asChild size="sm" variant="outline" className="pointer-events-auto max-sm:w-7 max-sm:px-0">
             <Link href={`/dashboard/${list.path}/create`} aria-label={`New ${list.singular?.toLowerCase() || 'item'}`}>
               <Plus />
               <span className="max-sm:hidden">New</span>
             </Link>
           </Button>
         ) : null}
-        <ChevronRight aria-hidden="true" className="size-3.5 text-[var(--ks-label)] max-sm:hidden" />
+        <div className="ks-track">
+          <span className="flex h-7 min-w-9 items-center justify-end px-1.5 font-mono text-[12px] tabular-nums text-[var(--ks-dim)]">
+            {meta}
+          </span>
+          {canOpen ? (
+            <Button asChild size="icon-sm" variant="outline" className="pointer-events-auto">
+              <Link href={href} aria-label={`Open ${list.label}`}>
+                <ArrowUpRight />
+              </Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
     </li>
   )
