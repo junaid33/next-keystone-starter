@@ -1,5 +1,8 @@
 "use client";
 
+// Own-key settings. Same fields and save as before; trigger is a TUFFUI quiet IconButton,
+// the panel uses the dashboard popover, field and pill styles.
+
 import { Settings2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,13 +20,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAiConfig } from "../../hooks/use-ai-config";
+import { IconButton } from "./tuff-primitives";
 
 interface SimpleSettingsPopoverProps {
   disabled?: boolean;
@@ -68,52 +66,19 @@ export function SimpleSettingsPopover({ disabled = false }: SimpleSettingsPopove
     setOpen(false);
   };
 
-  const button = (
-    <button
-      type="button"
-      disabled={disabled}
-      className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-secondary-foreground shadow-xs hover:bg-secondary/80 dark:border-none gap-1.5 px-3 has-[>svg]:px-2.5 border-border dark:bg-secondary size-8 rounded-full border bg-transparent"
-    >
-      <Settings2 className="size-3.5" />
-    </button>
-  );
-
-  if (disabled) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-block">
-              {button}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">Switch to local configuration to bring your own key</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        {button}
+        <IconButton icon={Settings2} label="Key settings" disabled={disabled} className="size-7" />
       </PopoverTrigger>
-      <PopoverContent
-        className="w-[340px] p-0"
-        align="start"
-        side="top"
-        sideOffset={8}
-      >
-        <div className="p-4">
-          {/* Provider Selection */}
-          <div className="mb-4">
-            <Label htmlFor="provider" className="text-xs font-medium">
+      <PopoverContent className="w-[min(320px,calc(100vw-24px))] p-0" align="end" side="top" sideOffset={8}>
+        <div className="flex flex-col gap-3 p-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ai-provider" className="ks-label">
               Provider
             </Label>
             <Select value={provider} onValueChange={(value: "openrouter" | "custom") => setProvider(value)}>
-              <SelectTrigger id="provider" className="h-9 text-sm mt-1.5">
+              <SelectTrigger id="ai-provider" className="h-8 text-[13px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -124,63 +89,53 @@ export function SimpleSettingsPopover({ disabled = false }: SimpleSettingsPopove
                 ))}
               </SelectContent>
             </Select>
-
             {provider === "custom" && (
-              <div className="mt-1.5">
-                <Input
-                  placeholder="https://api.example.com/v1"
-                  value={customEndpoint}
-                  onChange={(e) => setCustomEndpoint(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
+              <Input
+                aria-label="Endpoint"
+                placeholder="https://api.example.com/v1"
+                value={customEndpoint}
+                onChange={(e) => setCustomEndpoint(e.target.value)}
+              />
             )}
           </div>
 
-          {/* API Key */}
-          <div>
-            <Label htmlFor="api-key" className="text-xs font-medium">
-              API Key
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ai-api-key" className="ks-label">
+              API key
             </Label>
             <Input
-              id="api-key"
+              id="ai-api-key"
               type="text"
-              placeholder={
-                provider === 'custom'
-                  ? "Enter your API key..."
-                  : "sk-or-v1-..."
-              }
+              autoComplete="off"
+              placeholder={provider === "custom" ? "Key" : "sk-or-v1-…"}
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              className="h-9 text-sm font-mono mt-1.5"
+              className="font-mono"
             />
-            <p className="text-xs text-muted-foreground mt-3">
-              Your key is only saved locally in your browser
-            </p>
+            <p className="text-[12px] text-[var(--ks-label)]">Stored in this browser</p>
           </div>
 
-          <div className="mt-3">
-            <Label htmlFor="max-tokens" className="text-xs font-medium">
-              Max Tokens
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ai-max-tokens" className="ks-label">
+              Max tokens
             </Label>
             <Select value={maxTokens} onValueChange={setMaxTokens}>
-              <SelectTrigger id="max-tokens" className="h-9 text-sm mt-1.5">
+              <SelectTrigger id="ai-max-tokens" className="h-8 text-[13px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2000">2,000 tokens</SelectItem>
-                <SelectItem value="4000">4,000 tokens</SelectItem>
-                <SelectItem value="8000">8,000 tokens</SelectItem>
-                <SelectItem value="16000">16,000 tokens</SelectItem>
+                <SelectItem value="2000">2,000</SelectItem>
+                <SelectItem value="4000">4,000</SelectItem>
+                <SelectItem value="8000">8,000</SelectItem>
+                <SelectItem value="16000">16,000</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-4 py-3">
+        <div className="flex justify-end border-t border-[var(--ks-line)] px-3 py-2.5">
           <Button
             type="button"
-            variant="outline"
             size="sm"
             onClick={handleSave}
             disabled={!apiKey && !config.localKeys?.apiKey}

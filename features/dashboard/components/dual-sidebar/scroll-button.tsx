@@ -1,41 +1,31 @@
 "use client"
 
-import { Button, buttonVariants } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { type VariantProps } from "class-variance-authority"
-import { ChevronDown } from "lucide-react"
+// TUFFUI chat-thread "Jump to latest" pill (https://tuffui.com · MIT · Copyright (c) 2026 TUFFUI contributors),
+// restyled to --ks-* tokens. Scrolling still comes from use-stick-to-bottom.
+
+import { ArrowDown } from "lucide-react"
 import { useStickToBottomContext } from "use-stick-to-bottom"
+import { cn } from "@/lib/utils"
 
-export type ScrollButtonProps = {
-  className?: string
-  variant?: VariantProps<typeof buttonVariants>["variant"]
-  size?: VariantProps<typeof buttonVariants>["size"]
-} & React.ButtonHTMLAttributes<HTMLButtonElement>
-
-function ScrollButton({
-  className,
-  variant = "outline",
-  size = "sm",
-  ...props
-}: ScrollButtonProps) {
+function ScrollButton({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext()
 
   return (
-    <Button
-      variant={variant}
-      size={size}
+    <button
+      type="button"
+      onClick={() => scrollToBottom()}
+      aria-hidden={isAtBottom || undefined}
+      tabIndex={isAtBottom ? -1 : 0}
       className={cn(
-        "h-7 w-7 rounded-full transition-all duration-150 ease-out",
-        !isAtBottom
-          ? "translate-y-0 scale-100 opacity-100"
-          : "pointer-events-none translate-y-4 scale-95 opacity-0",
+        "ks-raised absolute bottom-3 left-1/2 flex h-8 -translate-x-1/2 items-center gap-1.5 rounded-full px-3.5 text-[0.8125rem] font-medium text-[var(--ks-ink)] transition-[opacity,translate,scale] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-[var(--ks-raised-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] active:scale-[0.97] motion-reduce:transition-none",
+        isAtBottom ? "pointer-events-none translate-y-2 opacity-0" : "translate-y-0 opacity-100",
         className
       )}
-      onClick={() => scrollToBottom()}
       {...props}
     >
-      <ChevronDown className="size-3" />
-    </Button>
+      <ArrowDown strokeWidth={2.5} className="size-3.5" aria-hidden="true" />
+      Jump to latest
+    </button>
   )
 }
 

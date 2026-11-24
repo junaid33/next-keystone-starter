@@ -402,6 +402,12 @@
   100% { transform: translateX(300%); }
 }
 
+/* TUFFUI Thinking dots (https://tuffui.com, MIT): fade and lift in a wave. */
+@keyframes ks-think {
+  0%, 100% { opacity: .3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
 @keyframes ks-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .35; }

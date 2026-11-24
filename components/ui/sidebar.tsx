@@ -301,7 +301,8 @@ function Sidebar({
             data-mobile="true"
             className={cn(
               "bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
-              side === "left" ? "w-(--sidebar-width-left)" : "w-(--sidebar-width-right)"
+              // The assistant (right) takes the whole phone screen; the nav (left) stays a drawer.
+              side === "left" ? "w-(--sidebar-width-left)" : "w-full border-l-0 sm:max-w-none"
             )}
             style={
               {

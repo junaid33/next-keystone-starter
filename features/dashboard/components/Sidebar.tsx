@@ -27,7 +27,6 @@ import { LogoIcon } from '@/features/dashboard/components/Logo'
 import { UserProfileClient } from './UserProfileClient'
 import { visibleSidebarLists } from '../lib/sidebarAccess'
 import { useCommandPalette } from './CommandPalette'
-import { listIcon } from './listIcons'
 
 interface User {
   id: string
@@ -114,19 +113,15 @@ export function Sidebar({ adminMeta, user }: SidebarProps) {
           <SidebarGroup className="py-1">
             <SidebarGroupLabel>Lists</SidebarGroupLabel>
             <SidebarMenu>
-              {sidebarLinks.map((link) => {
-                const Icon = listIcon(link.key)
-                return (
-                  <SidebarMenuItem key={link.href}>
-                    <SidebarMenuButton asChild isActive={isLinkActive(link.href)} tooltip={link.title}>
-                      <Link href={link.href} onClick={close}>
-                        <Icon />
-                        <span>{link.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
+              {sidebarLinks.map((link) => (
+                <SidebarMenuItem key={link.href} className="group-data-[collapsible=icon]:hidden">
+                  <SidebarMenuButton asChild isActive={isLinkActive(link.href)}>
+                    <Link href={link.href} onClick={close}>
+                      <span>{link.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroup>
         )}

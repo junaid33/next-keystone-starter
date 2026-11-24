@@ -1,19 +1,16 @@
 "use client";
 
+// Model picker for the user's own OpenRouter key. Trigger is the TUFFUI agent-composer model button,
+// the list is the composer's suggestion menu (https://tuffui.com · MIT · Copyright (c) 2026 TUFFUI contributors).
+
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
 import { ChevronDown } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useAiConfig } from "../../hooks/use-ai-config";
 
 const POPULAR_MODELS = [
@@ -40,14 +37,6 @@ export function AIModelSelector({ disabled = false }: AIModelSelectorProps) {
     ? config.localKeys?.model || "openai/gpt-4o-mini"
     : null;
 
-  const selectedModel = currentModel
-    ? POPULAR_MODELS.find((m) => m.slug === currentModel)
-    : null;
-
-  const displayText = config.keyMode === "env"
-    ? "Custom"
-    : selectedModel?.name || "Custom";
-
   const handleModelChange = (modelSlug: string) => {
     if (config.keyMode !== "local") return;
 
@@ -70,76 +59,52 @@ export function AIModelSelector({ disabled = false }: AIModelSelectorProps) {
     }
   };
 
-  if (disabled) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              disabled
-              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 gap-1.5 px-3 h-8 rounded-full border bg-transparent"
-            >
-              <span className="truncate">{displayText}</span>
-              <ChevronDown className="h-3 w-3 opacity-50" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs">Model is set by global configuration</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
-  }
-
   return (
     <Popover open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-[color,box-shadow] gap-1.5 px-3 h-8 rounded-full border bg-transparent"
+          disabled={disabled}
+          aria-label="Model"
+          title={currentModel ?? undefined}
+          className="flex h-7 min-w-0 shrink items-center gap-1 rounded-md px-1.5 font-mono text-xs text-muted-foreground transition-[color,scale] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ks-focus)] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 data-[state=open]:text-foreground"
         >
-          <span className="truncate">{displayText}</span>
-          <ChevronDown className="h-3 w-3 opacity-50" />
+          <span className="truncate">{currentModel}</span>
+          <ChevronDown strokeWidth={2.5} className="size-3 shrink-0" aria-hidden="true" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
-        <div className="p-3 border-b">
-          <Input
-            placeholder="Model slug (e.g. openai/gpt-4o-mini)"
-            value={inputValue}
-            onChange={(e) => {
-              const value = e.target.value;
-              setInputValue(value);
-              handleModelChange(value);
-            }}
-            onKeyDown={handleInputKeyDown}
-            className="h-9 text-sm"
-          />
-        </div>
-        <div className="py-2 max-h-[280px] overflow-y-auto">
-          <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-            Popular Models
-          </div>
-          <div className="space-y-1">
-            {POPULAR_MODELS.map((model) => (
+      <PopoverContent className="w-80 rounded-[1.375rem] p-1.5" align="end" side="top" sideOffset={8}>
+        <Input
+          aria-label="Model slug"
+          placeholder="provider/model"
+          value={inputValue}
+          onChange={(e) => {
+            const value = e.target.value;
+            setInputValue(value);
+            handleModelChange(value);
+          }}
+          onKeyDown={handleInputKeyDown}
+          className="mb-1.5 h-9 rounded-xl font-mono text-[13px]"
+        />
+        <ul aria-label="Models" className="max-h-[280px] overflow-y-auto">
+          {POPULAR_MODELS.map((model) => (
+            <li key={model.slug}>
               <button
-                key={model.slug}
+                type="button"
+                aria-pressed={model.slug === currentModel}
                 onClick={() => {
                   handleModelChange(model.slug);
                   setInputValue("");
                   setIsDropdownOpen(false);
                 }}
-                className="w-full px-2 py-2 text-left hover:bg-accent rounded-sm transition-colors"
+                className="flex w-full items-baseline gap-3 rounded-xl px-3 py-2 text-start text-[0.8125rem] text-[var(--ks-ink)] hover:bg-foreground/[0.07] focus-visible:bg-foreground/[0.07] focus-visible:outline-none aria-pressed:bg-foreground/[0.07]"
               >
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{model.name}</span>
-                  <span className="text-xs text-muted-foreground">{model.slug}</span>
-                </div>
+                <bdi className="truncate font-mono">{model.slug}</bdi>
+                <span className="ms-auto shrink-0 text-xs text-muted-foreground">{model.name}</span>
               </button>
-            ))}
-          </div>
-        </div>
+            </li>
+          ))}
+        </ul>
       </PopoverContent>
     </Popover>
   );

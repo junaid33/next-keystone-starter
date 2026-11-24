@@ -23,7 +23,6 @@ import { useListItemsQuery } from '../../hooks/useListItems.query'
 import { buildOrderByClause } from '../../lib/buildOrderByClause'
 import { buildWhereClause } from '../../lib/buildWhereClause'
 import { listQueryFields } from '../../lib/listQueryFields'
-import { listIcon } from '../../components/listIcons'
 
 interface ListPageClientProps {
   list: any
@@ -105,7 +104,6 @@ export function ListPageClient({
   const hasFilterParams = Object.keys(currentSearchParams).some((k) => k.startsWith('!'))
   const isFiltered = !!searchString || hasFilterParams
   const isEmpty = data?.count === 0 && !isFiltered
-  const Icon = listIcon(list.key)
 
   const createHref = `${basePath}/${list.path}/create`
   const createAction = !list.hideCreate ? (
@@ -155,7 +153,7 @@ export function ListPageClient({
             </Button>
           </EmptyState>
         ) : isEmpty ? (
-          <EmptyState title={`No ${list.plural.toLowerCase()}`} icons={[Icon]}>
+          <EmptyState title={`No ${list.plural.toLowerCase()}`}>
             {!list.hideCreate && (
               <Button asChild size="sm">
                 <Link href={createHref}>

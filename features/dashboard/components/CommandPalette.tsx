@@ -24,7 +24,6 @@ import { useAdminMeta } from '../hooks/useAdminMeta'
 import { visibleSidebarLists } from '../lib/sidebarAccess'
 import { buildWhereClause } from '../lib/buildWhereClause'
 import { getListItemsAction } from '../actions/getListItemsAction'
-import { listIcon } from './listIcons'
 
 type PaletteCtx = { open: () => void }
 const CommandPaletteContext = createContext<PaletteCtx>({ open: () => {} })
@@ -128,21 +127,17 @@ export function CommandPaletteProvider({ children, user }: { children: React.Rea
 
           {hits.length > 0 && (
             <CommandGroup heading="Records">
-              {hits.map((hit) => {
-                const Icon = listIcon(hit.listKey)
-                return (
-                  <CommandItem
-                    key={`${hit.listKey}:${hit.id}`}
-                    value={`record ${hit.listKey} ${hit.id} ${hit.label}`}
-                    keywords={[query]}
-                    onSelect={() => go(`/dashboard/${hit.path}/${hit.id}`)}
-                  >
-                    <Icon />
-                    <span className="truncate">{hit.label}</span>
-                    <span className="ml-auto shrink-0 text-[12px] text-[var(--ks-label)]">{hit.listLabel}</span>
-                  </CommandItem>
-                )
-              })}
+              {hits.map((hit) => (
+                <CommandItem
+                  key={`${hit.listKey}:${hit.id}`}
+                  value={`record ${hit.listKey} ${hit.id} ${hit.label}`}
+                  keywords={[query]}
+                  onSelect={() => go(`/dashboard/${hit.path}/${hit.id}`)}
+                >
+                  <span className="truncate">{hit.label}</span>
+                  <span className="ml-auto shrink-0 text-[12px] text-[var(--ks-label)]">{hit.listLabel}</span>
+                </CommandItem>
+              ))}
             </CommandGroup>
           )}
 
@@ -151,15 +146,11 @@ export function CommandPaletteProvider({ children, user }: { children: React.Rea
               <Home />
               Overview
             </CommandItem>
-            {lists.map((list: any) => {
-              const Icon = listIcon(list.key)
-              return (
-                <CommandItem key={list.key} value={`go ${list.label}`} onSelect={() => go(`/dashboard/${list.path}`)}>
-                  <Icon />
-                  {list.label}
-                </CommandItem>
-              )
-            })}
+            {lists.map((list: any) => (
+              <CommandItem key={list.key} value={`go ${list.label}`} onSelect={() => go(`/dashboard/${list.path}`)}>
+                {list.label}
+              </CommandItem>
+            ))}
             <CommandItem value="Account" onSelect={() => go('/dashboard/account')}>
               <CircleUser />
               Account

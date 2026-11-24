@@ -10,7 +10,6 @@ import { ChevronRight, Database, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { PageContainer } from '../../components/PageContainer'
-import { listIcon } from '../../components/listIcons'
 import { getAdminMetaAction, getListCounts } from '../../actions'
 import { OverviewSearch } from './OverviewSearch'
 
@@ -25,7 +24,6 @@ function ListRow({ list, count, singletonItemId = null, hideCreate = false }: Li
   const isSingleton = list.isSingleton || false
   const href = `/dashboard/${list.path}${isSingleton ? '/1' : ''}`
   const singletonIsMissing = isSingleton && !singletonItemId
-  const Icon = listIcon(list.key)
   const meta = isSingleton
     ? singletonIsMissing
       ? 'Not created'
@@ -36,9 +34,6 @@ function ListRow({ list, count, singletonItemId = null, hideCreate = false }: Li
 
   const body = (
     <>
-      <span className="ks-raised grid size-7 shrink-0 place-items-center rounded-[8px]">
-        <Icon className="size-3.5 text-[var(--ks-dim)]" />
-      </span>
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--ks-ink)]">{list.label}</span>
       <span className="shrink-0 font-mono text-[12px] tabular-nums text-[var(--ks-dim)]">{meta}</span>
     </>
